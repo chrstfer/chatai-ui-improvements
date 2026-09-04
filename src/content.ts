@@ -9,6 +9,7 @@ import { DomObserver } from "./dom/observer.ts";
 import { LayoutManager } from "./layout/layout-manager.ts";
 import { SettingsStore } from "./storage/settings-store.ts";
 import { HudController } from "./ui/hud.ts";
+import { mountVersionOverlay } from "./ui/VersionOverlay.tsx";
 
 async function bootstrap() {
     const store = new SettingsStore();
@@ -34,6 +35,12 @@ async function bootstrap() {
 
     // 3. Mount floating HUD
     hud.mount();
+
+    // 3b. Mount top-right Version Overlay (Dev builds only)
+    const isDevelopment = typeof __DEV__ !== "undefined" && __DEV__;
+    if (isDevelopment) {
+        mountVersionOverlay();
+    }
 
     // 4. Start DOM observer
     observer.start();
@@ -62,7 +69,6 @@ async function bootstrap() {
     });
 
     // 6. Debug Build Feature: Expose DevTools Inspection API only in dev mode
-    const isDevelopment = typeof __DEV__ !== "undefined" && __DEV__;
     if (isDevelopment) {
         const api = {
             inspect: () => {

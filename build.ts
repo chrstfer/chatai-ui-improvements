@@ -29,12 +29,22 @@ const contentCss = await Deno.readTextFile("src/styles/content.css");
 await Deno.writeTextFile(`${dist}/content.css`, `${katexCss}\n\n${contentCss}`);
 
 
-await Deno.copyFile("manifest.json", `${dist}/manifest.json`);
+// Load manifest to determine base version
+const manifestRaw = await Deno.readTextFile("manifest.json");
+const manifest = JSON.parse(manifestRaw);
+const baseVersion = manifest.version || "0.1.0";
 
+// Generate unique build suffix for dev builds that changes every build
+const now = new Date();
+const pad = (n: number) => String(n).padStart(2, "0");
+const buildTimestamp = `${now.getFullYear().toString().slice(-2)}${pad(now.getMonth() + 1)}${pad(now.getDate())}.${pad(now.getHours())}${pad(now.getMinutes())}${pad(now.getSeconds())}`;
+const buildVersion = isDev ? `${baseVersion}-dev.${buildTimestamp}` : baseVersion;
+
+await Deno.copyFile("manifest.json", `${dist}/manifest.json`);
 
 // Bundle src/content.ts into dist/content.js
 // TODO: bundle things less tightly, have a few logically related bundles and have content.js do relevant imports and such.
-console.log(`Bundling with Deno emit (${isDev ? "DEVELOPMENT / DEBUG" : "PRODUCTION"})...`);
+console.log(`Bundling with Deno emit (${isDev ? `DEV: ${buildVersion}` : `PROD: ${buildVersion}`})...`);
 const entryUrl = new URL("./src/content.ts", import.meta.url);
 const importMapUrl = new URL("./deno.json", import.meta.url).href;
 
@@ -48,20 +58,14 @@ const result = await bundle(entryUrl, {
 });
 const { code } = result;
 
-// Sanitize any internal library innerHTML assignments that trip AMO security validation
-const sanitizedCode = code.replace(/\b([a-zA-Z0-9_$]+)\.innerHTML\b/g, "$1.textContent");
-
-// Wrap in IIFE with __DEV__ flag constant
-const iifeCode = `(function() {\nconst __DEV__ = ${isDev};\n${sanitizedCode}\n})();\n`;
+// Wrap in IIFE with __DEV__ flag constant and __BUILD_VERSION__
+const iifeCode = `(function() {\nconst __DEV__ = ${isDev};\nconst __BUILD_VERSION__ = ${JSON.stringify(buildVersion)};\n${code}\n})();\n`;
 await Deno.writeTextFile(`${dist}/content.js`, iifeCode);
 
-console.log(`✓ Build complete (${isDev ? "DEV" : "PROD"}): dist/content.js, dist/content.css, dist/manifest.json`);
+console.log(`✓ Build complete (${isDev ? "DEV" : "PROD"}): dist/content.js (${buildVersion}), dist/content.css, dist/manifest.json`);
 
 // Package into a zip archive for AMO / Firefox deployment
-const manifestRaw = await Deno.readTextFile("manifest.json");
-const manifest = JSON.parse(manifestRaw);
-const version = manifest.version || "0.1.0";
-const zipFileName = `gemini-org-ui-${version}.zip`;
+const zipFileName = `gemini-org-ui-${baseVersion}.zip`;
 
 try {
     const p7zCmd = new Deno.Command("7z", {

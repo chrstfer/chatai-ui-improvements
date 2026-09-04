@@ -11,6 +11,8 @@
 - *Property Drawer*: Metadata blocks enclosed in ~:PROPERTIES: ... :END:~ containing key-value pairs, collapsible via interactive toggles.
 - *Cookie Progress*: Dynamic checkbox fraction indicators (e.g. ~[2/5]~ or ~[40%]~) that recalculate in real-time as child checkboxes are clicked.
 - *Floating HUD (Heads-Up Display)*: An ephemeral floating control panel elevated ~5.5em~ above the bottom-right corner to clear Gemini prompt inputs and footers.
+- *Version Overlay*: A top-right Preact-rendered overlay badge mounted exclusively during development (~__DEV__ === true~) displaying the dynamic dev build identifier and status indicator to visually verify hot-reload synchronization.
+- *Dev Build Suffix*: The unique timestamped version modifier (~0.1.0-dev.YYMMDD.HHMMSS~) generated at build time to differentiate successive dev bundles.
 - *Detection Engine*: Lexical header analyzer and multi-signal heuristic scoring engine determining if a code block contains authentic Org markup.
 - *Layout Manager*: CSS class coordinator applying surgical max-width adjustments (~86%~ default width) to conversation streams without affecting sidebars.
 - *Session State*: Strictly in-memory per-tab configuration flags (~fullWidth~, ~autoRenderOrg~, ~widthPercent~) that reset to default inactive values on every page load.

@@ -199,6 +199,16 @@ body.orgmod-fullwidth-active .conversation-container .response-container {
     font-size: 12px;
 }
 
+.orgmod-hud-version {
+    font-size: 10px;
+    color: var(--orgmod-text-muted);
+    font-family: var(--orgmod-font-mono);
+    margin-left: auto;
+    margin-right: 8px;
+    white-space: nowrap;
+    user-select: none;
+}
+
 .orgmod-hud-collapse-icon {
     font-weight: bold;
     color: var(--orgmod-text-muted);
@@ -279,6 +289,64 @@ body.orgmod-fullwidth-active .conversation-container .response-container {
     background: var(--orgmod-accent);
     color: #121316;
     font-weight: 700;
+}
+
+/* ==========================================================================
+   2b. Top-Right Build Version Overlay Window
+   ========================================================================== */
+
+#orgmod-version-overlay-root {
+    position: fixed;
+    top: 14px;
+    right: 180px; /* Positioned clearly in top-right area without colliding with top-right actions */
+    z-index: 99999;
+    pointer-events: none;
+}
+
+.orgmod-version-overlay {
+    pointer-events: auto;
+    background: var(--orgmod-bg-elevated);
+    border: 1px solid var(--orgmod-border-color);
+    border-radius: 6px;
+    padding: 5px 12px;
+    box-shadow: 0 4px 14px rgba(0, 0, 0, 0.45);
+    font-family: var(--orgmod-font-mono);
+    font-size: 11px;
+    color: var(--orgmod-text-main);
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    user-select: text;
+    backdrop-filter: blur(10px);
+    transition: all 0.2s ease;
+}
+
+.orgmod-version-overlay-header {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.orgmod-version-dot {
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: #81c995;
+    box-shadow: 0 0 6px rgba(129, 201, 149, 0.7);
+    flex-shrink: 0;
+}
+
+.orgmod-version-label {
+    color: var(--orgmod-text-muted);
+    font-size: 10px;
+    text-transform: lowercase;
+}
+
+.orgmod-version-value {
+    color: var(--orgmod-accent);
+    font-weight: 600;
+    font-size: 11px;
+    letter-spacing: 0.2px;
 }
 
 /* ==========================================================================

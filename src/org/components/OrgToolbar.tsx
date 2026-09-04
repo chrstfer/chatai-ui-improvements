@@ -3,7 +3,7 @@
  * Supports dynamic, hotswappable tool items and extensible action registries.
  */
 
-import { ComponentChildren, h } from "preact";
+import { ComponentChildren, Fragment, h } from "preact";
 import { useEffect, useState } from "preact/hooks";
 
 export interface ToolbarContext {
