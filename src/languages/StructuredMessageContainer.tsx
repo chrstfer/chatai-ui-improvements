@@ -3,8 +3,7 @@
  * Provides unified folding, collapsed summary badges, portal toolbars, and active renderer management.
  */
 
-import { FunctionComponent } from "preact";
-import { createPortal } from "preact/compat";
+import { createPortal, FunctionComponent } from "preact";
 import { useEffect, useMemo, useState } from "preact/hooks";
 import { BlockStore, computeContentFingerprint, globalBlockStore } from "../context/BlockStoreContext.tsx";
 import { globalLanguageRegistry } from "./index.ts";

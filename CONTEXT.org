@@ -25,6 +25,9 @@
 - *Persistent Content Fingerprint Cache*: $O(1)$ fast hashing (~fnv1a~) of code prefix, length, and language, retaining parsed ASTs and fold states across virtual scrolling unmount cycles.
 - *Message Destruction Signal*: Observer event triggered on DOM removal to safely unmount Preact roots without purging persistent AST caches.
 - *Host Stylesheet Split*: The strict separation between host-agnostic presentation rules (~general.css~) and platform-specific DOM integrations (~gemini.css~).
+- *Declarative Host Stylesheet Scoping*: Using separate WebExtension manifest ~content_scripts~ entries to scope platform stylesheets (~styles/gemini.css~, ~styles/duckai.css~) strictly to their respective platform URLs (~gemini.google.com~, ~duck.ai~), avoiding global CSS bleed across chat providers while retaining zero-FOUC ~document_start~ injection.
+- *Chat Host Provider*: The target conversational AI interface (e.g. Google Gemini, DuckDuckGo AI) where the extension mounts in-situ code block controllers and layout adaptations.
+- *Compile-Time Dev Prepending*: Build subtask (~build:dev:prep~) prepending ~const __DEV__ = true;~ to bundled code before ~deno transpile~, satisfying strict dev-only gating without relying on runtime lookups.
 
 * Subsystem Topology
 
@@ -65,3 +68,4 @@
 - [[file:docs/adr/0004-katex-math-pipeline.org][ADR 0004: KaTeX Math and LaTeX Greek Rendering Pipeline]] — Accepted (2026-09-03)
 - [[file:docs/adr/0005-markdown-ast-and-org-chat-export.org][ADR 0005: Markdown AST Pipeline and Org-Mode Chat Export]] — Accepted (2026-09-04)
 - [[file:docs/adr/0006-universal-code-block-and-style-layers.org][ADR 0006: Universal In-Situ Code Block Shell, 3-Layer Style Mapping, and Fingerprinted AST Caching]] — Accepted (2026-09-04)
+- [[file:docs/adr/0007-declarative-host-stylesheet-scoping.org][ADR 0007: Declarative Host Stylesheet Scoping via WebExtension Content Scripts]] — Accepted (2026-09-04)

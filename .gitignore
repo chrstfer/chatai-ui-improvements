@@ -4,6 +4,9 @@
 dist-archive/
 dist-amo/
 web-ext-artifacts/
+build/
+dist/
+
 
 ### Deno ###
 /.idea/

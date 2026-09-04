@@ -11,7 +11,7 @@ Format mathematical notation using vanilla Org-mode syntax:
 ## Agent skills
 
 ### Issue tracker
-Local Org-mode files under `.scratch/<feature>/`. See `docs/agents/issue-tracker.org`.
+Local org-mode files under `.scratch/<feature>/`. See `docs/agents/issue-tracker.org`.
 
 ### Domain docs
 Single-context (`CONTEXT.org` at repo root, `docs/adr/` for ADRs). See `docs/agents/domain.org`.
@@ -22,7 +22,10 @@ When conducting sequential thinking or deep analysis, calibrate thought depth dy
 - **Architectural design / standard research**: 10–16 thoughts.
 - **Complex migrations / subtle async flows / deep algorithms**: 18–32 thoughts.
 
+## Deno
+
 ## Preact UI & Architecture Guidelines
+- **standard deno compiler options**: The correct compiler options for Deno with preact are: "compilerOptions": { "jsx": "react-jsx", "jsxImportSource": "preact" }
 - **Declarative Preact-First UI**: All extension UI elements (HUDs, badges, toolbars, overlays, code block containers, rendered views) MUST be implemented as declarative Preact components using JSX (`react-jsx` automatic transform with `preact`). Never import `h` in `.tsx` files. Never use `document.createElement`, manual `.style.display` mutation, or disjoint `render()` calls for UI composition.
 - **Single Preact Root per Mount Boundary**: When attaching extension UI to host DOM elements, mount a single Preact root per host element (e.g. `InSituCodeBlock`, `ExtensionRoot`) and project nested elements into host containers using Preact portals (`createPortal`).
 - **Three-Layer Style Architecture**: Always decouple styling into:

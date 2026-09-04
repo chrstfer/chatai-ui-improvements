@@ -17,12 +17,14 @@
     "storage"
   ],
   "host_permissions": [
-    "https://gemini.google.com/*"
+    "https://gemini.google.com/*",
+    "https://duck.ai/*"
   ],
   "content_scripts": [
     {
       "matches": [
-        "https://gemini.google.com/*"
+        "https://gemini.google.com/*",
+        "https://duck.ai/*"
       ],
       "css": [
         "vendor/katex.min.css",
@@ -31,6 +33,15 @@
       "js": [
         "vendor/katex.min.js",
         "content.js"
+      ],
+      "run_at": "document_start"
+    },
+    {
+      "matches": [
+        "https://gemini.google.com/*"
+      ],
+      "css": [
+        "styles/gemini.css"
       ],
       "run_at": "document_start"
     }
