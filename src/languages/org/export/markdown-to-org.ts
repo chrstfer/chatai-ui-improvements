@@ -66,16 +66,17 @@ export function exportMarkdownToOrg(
             const prefix = list.ordered
                 ? `${(list.start ?? 1) + idx}. `
                 : item.checked !== null && item.checked !== undefined
-                ? item.checked
-                    ? "- [X] "
-                    : "- [ ] "
+                ? item.checked ? "- [X] " : "- [ ] "
                 : "- ";
 
             const itemTextParts: string[] = [];
             const nestedBlocks: MarkdownBlockNode[] = [];
 
             item.children.forEach((child) => {
-                if ("type" in child && (child.type === "list" || child.type === "code_block" || child.type === "blockquote")) {
+                if (
+                    "type" in child &&
+                    (child.type === "list" || child.type === "code_block" || child.type === "blockquote")
+                ) {
                     nestedBlocks.push(child as MarkdownBlockNode);
                 } else {
                     itemTextParts.push(serializeMarkdownInlineToOrg([child as MarkdownInlineNode]));

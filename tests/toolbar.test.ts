@@ -54,7 +54,10 @@ Deno.test("ToolbarToolRegistry", async (t) => {
 
         const tool = registry.get("fold-toggle");
         assertExists(tool);
-        assertEquals(typeof tool.title === "function" ? tool.title({} as unknown as ToolbarContext) : tool.title, "Customized Folder");
+        assertEquals(
+            typeof tool.title === "function" ? tool.title({} as unknown as ToolbarContext) : tool.title,
+            "Customized Folder",
+        );
 
         // Unregister
         const removed = registry.unregister("fold-toggle");

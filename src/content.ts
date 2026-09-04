@@ -3,7 +3,7 @@
  * Mounts the unified Preact Extension Root and orchestrates DOM observation.
  */
 
-declare const __DEV__: boolean;
+// declare const __DEV__: boolean;
 
 import { globalBlockStore } from "./context/BlockStoreContext.tsx";
 import { extractChatConversation } from "./dom/chat-extractor.ts";
@@ -13,6 +13,8 @@ import { exportChatToOrg } from "./languages/org/export/chat-exporter.ts";
 import { globalToolbarRegistry } from "./languages/org/index.ts";
 import { SettingsStore } from "./storage/settings-store.ts";
 import { mountExtensionRoot } from "./ui/ExtensionRoot.tsx";
+
+// TODO: We need a dynamic loader for styles to load chat-platform specific styles
 
 async function bootstrap() {
     const store = new SettingsStore();
@@ -76,41 +78,41 @@ async function bootstrap() {
         }
     });
 
-    // 5. Debug Build Feature: Expose DevTools Inspection API strictly in dev mode
-    const isDevelopment = typeof __DEV__ !== "undefined" && __DEV__;
-    if (isDevelopment) {
-        const api = {
-            inspect: () => {
-                const records = codeBlockManager.getAllRecords();
-                const cached = blockStore.getAllCached();
-                console.log("[GeminiOrgMod DEBUG] Total registered blocks:", records.length, "Cached ASTs:", cached.length);
-                console.table(
-                    records.map((r) => ({
-                        id: r.id,
-                        lang: r.lang,
-                        textLength: r.lastText.length,
-                        hasMount: !!r.mountEl,
-                    })),
-                );
-                return { records, cached };
-            },
-            getBlocks: () => codeBlockManager.getAllRecords(),
-            getBlock: (id: string) => codeBlockManager.getRecord(id),
-            getBlockStore: () => blockStore,
-            getSettings: () => store.settings,
-            renderAll: handleRenderAll,
-            foldAll: handleFoldAll,
-            exportChat: handleExportChat,
-            scan: () => observer.scan(),
-        };
+    // // 5. Debug Build Feature: Expose DevTools Inspection API strictly in dev mode
+    // const isDevelopment = typeof __DEV__ !== "undefined" && __DEV__;
+    // if (isDevelopment) {
+    //     const api = {
+    //         inspect: () => {
+    //             const records = codeBlockManager.getAllRecords();
+    //             const cached = blockStore.getAllCached();
+    //             console.log("[GeminiOrgMod DEBUG] Total registered blocks:", records.length, "Cached ASTs:", cached.length);
+    //             console.table(
+    //                 records.map((r) => ({
+    //                     id: r.id,
+    //                     lang: r.lang,
+    //                     textLength: r.lastText.length,
+    //                     hasMount: !!r.mountEl,
+    //                 })),
+    //             );
+    //             return { records, cached };
+    //         },
+    //         getBlocks: () => codeBlockManager.getAllRecords(),
+    //         getBlock: (id: string) => codeBlockManager.getRecord(id),
+    //         getBlockStore: () => blockStore,
+    //         getSettings: () => store.settings,
+    //         renderAll: handleRenderAll,
+    //         foldAll: handleFoldAll,
+    //         exportChat: handleExportChat,
+    //         scan: () => observer.scan(),
+    //     };
 
-        (globalThis as unknown as Record<string, unknown>).__GeminiOrgMod = api;
+    //     (globalThis as unknown as Record<string, unknown>).__GeminiOrgMod = api;
 
-        // CustomEvent bridge allowing trigger from page context or console without Xray wrapper restrictions
-        globalThis.addEventListener("gemini-org-inspect", () => {
-            api.inspect();
-        });
-    }
+    //     // CustomEvent bridge allowing trigger from page context or console without Xray wrapper restrictions
+    //     globalThis.addEventListener("gemini-org-inspect", () => {
+    //         api.inspect();
+    //     });
+    // }
 }
 
 if (typeof document !== "undefined") {

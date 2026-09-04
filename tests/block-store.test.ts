@@ -3,10 +3,7 @@
  */
 
 import { assertEquals, assertExists, assertNotEquals } from "@std/assert";
-import {
-    BlockStore,
-    computeContentFingerprint,
-} from "../src/context/BlockStoreContext.tsx";
+import { BlockStore, computeContentFingerprint } from "../src/context/BlockStoreContext.tsx";
 import { parseOrgDocument } from "../src/languages/org/index.ts";
 
 Deno.test("computeContentFingerprint", async (t) => {

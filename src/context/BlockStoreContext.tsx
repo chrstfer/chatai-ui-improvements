@@ -3,7 +3,7 @@
  * Caches ASTs and folding states across virtual DOM scroll lifecycles and manages global batch operations.
  */
 
-import { createContext, FunctionComponent, ComponentChildren } from "preact";
+import { ComponentChildren, createContext, FunctionComponent } from "preact";
 import { useContext, useEffect, useState } from "preact/hooks";
 import { OrgDocument } from "../languages/org/types/ast.ts";
 
@@ -127,9 +127,7 @@ export class BlockStore {
         const blocks = this.getAllActive().filter((b) => b.lang === "org" && b.setRenderedState);
         if (blocks.length === 0) return;
 
-        const targetState = typeof forceState === "boolean"
-            ? forceState
-            : blocks.some((b) => !b.isRendered);
+        const targetState = typeof forceState === "boolean" ? forceState : blocks.some((b) => !b.isRendered);
 
         for (const block of blocks) {
             block.setRenderedState?.(targetState);

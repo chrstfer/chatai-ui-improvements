@@ -2,7 +2,7 @@
  * Preact Settings Context & Layer 3 Reactive Style Synchronization Hook
  */
 
-import { createContext, FunctionComponent, ComponentChildren } from "preact";
+import { ComponentChildren, createContext, FunctionComponent } from "preact";
 import { useContext, useEffect, useState } from "preact/hooks";
 import { applyLayoutDeclarations, computeLayoutStyles } from "../layout/layout-manager.ts";
 import { SettingsStore } from "../storage/settings-store.ts";

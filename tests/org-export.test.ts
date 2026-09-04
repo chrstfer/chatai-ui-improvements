@@ -50,7 +50,7 @@ Below is the system plan:
     });
 
     await t.step("formats non-Org code blocks as #+BEGIN_SRC <lang>", () => {
-        const md = "```rust\nfn main() {\n    println!(\"hello\");\n}\n```";
+        const md = '```rust\nfn main() {\n    println!("hello");\n}\n```';
         const ast = parseMarkdown(md);
         const orgText = exportMarkdownToOrg(ast);
 

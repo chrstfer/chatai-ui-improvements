@@ -3,10 +3,7 @@
  */
 
 import { assertEquals } from "@std/assert";
-import {
-    applyLayoutDeclarations,
-    computeLayoutStyles,
-} from "../src/layout/layout-manager.ts";
+import { applyLayoutDeclarations, computeLayoutStyles } from "../src/layout/layout-manager.ts";
 import { ExtensionSettings } from "../src/types/settings.ts";
 
 Deno.test("computeLayoutStyles (Layer 1 Pure Domain Mapping)", async (t) => {

@@ -4,18 +4,10 @@
  */
 
 import { render } from "preact";
-import {
-    SELECTOR_ACTIONS,
-    SELECTOR_CODE_CONTAINER,
-    SELECTOR_DECORATION,
-    SELECTOR_LANG_SPAN,
-} from "../constants.ts";
+import { SELECTOR_ACTIONS, SELECTOR_CODE_CONTAINER, SELECTOR_DECORATION, SELECTOR_LANG_SPAN } from "../constants.ts";
 import { BlockStore, globalBlockStore } from "../context/BlockStoreContext.tsx";
 import { globalLanguageRegistry } from "../languages/index.ts";
-import {
-    globalToolbarRegistry,
-    ToolbarToolRegistry,
-} from "../languages/org/index.ts";
+import { globalToolbarRegistry, ToolbarToolRegistry } from "../languages/org/index.ts";
 import { SettingsStore } from "../storage/settings-store.ts";
 import { CodeBlockRecord } from "./dom.ts";
 import { InSituCodeBlock } from "./InSituCodeBlock.tsx";

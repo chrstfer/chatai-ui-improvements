@@ -111,7 +111,12 @@ export function parseMarkdown(rawText: string): MarkdownDocument {
         // 6. Blockquote: >
         if (line.trim().startsWith(">")) {
             const quoteLines: string[] = [];
-            while (i < lines.length && (lines[i].trim().startsWith(">") || (lines[i].trim() && quoteLines.length > 0 && !lines[i].match(/^(#{1,6}\s|```|~~~|[-*+]\s|\d+\.\s)/)))) {
+            while (
+                i < lines.length &&
+                (lines[i].trim().startsWith(">") ||
+                    (lines[i].trim() && quoteLines.length > 0 &&
+                        !lines[i].match(/^(#{1,6}\s|```|~~~|[-*+]\s|\d+\.\s)/)))
+            ) {
                 const qLine = lines[i].trim();
                 if (qLine.startsWith(">")) {
                     quoteLines.push(qLine.replace(/^>\s?/, ""));
@@ -129,7 +134,10 @@ export function parseMarkdown(rawText: string): MarkdownDocument {
         }
 
         // 7. Tables: | col | col |
-        if (line.trim().startsWith("|") || (line.includes("|") && lines[i + 1]?.includes("|") && lines[i + 1]?.includes("-"))) {
+        if (
+            line.trim().startsWith("|") ||
+            (line.includes("|") && lines[i + 1]?.includes("|") && lines[i + 1]?.includes("-"))
+        ) {
             const tableLines: string[] = [];
             while (i < lines.length && lines[i].includes("|") && lines[i].trim()) {
                 tableLines.push(lines[i].trim());
@@ -197,7 +205,10 @@ export function parseMarkdown(rawText: string): MarkdownDocument {
                 const curLine = lines[i];
                 if (!curLine.trim()) {
                     // Check if next line continues list
-                    if (i + 1 < lines.length && (lines[i + 1].startsWith(" ") || lines[i + 1].match(/^(\s*)([-*+]|\d+\.)\s+/))) {
+                    if (
+                        i + 1 < lines.length &&
+                        (lines[i + 1].startsWith(" ") || lines[i + 1].match(/^(\s*)([-*+]|\d+\.)\s+/))
+                    ) {
                         i++;
                         continue;
                     }
@@ -216,7 +227,9 @@ export function parseMarkdown(rawText: string): MarkdownDocument {
                         textContent = taskMatch[2];
                     }
 
-                    const itemChildren: (MarkdownBlockNode | MarkdownInlineNode)[] = tokenizeMarkdownInline(textContent);
+                    const itemChildren: (MarkdownBlockNode | MarkdownInlineNode)[] = tokenizeMarkdownInline(
+                        textContent,
+                    );
                     items.push({
                         type: "list_item",
                         checked,
@@ -229,7 +242,11 @@ export function parseMarkdown(rawText: string): MarkdownDocument {
                         const lastItem = items[items.length - 1];
                         const nestedLines: string[] = [curLine.trim()];
                         i++;
-                        while (i < lines.length && (lines[i].startsWith(" ".repeat(listIndent + 2)) || lines[i].startsWith("\t") || !lines[i].trim())) {
+                        while (
+                            i < lines.length &&
+                            (lines[i].startsWith(" ".repeat(listIndent + 2)) || lines[i].startsWith("\t") ||
+                                !lines[i].trim())
+                        ) {
                             if (lines[i].trim()) nestedLines.push(lines[i].trim());
                             i++;
                         }

@@ -50,13 +50,11 @@ export function extractChatConversation(
         const tagName = el.tagName.toLowerCase();
         const className = el.className || "";
 
-        const isUser =
-            tagName.includes("user-query") ||
+        const isUser = tagName.includes("user-query") ||
             className.includes("user-query") ||
             (el.hasAttribute("data-test-id") && el.getAttribute("data-test-id")?.includes("user-query"));
 
-        const isAssistant =
-            tagName.includes("response") ||
+        const isAssistant = tagName.includes("response") ||
             className.includes("response") ||
             className.includes("model-response");
 
@@ -112,7 +110,9 @@ export function extractChatConversation(
                         codeText = (codeEl.textContent || codeEl.innerText || "").replace(/\r\n/g, "\n");
                     }
 
-                    const langSpan = blockClone.querySelector<HTMLElement>(".code-block-decoration-title, .language-label");
+                    const langSpan = blockClone.querySelector<HTMLElement>(
+                        ".code-block-decoration-title, .language-label",
+                    );
                     if (!lang && langSpan) {
                         lang = langSpan.textContent?.trim() || "";
                     }

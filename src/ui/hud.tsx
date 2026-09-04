@@ -8,7 +8,6 @@ import { useState } from "preact/hooks";
 import { useBlockStore } from "../context/BlockStoreContext.tsx";
 import { useSettings } from "../context/SettingsContext.tsx";
 
-
 export interface HudProps {
     onExportChat?: () => void;
 }

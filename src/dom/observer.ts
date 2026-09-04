@@ -2,10 +2,7 @@
  * DOM Scanner and MutationObserver with Shadow DOM Support & Universal Code Block Discovery
  */
 
-import {
-    SELECTOR_CODE_CONTAINER,
-    SELECTOR_ROOT,
-} from "../constants.ts";
+import { SELECTOR_CODE_CONTAINER, SELECTOR_ROOT } from "../constants.ts";
 import { CodeBlockController } from "./code-block.tsx";
 
 export class DomObserver {

@@ -1,6 +1,6 @@
 /**
  * Universal Org-Mode Document Parser building Strongly-Typed AST
- * 
+ *
  * Capable of parsing arbitrary Org-mode text content (whole documents, subtrees,
  * preambles, metadata, property drawers, dynamic tables, hierarchical lists,
  * LaTeX environments, babel source blocks, and results).
@@ -345,13 +345,11 @@ export function parseOrgDocument(rawOrg: string): OrgDocument {
             flushList();
             inTable = true;
             const isDivider = /^\s*\|-/.test(line);
-            const cells = isDivider
-                ? []
-                : line
-                      .replace(/^\s*\|/, "")
-                      .replace(/\|\s*$/, "")
-                      .split("|")
-                      .map((c) => c.trim());
+            const cells = isDivider ? [] : line
+                .replace(/^\s*\|/, "")
+                .replace(/\|\s*$/, "")
+                .split("|")
+                .map((c) => c.trim());
             tableRows.push({ isDivider, cells });
             continue;
         } else if (inTable) {

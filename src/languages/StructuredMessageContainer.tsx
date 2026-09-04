@@ -6,19 +6,9 @@
 import { FunctionComponent } from "preact";
 import { createPortal } from "preact/compat";
 import { useEffect, useMemo, useState } from "preact/hooks";
-import {
-    BlockStore,
-    computeContentFingerprint,
-    globalBlockStore,
-} from "../context/BlockStoreContext.tsx";
+import { BlockStore, computeContentFingerprint, globalBlockStore } from "../context/BlockStoreContext.tsx";
 import { globalLanguageRegistry } from "./index.ts";
-import {
-    globalToolbarRegistry,
-    OrgDocumentView,
-    OrgToolbar,
-    parseOrgDocument,
-    ToolbarTool,
-} from "./org/index.ts";
+import { globalToolbarRegistry, OrgDocumentView, OrgToolbar, parseOrgDocument, ToolbarTool } from "./org/index.ts";
 import { OrgDocument } from "./org/types/ast.ts";
 
 export interface StructuredMessageContainerProps {
@@ -132,18 +122,16 @@ export const StructuredMessageContainer: FunctionComponent<StructuredMessageCont
     const activeTools = useMemo(() => {
         if (tools) return tools;
 
-        const baseTools = isOrg
-            ? globalToolbarRegistry.getAll()
-            : [
-                {
-                    id: "fold-toggle",
-                    order: 20,
-                    title: isFolded ? `Expand ${lang} snippet` : `Fold ${lang} snippet`,
-                    className: () => "org-block-btn org-fold-all-btn",
-                    onClick: handleToggleFold,
-                    render: () => <span>{isFolded ? "Expand" : "Fold"}</span>,
-                },
-            ];
+        const baseTools = isOrg ? globalToolbarRegistry.getAll() : [
+            {
+                id: "fold-toggle",
+                order: 20,
+                title: isFolded ? `Expand ${lang} snippet` : `Fold ${lang} snippet`,
+                className: () => "org-block-btn org-fold-all-btn",
+                onClick: handleToggleFold,
+                render: () => <span>{isFolded ? "Expand" : "Fold"}</span>,
+            },
+        ];
 
         const langTools = globalLanguageRegistry.getToolsForLanguage(lang);
         const map = new Map<string, ToolbarTool>();

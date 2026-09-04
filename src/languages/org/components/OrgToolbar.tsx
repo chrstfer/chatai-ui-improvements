@@ -85,8 +85,7 @@ export const DEFAULT_TOOLBAR_TOOLS: ToolbarTool[] = [
     {
         id: "render-toggle",
         order: 10,
-        title: (ctx) =>
-            ctx.isRendered ? "Org rendered (click to view raw code)" : "Toggle Org-mode rendering",
+        title: (ctx) => ctx.isRendered ? "Org rendered (click to view raw code)" : "Toggle Org-mode rendering",
         className: (ctx) => `org-block-btn org-toggle-btn ${ctx.isRendered ? "is-active" : ""}`,
         isActive: (ctx) => ctx.isRendered,
         onClick: (ctx) => ctx.onToggleRender(),
@@ -189,7 +188,9 @@ export function OrgToolbar({
                         }}
                     >
                         {tool.render ? tool.render(context) : (
-                            <span>{typeof tool.label === "function" ? tool.label(context) : (tool.label || tool.id)}</span>
+                            <span>
+                                {typeof tool.label === "function" ? tool.label(context) : (tool.label || tool.id)}
+                            </span>
                         )}
                     </button>
                 );

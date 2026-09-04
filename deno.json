@@ -1,36 +1,34 @@
 {
-  "imports": {
-    "@deno/emit": "jsr:@deno/emit@^0.46.0",
-    "@std/assert": "jsr:@std/assert@^1.0.19",
-    "preact": "https://esm.sh/preact@10.25.4",
-    "preact/hooks": "https://esm.sh/preact@10.25.4/hooks",
-    "preact/jsx-runtime": "https://esm.sh/preact@10.25.4/jsx-runtime",
-    "katex": "https://esm.sh/katex@0.16.21"
+  "imports": {    
+    "katex": "https://esm.sh/katex@0.16.21",
+    "preact": "npm:preact@11.0.0-rc.1"
   },
   "tasks": {
-    "build": "deno run -A build.ts",
-    "build:dev": "deno run -A build.ts --dev",
-    "dev": "deno run -A build.ts --dev",
-    "watch": "deno run -A build.ts --dev --watch",
+    "clean": "rm -rf dist/ build/ && deno clean",
+    "clean:dev": "rm -rf dist/dev/ build/dev/ && deno clean",
+    "build":     "mkdir -p dist/release/ build/release/ && cp -r manifest.json src/styles/ vendor/ dist/release/ && deno bundle -o ./build/release/bundle.ts ./src/content.ts && deno transpile -o dist/release/content.js ./build/release/bundle.ts",
+    "build:dev": "mkdir -p dist/dev/ build/dev/         && cp -r manifest.json src/styles/ vendor/ dist/  && deno bundle -o ./build/dev/bundle.ts ./src/content.ts            && deno transpile -o dist/dev/content.js ./build/dev/bundle.ts",
+    "package": "7z a dist/",
     "test": "deno test -A tests/",
     "lint": "deno lint",
-    "fmt": "deno fmt",
-    "typecheck": "tsc --noEmit"
+    "fmt": "deno fmt"
+  },
+  "compile": {
+    "include": []
   },
   "compilerOptions": {
-    "lib": ["deno.window", "dom", "dom.iterable"],
     "jsx": "react-jsx",
     "jsxImportSource": "preact"
   },
   "lint": {
-    "include": ["src/", "tests/", "build.ts"],
+    "include": ["src/", "tests/"],
     "exclude": ["dist/", "node_modules/", "vendor/", "dist-amo/", "dist-archive/", "docs/"],
     "rules": {
-      "tags": ["recommended"]
+      "tags": ["recommended", "react", "jsx"]
     }
   },
   "fmt": {
-    "include": ["src/", "tests/", "build.ts"],
+    "include": ["src/", "tests/"],
     "exclude": ["dist/", "dist-amo/", "dist-archive/"],
     "lineWidth": 120,
     "indentWidth": 4,
