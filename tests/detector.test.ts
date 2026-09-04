@@ -1,6 +1,6 @@
 import { describe, it } from "node:test";
 import assert from "node:assert/strict";
-import { isOrgContent } from "../src/org/parser/detector.ts";
+import { isOrgContent } from "../src/languages/org/parser/detector.ts";
 
 describe("isOrgContent", () => {
     it("detects valid Org mode headlines, drawers, tables, directives, latex", () => {

@@ -1,6 +1,6 @@
 import { describe, it } from "node:test";
 import assert from "node:assert/strict";
-import { isOrgContent, parseOrgDocument } from "../src/org/index.ts";
+import { isOrgContent, parseOrgDocument } from "../src/languages/org/index.ts";
 
 describe("OrgParser facade", () => {
     it("full pipeline end-to-end AST extraction", () => {

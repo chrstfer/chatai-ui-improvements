@@ -3,7 +3,7 @@
  * Provides alias normalization, language recognition, and per-language hotswappable tool indices.
  */
 
-import { ToolbarTool } from "../org/components/OrgToolbar.tsx";
+import { ToolbarTool } from "./org/components/OrgToolbar.tsx";
 import { LanguageDefinition } from "./types.ts";
 
 export class LanguageRegistry {

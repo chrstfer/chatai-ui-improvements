@@ -1,6 +1,6 @@
 import { describe, it } from "node:test";
 import assert from "node:assert/strict";
-import { escapeHtml, tokenizeInline } from "../src/org/parser/inline-lexer.ts";
+import { escapeHtml, tokenizeInline } from "../src/languages/org/parser/inline-lexer.ts";
 
 describe("inline-lexer", () => {
     it("escapeHtml safely escapes XML/HTML characters", () => {

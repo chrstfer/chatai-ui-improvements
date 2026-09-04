@@ -1,8 +1,8 @@
 {
   "manifest_version": 3,
-  "name": "Gemini Chat Rendering for org-mode",
-  "version": "0.1.0",
-  "description": "High-density full-width layout and custom org-mode rendering for Google Gemini",
+  "name": "AI Chat Rendering improvements with org-mode",
+  "version": "0.1.2",
+  "description": "High-density full-width layout and custom org-mode rendering for AI Chat. Currently supports Gemini.",
   "homepage_url": "https://www.github.com/chrstfer/gemini-org-ui",
   "browser_specific_settings": {
     "gecko": {
@@ -25,9 +25,12 @@
         "https://gemini.google.com/*"
       ],
       "css": [
-        "content.css"
+        "vendor/katex.min.css",
+        "general.css",
+        "gemini.css"
       ],
       "js": [
+        "vendor/katex.min.js",
         "content.js"
       ],
       "run_at": "document_start"

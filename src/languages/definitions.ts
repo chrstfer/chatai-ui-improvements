@@ -3,7 +3,7 @@
  * Pure TypeScript data module without JSX syntax.
  */
 
-import { DEFAULT_TOOLBAR_TOOLS } from "../org/components/OrgToolbar.tsx";
+import { DEFAULT_TOOLBAR_TOOLS } from "./org/components/OrgToolbar.tsx";
 import { LanguageDefinition } from "./types.ts";
 
 export const RECOGNIZED_LANGUAGES: LanguageDefinition[] = [

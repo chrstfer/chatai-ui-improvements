@@ -1,6 +1,7 @@
 # Created by https://www.toptal.com/developers/gitignore/api/typescript,deno,emacs
 # Edit at https://www.toptal.com/developers/gitignore?templates=typescript,deno,emacs
 
+dist-archive/
 dist-amo/
 web-ext-artifacts/
 
@@ -73,3 +74,4 @@ dist-amo/
 photorec.*
 *.log
 .scratch/
+

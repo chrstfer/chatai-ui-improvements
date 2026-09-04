@@ -1,16 +1,12 @@
 /**
- * DOM Scanner and MutationObserver with Shadow DOM Support & Filtering
+ * DOM Scanner and MutationObserver with Shadow DOM Support & Universal Code Block Discovery
  */
 
 import {
-    KNOWN_LANGUAGES,
     SELECTOR_CODE_CONTAINER,
-    SELECTOR_DECORATION,
-    SELECTOR_LANG_SPAN,
     SELECTOR_ROOT,
 } from "../constants.ts";
-import { isOrgContent } from "../org/index.ts";
-import { CodeBlockController } from "./code-block.ts";
+import { CodeBlockController } from "./code-block.tsx";
 
 export class DomObserver {
     private controller: CodeBlockController;
@@ -23,7 +19,8 @@ export class DomObserver {
     }
 
     /**
-     * Inspects a code block element to determine if it qualifies as Org-mode content
+     * Inspects a candidate code block element.
+     * All code blocks (Org and standard languages) qualify for universal in-situ wrapping.
      */
     private shouldProcessBlock(blockEl: HTMLElement): boolean {
         // If block is already registered, let controller handle streaming updates
@@ -31,22 +28,7 @@ export class DomObserver {
             return true;
         }
 
-        // Extract language label from header decoration if present
-        const headerEl = blockEl.querySelector<HTMLElement>(SELECTOR_DECORATION);
-        const langSpan = headerEl?.querySelector<HTMLElement>(SELECTOR_LANG_SPAN);
-        const langText = langSpan?.textContent?.trim().toLowerCase() || "";
-
-        // Fast-path: Skip known non-Org languages
-        if (langText && KNOWN_LANGUAGES.has(langText)) {
-            return false;
-        }
-
-        // Fast-path: Explicit Org language declaration
-        if (langText && DomObserver.EXPLICIT_ORG_RE.test(langText)) {
-            return true;
-        }
-
-        // Extract code text content and run Org heuristics
+        // Verify that this element has genuine code container or pre content
         const codeEl = blockEl.querySelector<HTMLElement>(SELECTOR_CODE_CONTAINER) ||
             blockEl.querySelector<HTMLElement>("code") ||
             blockEl.querySelector<HTMLElement>("pre") ||
@@ -55,11 +37,11 @@ export class DomObserver {
 
         if (!codeText.trim()) return false;
 
-        return isOrgContent(codeText);
+        return true;
     }
 
     /**
-     * Traverses a root node and any nested shadow DOMs to discover Org code blocks
+     * Traverses a root node and any nested shadow DOMs to discover code blocks
      */
     private scanSubtree(targetRoot: ParentNode): void {
         const candidates = targetRoot.querySelectorAll<HTMLElement>(SELECTOR_ROOT);
@@ -78,7 +60,7 @@ export class DomObserver {
             const pageTitle = typeof document !== "undefined" ? document.title : "";
             const pageUrl = typeof location !== "undefined" ? location.href : "";
             console.log(
-                `[GeminiOrgMod] Discovered ${discoveredBlocks.length} Org code block(s) on "${pageTitle}" (${pageUrl}):`,
+                `[GeminiOrgMod] Discovered ${discoveredBlocks.length} code block(s) on "${pageTitle}" (${pageUrl}):`,
                 discoveredBlocks,
             );
         }
@@ -93,7 +75,7 @@ export class DomObserver {
     }
 
     /**
-     * Scans the document or specified root node for Org code blocks
+     * Scans the document or specified root node for code blocks
      */
     public scan(root?: Node): void {
         if (typeof document === "undefined") return;
@@ -125,9 +107,12 @@ export class DomObserver {
         this.observer = new MutationObserver((mutations) => {
             let needsScan = false;
             for (const m of mutations) {
+                if (m.removedNodes.length > 0) {
+                    this.controller.handleRemovedNodes(m.removedNodes);
+                }
+
                 if (m.addedNodes.length > 0 || m.removedNodes.length > 0 || m.type === "characterData") {
                     needsScan = true;
-                    break;
                 }
             }
 

@@ -3,7 +3,7 @@
  */
 
 import { assertEquals, assertExists } from "@std/assert";
-import { DEFAULT_TOOLBAR_TOOLS, ToolbarTool, ToolbarToolRegistry } from "../src/org/index.ts";
+import { DEFAULT_TOOLBAR_TOOLS, ToolbarContext, ToolbarTool, ToolbarToolRegistry } from "../src/languages/org/index.ts";
 
 Deno.test("ToolbarToolRegistry", async (t) => {
     await t.step("initializes with default tools in proper order", () => {
@@ -54,7 +54,7 @@ Deno.test("ToolbarToolRegistry", async (t) => {
 
         const tool = registry.get("fold-toggle");
         assertExists(tool);
-        assertEquals(typeof tool.title === "function" ? tool.title({} as any) : tool.title, "Customized Folder");
+        assertEquals(typeof tool.title === "function" ? tool.title({} as unknown as ToolbarContext) : tool.title, "Customized Folder");
 
         // Unregister
         const removed = registry.unregister("fold-toggle");

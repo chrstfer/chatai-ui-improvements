@@ -6,7 +6,7 @@
 
 - *Org Code Block Shell*: The native Gemini DOM container (~.code-block~, ~code-block.enable-luminous-code-block~) wrapping an AI response code snippet.
 - *In-Situ Sibling Container*: A dedicated ~div.orgmod-rendered-container~ mounted directly beside the native ~<pre><code>~ element, rendering the Org AST while preserving Gemini's host layout and copy action.
-- *Org AST (Abstract Syntax Tree)*: The strongly-typed data representation of an Org-mode document produced by the block parser and inline lexer.
+- *Org AST (Abstract Syntax Tree)*: The strongly-typed data representation of an Org-mode document produced by the universal document parser (~src/languages/org/parser/document-parser.ts~) and inline lexer.
 - *Heading Node & Subtree*: A hierarchical Org section (~*~ through ~******~) containing title tokens, status chips (~TODO~, ~DONE~), priority badges (~[#A]~), tag sets (~:TAG:~), and nested child content folded recursively.
 - *Property Drawer*: Metadata blocks enclosed in ~:PROPERTIES: ... :END:~ containing key-value pairs, collapsible via interactive toggles.
 - *Cookie Progress*: Dynamic checkbox fraction indicators (e.g. ~[2/5]~ or ~[40%]~) that recalculate in real-time as child checkboxes are clicked.
@@ -16,22 +16,46 @@
 - *Detection Engine*: Lexical header analyzer and multi-signal heuristic scoring engine determining if a code block contains authentic Org markup.
 - *Layout Manager*: CSS class coordinator applying surgical max-width adjustments (~86%~ default width) to conversation streams without affecting sidebars.
 - *Session State*: Strictly in-memory per-tab configuration flags (~fullWidth~, ~autoRenderOrg~, ~widthPercent~) that reset to default inactive values on every page load.
+- *Markdown AST Engine*: The CommonMark/GFM abstract syntax tree parser and token model (~src/languages/markdown/~) providing normalized representation of conversational turn content.
+- *Org Plaintext Exporter*: AST-to-plaintext compiler (~src/languages/org/export/~) translating Markdown structures to Org syntax, unwrapping embedded Org blocks, and recalculating subtree heading depths.
+- *Turn Metadata Drawer*: Machine-readable property drawer (~:PROPERTIES: ... :END:~) affixed to conversation turn headlines containing role, indices, and timestamps.
+- *StructuredMessageContainer*: Universal Preact container component managing folding, collapsed line-count badges, portal toolbars, and active renderer state across all language blocks.
+- *In-Situ Universal Code Block Shell*: Single Preact root mounted to each host code block, eliminating disjoint imperative DOM mutations and projecting toolbar actions into headers via portals.
+- *Three-Layer Style Mapping*: Decoupled styling architecture separating pure domain computation (~computeLayoutStyles~), DOM I/O adapters (~applyLayoutDeclarations~), and reactive Preact hooks (~useLayoutSync~).
+- *Persistent Content Fingerprint Cache*: $O(1)$ fast hashing (~fnv1a~) of code prefix, length, and language, retaining parsed ASTs and fold states across virtual scrolling unmount cycles.
+- *Message Destruction Signal*: Observer event triggered on DOM removal to safely unmount Preact roots without purging persistent AST caches.
+- *Host Stylesheet Split*: The strict separation between host-agnostic presentation rules (~general.css~) and platform-specific DOM integrations (~gemini.css~).
 
 * Subsystem Topology
 
-- *~src/org/~ (Core Org Engine)*:
-  - *~src/org/parser/~*: ~block-parser.ts~, ~inline-lexer.ts~, ~detector.ts~, and ~latex.ts~ for tokenizing Org markup and KaTeX math.
-  - *~src/org/components/~*: Preact JSX components (~OrgDocumentView~, ~Section~, ~Drawer~, ~Table~, ~List~, ~ListItem~, ~SrcBlock~, ~Latex~, ~OrgToolbar~).
-- *~src/dom/~ (DOM Orchestration & Mutation Observer)*:
-  - *~src/dom/code-block.ts~*: In-situ mounting, AST caching, and raw/rendered toggle mechanics.
-  - *~src/dom/observer.ts~*: Debounced mutation observer handling dynamic streaming token settlement and cleanup.
-- *~src/languages/~ (Language Registry & Tool Index)*:
-  - *~src/languages/registry.ts~*: Dynamic ~LanguageRegistry~ engine for alias normalization and tool index mapping.
-  - *~src/languages/definitions.ts~*: Pure TypeScript database of 37 recognized languages and specialized language tools.
+- *~src/context/~ (Preact Contexts & Reactive State)*:
+  - *~src/context/SettingsContext.tsx~*: Context provider, ~useSettings~, and ~useLayoutSync~ for reactive settings and 3-layer style synchronization.
+  - *~src/context/BlockStoreContext.tsx~*: Context provider, ~useBlockStore~, content fingerprint cache, and global actions (~renderAll~, ~foldAll~).
+- *~src/languages/~ (Language Engine, Registries & ASTs)*:
+  - *~src/languages/StructuredMessageContainer.tsx~*: Universal wrapper for folding, badges, toolbars, and custom language views.
+  - *~src/languages/org/~*: Dedicated sub-module for universal Org-mode document AST parser (~document-parser.ts~), Preact rendering components (~OrgDocumentView~, ~Section~, etc.), and ~export/~ plaintext/chat generators.
+  - *~src/languages/markdown/~*: Dedicated CommonMark/GFM AST definitions and recursive block/inline tokenizer.
+  - *~src/languages/registry.ts~ & ~definitions.ts~*: Dynamic ~LanguageRegistry~ engine and 37 recognized language definitions.
+- *~src/dom/~ (DOM Orchestration, Extraction & Mutation Observer)*:
+  - *~src/dom/InSituCodeBlock.tsx~*: Preact root component for host code block enhancement.
+  - *~src/dom/code-block.ts~*: Code block lifecycle and Preact mount controller.
+  - *~src/dom/chat-extractor.ts~*: Chat turn discovery, authentic code text extraction, and metadata gathering.
+  - *~src/dom/observer.ts~*: Debounced mutation observer handling streaming token settlement, shadow DOM scanning, and removal signals.
 - *~src/ui/~ (Floating HUD & User Controls)*:
-  - *~src/ui/hud.ts~*: Floating control widget, width presets, and hotkey listeners (~Alt+W~, ~Alt+O~, ~Alt+F~).
+  - *~src/ui/ExtensionRoot.tsx~*: Unified Preact root mounting contexts, layout sync, HUD, and dev VersionOverlay.
+  - *~src/ui/hud.tsx~*: Floating control widget with 32x32px minimized square state, width presets, response font size control, and export trigger.
+  - *~src/ui/VersionOverlay.tsx~*: Top-center development build indicator.
 - *~src/layout/~ (Layout & Viewport Injection)*:
-  - *~src/layout/layout-manager.ts~*: Full-width stylesheet injector and conversation column width modifier.
+  - *~src/layout/layout-manager.ts~*: Layer 1 pure style computation and Layer 2 DOM application adapter.
+- *~src/styles/~ (Modular Stylesheets)*:
+  - *~src/styles/general.css~*: Host-agnostic design system tokens, Org AST typography, collapsed badge styling, and HUD base geometry.
+  - *~src/styles/gemini.css~*: Gemini host-specific full-width rules, query alignment, and scoped response font sizing.
+- *~dist/~ (Build Artifacts & Distribution Topology)*:
+  - *~dist/dev/~*: Development builds (~deno task build:dev~) with live version suffix, vendor dependencies, and development zip package. (Standard build target during development).
+  - *~dist/release/~*: Production release builds (~deno task build~) with version tagging, vendor dependencies, and release zip package. (Only built on explicit user request).
+
+* Planned Features & Roadmap
+- See [[file:docs/roadmap.org][docs/roadmap.org]] for the live backlog and planned feature milestones.
 
 * Architectural Decision Records (ADRs)
 
@@ -39,3 +63,5 @@
 - [[file:docs/adr/0002-ephemeral-session-state.org][ADR 0002: Ephemeral In-Memory Session State]] — Accepted (2026-09-03)
 - [[file:docs/adr/0003-streaming-reconciliation-and-caching.org][ADR 0003: Streaming Reconciliation and AST Caching]] — Accepted (2026-09-03)
 - [[file:docs/adr/0004-katex-math-pipeline.org][ADR 0004: KaTeX Math and LaTeX Greek Rendering Pipeline]] — Accepted (2026-09-03)
+- [[file:docs/adr/0005-markdown-ast-and-org-chat-export.org][ADR 0005: Markdown AST Pipeline and Org-Mode Chat Export]] — Accepted (2026-09-04)
+- [[file:docs/adr/0006-universal-code-block-and-style-layers.org][ADR 0006: Universal In-Situ Code Block Shell, 3-Layer Style Mapping, and Fingerprinted AST Caching]] — Accepted (2026-09-04)

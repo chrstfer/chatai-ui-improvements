@@ -1,51 +1,61 @@
 /**
  * Main Content Script Entry Point
+ * Mounts the unified Preact Extension Root and orchestrates DOM observation.
  */
 
 declare const __DEV__: boolean;
 
-import { CodeBlockController } from "./dom/code-block.ts";
+import { globalBlockStore } from "./context/BlockStoreContext.tsx";
+import { extractChatConversation } from "./dom/chat-extractor.ts";
+import { CodeBlockController } from "./dom/code-block.tsx";
 import { DomObserver } from "./dom/observer.ts";
-import { LayoutManager } from "./layout/layout-manager.ts";
+import { exportChatToOrg } from "./languages/org/export/chat-exporter.ts";
+import { globalToolbarRegistry } from "./languages/org/index.ts";
 import { SettingsStore } from "./storage/settings-store.ts";
-import { HudController } from "./ui/hud.ts";
-import { mountVersionOverlay } from "./ui/VersionOverlay.tsx";
+import { mountExtensionRoot } from "./ui/ExtensionRoot.tsx";
 
 async function bootstrap() {
     const store = new SettingsStore();
-    const layout = new LayoutManager();
-    const codeBlockManager = new CodeBlockController(store);
+    const blockStore = globalBlockStore;
+    const codeBlockManager = new CodeBlockController(store, globalToolbarRegistry, blockStore);
 
     const handleRenderAll = () => {
-        codeBlockManager.toggleRenderAll();
+        blockStore.toggleRenderAll();
     };
 
     const handleFoldAll = () => {
-        codeBlockManager.toggleFoldAll();
+        blockStore.toggleFoldAll();
     };
 
-    const hud = new HudController(store, layout, handleRenderAll, handleFoldAll);
+    const handleExportChat = () => {
+        const conversation = extractChatConversation(codeBlockManager);
+        const orgText = exportChatToOrg(conversation);
+        const blob = new Blob([orgText], { type: "text/plain;charset=utf-8" });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement("a");
+        const safeTitle = (conversation.title || "gemini-chat")
+            .toLowerCase()
+            .replace(/[^a-z0-9_-]+/g, "-")
+            .replace(/^-+|-+$/g, "");
+        const dateStr = new Date().toISOString().slice(0, 10);
+        a.href = url;
+        a.download = `${safeTitle}-${dateStr}.org`;
+        a.click();
+        setTimeout(() => URL.revokeObjectURL(url), 5000);
+    };
+
     const observer = new DomObserver(codeBlockManager);
 
-    // 1. Load persisted settings
-    const settings = await store.load();
+    // 1. Load initial persisted settings
+    await store.load();
 
-    // 2. Apply initial layout
-    layout.apply(settings);
+    // 2. Mount unified declarative Preact Extension Root (SettingsProvider, BlockStoreProvider, LayoutSync, HUD, Dev VersionOverlay)
+    mountExtensionRoot(store, blockStore, handleExportChat);
 
-    // 3. Mount floating HUD
-    hud.mount();
-
-    // 3b. Mount top-right Version Overlay (Dev builds only)
-    const isDevelopment = typeof __DEV__ !== "undefined" && __DEV__;
-    if (isDevelopment) {
-        mountVersionOverlay();
-    }
-
-    // 4. Start DOM observer
+    // 3. Start DOM observer
     observer.start();
 
-    // 5. Global Keyboard Shortcuts
+    // 4. Global Keyboard Shortcuts
     globalThis.addEventListener("keydown", (e) => {
         const keyEvent = e as KeyboardEvent;
         // Alt + W : Toggle Full Width
@@ -53,45 +63,44 @@ async function bootstrap() {
             keyEvent.preventDefault();
             const next = !store.settings.fullWidth;
             store.update({ fullWidth: next });
-            layout.apply(store.settings);
-            hud.update();
         }
         // Alt + O : Toggle Render All Blocks
         if (keyEvent.altKey && (keyEvent.key === "o" || keyEvent.key === "O")) {
             keyEvent.preventDefault();
             handleRenderAll();
         }
-        // Alt + F : Toggle Fold/Expand All Rendered Blocks
+        // Alt + F : Toggle Fold/Expand All Blocks
         if (keyEvent.altKey && (keyEvent.key === "f" || keyEvent.key === "F")) {
             keyEvent.preventDefault();
             handleFoldAll();
         }
     });
 
-    // 6. Debug Build Feature: Expose DevTools Inspection API only in dev mode
+    // 5. Debug Build Feature: Expose DevTools Inspection API strictly in dev mode
+    const isDevelopment = typeof __DEV__ !== "undefined" && __DEV__;
     if (isDevelopment) {
         const api = {
             inspect: () => {
                 const records = codeBlockManager.getAllRecords();
-                console.log("[GeminiOrgMod DEBUG] Total registered blocks:", records.length);
+                const cached = blockStore.getAllCached();
+                console.log("[GeminiOrgMod DEBUG] Total registered blocks:", records.length, "Cached ASTs:", cached.length);
                 console.table(
                     records.map((r) => ({
                         id: r.id,
-                        rendered: r.isRendered,
-                        allFolded: r.allFolded,
+                        lang: r.lang,
                         textLength: r.lastText.length,
-                        hasPre: !!r.preEl,
-                        hasRenderedView: !!r.renderedEl,
-                        renderedRect: r.renderedEl ? r.renderedEl.getBoundingClientRect() : null,
+                        hasMount: !!r.mountEl,
                     })),
                 );
-                return records;
+                return { records, cached };
             },
             getBlocks: () => codeBlockManager.getAllRecords(),
             getBlock: (id: string) => codeBlockManager.getRecord(id),
+            getBlockStore: () => blockStore,
             getSettings: () => store.settings,
             renderAll: handleRenderAll,
             foldAll: handleFoldAll,
+            exportChat: handleExportChat,
             scan: () => observer.scan(),
         };
 
@@ -101,14 +110,6 @@ async function bootstrap() {
         globalThis.addEventListener("gemini-org-inspect", () => {
             api.inspect();
         });
-
-        // Add 1-click debug trigger to HUD in dev mode
-        const hudTitle = document.querySelector<HTMLElement>(".orgmod-hud-title");
-        if (hudTitle) {
-            hudTitle.title = "Click to inspect registered blocks in console (Dev mode)";
-            hudTitle.style.cursor = "pointer";
-            hudTitle.addEventListener("click", () => api.inspect());
-        }
     }
 }
 

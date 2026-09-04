@@ -24,14 +24,14 @@
   },
   "lint": {
     "include": ["src/", "tests/", "build.ts"],
-    "exclude": ["dist/", "node_modules/"],
+    "exclude": ["dist/", "node_modules/", "vendor/", "dist-amo/", "dist-archive/", "docs/"],
     "rules": {
       "tags": ["recommended"]
     }
   },
   "fmt": {
     "include": ["src/", "tests/", "build.ts"],
-    "exclude": ["dist/", "node_modules/"],
+    "exclude": ["dist/", "dist-amo/", "dist-archive/"],
     "lineWidth": 120,
     "indentWidth": 4,
     "singleQuote": false,

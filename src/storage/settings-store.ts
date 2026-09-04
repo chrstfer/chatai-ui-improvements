@@ -33,6 +33,7 @@ export class SettingsStore {
                     "autoRenderOrg",
                     "widthPercent",
                     "hudCollapsed",
+                    "responseFontSize",
                 ]);
                 if (typeof stored.fullWidth === "boolean") this.currentSettings.fullWidth = stored.fullWidth;
                 if (typeof stored.autoRenderOrg === "boolean") {
@@ -40,6 +41,9 @@ export class SettingsStore {
                 }
                 if (typeof stored.widthPercent === "number") this.currentSettings.widthPercent = stored.widthPercent;
                 if (typeof stored.hudCollapsed === "boolean") this.currentSettings.hudCollapsed = stored.hudCollapsed;
+                if (typeof stored.responseFontSize === "number") {
+                    this.currentSettings.responseFontSize = stored.responseFontSize;
+                }
             } else if (typeof localStorage !== "undefined") {
                 const local = localStorage.getItem("gemini_orgmod_state");
                 if (local) Object.assign(this.currentSettings, JSON.parse(local));

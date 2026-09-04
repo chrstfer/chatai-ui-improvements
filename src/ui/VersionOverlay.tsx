@@ -2,7 +2,7 @@
  * Preact Component for Top-Right Version Overlay Window
  */
 
-import { FunctionComponent, h, render } from "preact";
+import { FunctionComponent, render } from "preact";
 
 declare const __BUILD_VERSION__: string | undefined;
 declare const chrome: { runtime?: { getManifest?: () => { version?: string } } } | undefined;
@@ -59,5 +59,5 @@ export function mountVersionOverlay(): void {
     rootEl.setAttribute("data-gemini-org", "version-overlay-root");
     document.body.appendChild(rootEl);
 
-    render(h(VersionOverlay, {}), rootEl);
+    render(<VersionOverlay />, rootEl);
 }

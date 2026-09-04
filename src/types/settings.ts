@@ -7,6 +7,7 @@ export interface ExtensionSettings {
     autoRenderOrg: boolean;
     widthPercent: number;
     hudCollapsed: boolean;
+    responseFontSize: number;
 }
 
 export const DEFAULT_SETTINGS: ExtensionSettings = {
@@ -14,4 +15,5 @@ export const DEFAULT_SETTINGS: ExtensionSettings = {
     autoRenderOrg: true,
     widthPercent: 94,
     hudCollapsed: false,
+    responseFontSize: 100,
 };

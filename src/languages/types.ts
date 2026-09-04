@@ -2,7 +2,7 @@
  * Language Definition and Category Types
  */
 
-import { ToolbarTool } from "../org/components/OrgToolbar.tsx";
+import { ToolbarTool } from "./org/components/OrgToolbar.tsx";
 
 export type LanguageCategory =
     | "programming"

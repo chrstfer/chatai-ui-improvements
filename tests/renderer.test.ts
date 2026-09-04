@@ -1,6 +1,6 @@
 import { describe, it } from "node:test";
 import assert from "node:assert/strict";
-import { parseOrgDocument, renderLatexToString } from "../src/org/index.ts";
+import { parseOrgDocument, renderLatexToString } from "../src/languages/org/index.ts";
 
 describe("renderer and latex", () => {
     it("renders LaTeX math to KaTeX HTML without errors", () => {
