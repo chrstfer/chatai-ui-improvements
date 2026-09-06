@@ -2,6 +2,7 @@ import { render } from "preact";
 import { EXTENSION_INJECTED } from "./selectors.ts";
 import type { GeminiCodeBlockRef } from "./types.ts";
 import { DiagnosticPlaceholderBlock } from "../../views/common/DiagnosticPlaceholderBlock.tsx";
+import { createLogger } from "../../core/logging/index.ts";
 
 declare const chrome: {
     runtime?: {
@@ -10,6 +11,7 @@ declare const chrome: {
 } | undefined;
 
 export class GeminiInjector {
+    private logger = createLogger("Gemini > Injector");
     private activeRoots = new Map<
         string,
         { container: HTMLElement; shadowRoot: ShadowRoot; destroy: () => void }
@@ -31,6 +33,7 @@ export class GeminiInjector {
                 `.${EXTENSION_INJECTED.CONTAINER_CLASS}[data-host-id="${block.id}"]`,
             )
         ) {
+            this.logger.debug(`Skipping duplicate injection for block #${block.id}`);
             return;
         }
 
@@ -71,10 +74,13 @@ export class GeminiInjector {
 
         block.siblingContainer = container;
 
+        this.logger.info(`Mounted Shadow Root sibling for block #${block.id} (theme: "${currentTheme}")`);
+
         this.activeRoots.set(block.id, {
             container,
             shadowRoot,
             destroy: () => {
+                this.logger.debug(`Unmounting Preact root and restoring host element for block #${block.id}`);
                 render(null, shadowRoot);
                 container.remove();
                 hostElement.style.display = "";
@@ -84,12 +90,14 @@ export class GeminiInjector {
     }
 
     public updateThemes(theme: "light" | "dark"): void {
+        this.logger.debug(`Updating ${this.activeRoots.size} mounted root(s) to theme "${theme}"`);
         for (const { container } of this.activeRoots.values()) {
             container.dataset.theme = theme;
         }
     }
 
     public destroyAll(): void {
+        this.logger.info(`Cleaning up ${this.activeRoots.size} active Preact root(s)`);
         for (const { destroy } of this.activeRoots.values()) {
             destroy();
         }

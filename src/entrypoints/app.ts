@@ -1,6 +1,13 @@
 import type { SiteAdapter } from "../core/contracts/index.ts";
 import { type ChatAdapterRegistry, defaultChatRegistry } from "../chat/registry.ts";
 import { __BUILD_VERSION__, __DEV__ } from "../env.ts";
+import {
+    createLogger,
+    installBrowserHooks,
+    installConsoleApi,
+    installPreactHooks,
+    type WindowTarget,
+} from "../core/logging/index.ts";
 
 export interface WindowLike {
     location: { href: string };
@@ -58,22 +65,34 @@ export async function bootstrapContentScript(options: BootstrapOptions = {}): Pr
 
     win[EXPANDO_GUARD] = true;
 
-    if (__DEV__) {
-        console.log(`[AI Chat UI] Booting extension (${__BUILD_VERSION__}) on ${url}`);
-    }
+    const logger = createLogger("Bootloader");
+    logger.info(`Booting extension (${__BUILD_VERSION__}) on ${url}`);
+
+    const browserSub = installBrowserHooks(logger, win as WindowTarget);
+    const preactSub = installPreactHooks(logger);
+    installConsoleApi(win);
 
     const adapter = await registry.findAndLoad(url);
     if (!adapter) {
+        logger.warn(`Failed to resolve or load adapter for ${url}`);
+        browserSub.uninstall();
+        preactSub.uninstall();
         delete win[EXPANDO_GUARD];
         return { initialized: false, reason: "no_matching_adapter" };
     }
 
+    logger.info(`Activated site adapter: ${adapter.name} (${adapter.id})`);
+
     onDOMReady(doc, () => {
+        logger.debug("DOM ready, initializing adapter");
         adapter.initialize();
     });
 
     const cleanup = () => {
+        logger.info(`Tearing down adapter (${adapter.id}) on pagehide`);
         adapter.destroy();
+        browserSub.uninstall();
+        preactSub.uninstall();
         delete win[EXPANDO_GUARD];
     };
 

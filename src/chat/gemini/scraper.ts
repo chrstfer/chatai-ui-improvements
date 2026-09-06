@@ -1,13 +1,19 @@
 import { GEMINI_SELECTORS } from "./selectors.ts";
 import type { GeminiCodeBlockRef } from "./types.ts";
+import { createLogger } from "../../core/logging/index.ts";
 
 export class GeminiScraper {
+    private logger = createLogger("Gemini > Scraper");
+
     /**
      * Extracts raw code text directly from the native data-island element.
      * Preserves exact whitespace and character content without mutation.
      */
     public extractCodeText(codeBlockElement: HTMLElement): string {
         const codeEl = codeBlockElement.querySelector<HTMLElement>(GEMINI_SELECTORS.CODE_CONTENT);
+        if (!codeEl) {
+            this.logger.warn(`Code content element missing for selector: ${GEMINI_SELECTORS.CODE_CONTENT}`);
+        }
         return codeEl?.textContent ?? "";
     }
 
@@ -31,6 +37,7 @@ export class GeminiScraper {
         );
 
         if (isOrgHeuristic) {
+            this.logger.debug(`Detected language "org" via regex heuristic (host tag was "${tagText || "empty"}")`);
             return "org";
         }
 
@@ -51,7 +58,12 @@ export class GeminiScraper {
      */
     public parseCodeBlock(codeBlockElement: HTMLElement): GeminiCodeBlockRef | null {
         const codeContent = codeBlockElement.querySelector<HTMLElement>(GEMINI_SELECTORS.CODE_CONTENT);
-        if (!codeContent) return null;
+        if (!codeContent) {
+            this.logger.warn(
+                `Found <code-block> but missing child ${GEMINI_SELECTORS.CODE_CONTENT} (potential selector drift)`,
+            );
+            return null;
+        }
 
         const rawText = codeContent.textContent ?? "";
         const languageHint = this.detectLanguageHint(codeBlockElement, rawText);

@@ -50,6 +50,12 @@
 - *Three-Layer Style Mapping* :: Decoupled styling architecture separating pure domain computation (~computeLayoutStyles~), DOM I/O adapters (~applyLayoutDeclarations~), and reactive Preact hooks (~useLayoutSync~).
 - *Version Overlay* :: Top-center Preact-rendered overlay badge mounted exclusively during development (~__DEV__ === true~) displaying dynamic dev build identifiers.
 
+** 6. Observability & Telemetry
+- *Runlevel* :: The operational execution mode of the extension (~dev~, ~test~, ~prod~) establishing baseline operational presets, dev tooling availability, and default log verbosity thresholds.
+- *Log Level* :: The severity threshold (~DEBUG~, ~INFO~, ~WARN~, ~ERROR~, ~SILENT~) determining whether a telemetry entry is emitted to native console sinks and in-memory buffers.
+- *Origin-Filtered Error* :: A browser error or unhandled Promise rejection verified via script URL (~chrome.runtime.getURL~) or stack trace to have originated strictly from the extension's execution contexts rather than host application scripts.
+- *Diagnostic Ring Buffer* :: A fixed-capacity in-memory circular buffer retaining the latest log entries in JavaScript memory for active session inspection and automated test assertions without persistence overhead.
+
 * System Architecture & Extension Ruleset
 
 ** 1. Architectural Layers & Boundary Invariants

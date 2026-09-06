@@ -1,6 +1,7 @@
 import { EXTENSION_INJECTED, GEMINI_SELECTORS } from "./selectors.ts";
 import { GeminiScraper } from "./scraper.ts";
 import type { GeminiCodeBlockRef } from "./types.ts";
+import { createLogger } from "../../core/logging/index.ts";
 
 export interface ObserverCallbacks {
     onBlockDiscovered: (block: GeminiCodeBlockRef) => void;
@@ -9,6 +10,7 @@ export interface ObserverCallbacks {
 }
 
 export class GeminiDOMObserver {
+    private logger = createLogger("Gemini > Observer");
     private observer: MutationObserver | null = null;
     private scraper = new GeminiScraper();
     private callbacks: ObserverCallbacks;
@@ -24,6 +26,8 @@ export class GeminiDOMObserver {
 
     public observe(targetNode: Node = document.body): void {
         this.disconnect();
+
+        this.logger.debug("Attaching MutationObserver to target root");
 
         this.observer = new MutationObserver((mutations) => {
             this.handleMutations(mutations);
@@ -41,6 +45,7 @@ export class GeminiDOMObserver {
     private scanExisting(root: Node): void {
         if (!(root instanceof HTMLElement)) return;
         const blocks = root.querySelectorAll<HTMLElement>(GEMINI_SELECTORS.CODE_BLOCK);
+        this.logger.debug(`Initial scan found ${blocks.length} <code-block> element(s)`);
         blocks.forEach((el) => this.processCodeBlockElement(el));
     }
 
@@ -75,10 +80,12 @@ export class GeminiDOMObserver {
 
         if (!el.hasAttribute(EXTENSION_INJECTED.PROCESSED_ATTR)) {
             el.setAttribute(EXTENSION_INJECTED.PROCESSED_ATTR, "true");
+            this.logger.debug(`Marked block #${block.id} as processed (${EXTENSION_INJECTED.PROCESSED_ATTR})`);
             this.callbacks.onBlockDiscovered(block);
         }
 
         if (block.isSettled) {
+            this.logger.debug(`Block #${block.id} detected as already settled by turn status`);
             this.markSettled(block);
             return;
         }
@@ -92,6 +99,9 @@ export class GeminiDOMObserver {
             this.callbacks.onBlockStreaming(block);
 
             const silenceTimer = setTimeout(() => {
+                this.logger.debug(
+                    `Silence elapsed (${this.MACRO_SETTLE_SILENCE_MS}ms) for block #${block.id}, triggering macro-settle`,
+                );
                 this.markSettled(block);
             }, this.MACRO_SETTLE_SILENCE_MS);
 
@@ -112,6 +122,7 @@ export class GeminiDOMObserver {
     }
 
     public disconnect(): void {
+        this.logger.debug("Disconnecting DOM observer and clearing debounce timers");
         this.observer?.disconnect();
         this.observer = null;
         for (const timer of this.pendingDebounceTimers.values()) {
