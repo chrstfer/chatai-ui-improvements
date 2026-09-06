@@ -1,6 +1,12 @@
 # Created by https://www.toptal.com/developers/gitignore/api/typescript,deno,emacs
 # Edit at https://www.toptal.com/developers/gitignore?templates=typescript,deno,emacs
 
+.env
+.env.development.local
+.env.test.local
+.env.production.local
+.env.local
+
 dist-archive/
 dist-amo/
 web-ext-artifacts/
@@ -78,3 +84,74 @@ photorec.*
 *.log
 .scratch/
 
+# Created by https://www.toptal.com/developers/gitignore/api/emacs,react
+# Edit at https://www.toptal.com/developers/gitignore?templates=emacs,react
+
+### Emacs ###
+# -*- mode: gitignore; -*-
+*~
+\#*\#
+/.emacs.desktop
+/.emacs.desktop.lock
+*.elc
+auto-save-list
+tramp
+.\#*
+
+# Org-mode
+.org-id-locations
+*_archive
+
+# flymake-mode
+*_flymake.*
+
+# eshell files
+/eshell/history
+/eshell/lastdir
+
+# elpa packages
+/elpa/
+
+# reftex files
+*.rel
+
+# AUCTeX auto folder
+/auto/
+
+# cask packages
+.cask/
+dist/
+
+# Flycheck
+flycheck_*.el
+
+# server auth directory
+/server/
+
+# projectiles files
+.projectile
+
+# directory configuration
+.dir-locals.el
+
+# network security
+/network-security.data
+
+
+### react ###
+.DS_*
+*.log
+logs
+**/*.backup.*
+**/*.back.*
+
+node_modules
+bower_components
+
+*.sublime*
+
+psd
+thumb
+sketch
+
+# End of https://www.toptal.com/developers/gitignore/api/emacs,react

@@ -22,17 +22,10 @@ When conducting sequential thinking or deep analysis, calibrate thought depth dy
 - **Architectural design / standard research**: 10–16 thoughts.
 - **Complex migrations / subtle async flows / deep algorithms**: 18–32 thoughts.
 
-## Deno
-
 ## Preact UI & Architecture Guidelines
 - **standard deno compiler options**: The correct compiler options for Deno with preact are: "compilerOptions": { "jsx": "react-jsx", "jsxImportSource": "preact" }
-- **Declarative Preact-First UI**: All extension UI elements (HUDs, badges, toolbars, overlays, code block containers, rendered views) MUST be implemented as declarative Preact components using JSX (`react-jsx` automatic transform with `preact`). Never import `h` in `.tsx` files. Never use `document.createElement`, manual `.style.display` mutation, or disjoint `render()` calls for UI composition.
-- **Single Preact Root per Mount Boundary**: When attaching extension UI to host DOM elements, mount a single Preact root per host element (e.g. `InSituCodeBlock`, `ExtensionRoot`) and project nested elements into host containers using Preact portals (`createPortal`).
-- **Three-Layer Style Architecture**: Always decouple styling into:
-  1. *Layer 1 (Pure Core)*: Deterministic mapping function (`computeLayoutStyles`) from settings to `{ cssVars, classNames }` with zero DOM coupling.
-  2. *Layer 2 (I/O Adapter)*: Minimal DOM mutation bridge (`applyLayoutDeclarations`).
-  3. *Layer 3 (Reactive Hook)*: `useLayoutSync` invoking Layer 2 inside `useEffect`.
-- **Dev-Only Gating**: All development badges (`VersionOverlay`) and DevTools inspection APIs (`__GeminiOrgMod`) MUST be strictly gated behind `if (__DEV__)` so they are stripped by the bundler in release builds.
+- **Declarative Preact-First UI**: All extension UI elements (HUDs, badges, toolbars, overlays, code block containers, rendered views) MUST be implemented as declarative Preact components using JSX. Never import `h` in `.tsx` files. Never use `document.createElement`, manual `.style.display` mutation, or disjoint `render()` calls for UI composition. Never directly modify `.innerHTML`.
+- **Single Preact Root per Mount Boundary**: When attaching extension UI to host DOM elements, mount a single Preact root per host element and project nested elements into host containers using Preact portals (`createPortal`).
 - **Build Destination Policy**:
   - Development (`dist/dev/` via `deno task build:dev`): Default target for all active development and automated workflows.
   - Release (`dist/release/` via `deno task build`): Only run upon explicit user request.
