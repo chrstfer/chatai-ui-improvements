@@ -1,12 +1,4 @@
 # Created 2026-09-06 Sun 04:48
-#+options: toc:nil num:nil H:4 ^:nil author:nil email:nil
-#+title: 
-#+html_doctype: html5
-#+html_head: <meta name="viewport" content="width=device-width, initial-scale=1.0">
-#+html_head: <style> body { grid-template-columns: 1fr min(1600px, 95%) 1fr; } h4 { font-size: 1rem; } h5 { font-size: 0.8rem; } h6 { font-size: 0.5rem; } </style>
-#+html_head: <link rel="stylesheet" type="text/css" href="/home/chrstfer/.emacs.d/org/includes/simple.css" />
-#+html_head: <link rel="stylesheet" type="text/css" href="/home/chrstfer/.emacs.d/org/includes/table-improvements.css" />
-#+macro: inline-css (eval (concat "<style>" (with-temp-buffer (insert-file-contents "$1") (buffer-string)) "</style>"))
 * Planning
 ** General
 *** Architecture Choices
@@ -106,8 +98,8 @@ code.
 ****** File: adapter.ts
 ****** File: language.ts
 ****** File: documentView.ts
-***** store/
 ***** utils/
+**** store/
 **** languages/
 ***** Files: registry.ts
 ***** JSON/
@@ -185,14 +177,13 @@ The headings reflect CSS selectors relative to their parent containers.
 ************** code-block
 - Direct child of ~response-element~.
 - Language identification logic:
-  - Language label is stored in the first child ~TEXT_NODE~ preceding the ~<code>~ element.
+  - Language label is stored in the often child ~TEXT_NODE~ preceding the ~<code>~ element.
   - Known syntax-highlighted languages contain nested HTML formatting inside the code node.
   - "Code snippet": pre-formatted plain text without internal syntax highlighting elements.
   - "Plain text": standard plain text format.
   - Absence of a leading ~TEXT_NODE~ before the ~<code>~ element indicates a
     missing native header bar/buttons.
     - This is not necessarily reliable.
-
 - if ~headerTextNode~ is absent, evaluate regex patterns against the first 3 lines of ~rawText~ (e.g., ~^\*+\s~ for Org headlines or ~^#\+TITLE:~ for Org headers).
 *************** code
 - Descendant of ~code-block~.

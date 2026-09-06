@@ -1,72 +1,210 @@
-#+TITLE: Gemini Org-Mode UI Improver Domain Context
-#+DATE: 2026-09-03
+#+TITLE: AI Chat UI Improvements — Domain Context & Architecture Specification
+#+DATE: 2026-09-06
 #+OPTIONS: toc:2 num:nil
 
 * Domain Glossary & Ubiquitous Language
 
-- *Org Code Block Shell*: The native Gemini DOM container (~.code-block~, ~code-block.enable-luminous-code-block~) wrapping an AI response code snippet.
-- *In-Situ Sibling Container*: A dedicated ~div.orgmod-rendered-container~ mounted directly beside the native ~<pre><code>~ element, rendering the Org AST while preserving Gemini's host layout and copy action.
-- *Org AST (Abstract Syntax Tree)*: The strongly-typed data representation of an Org-mode document produced by the universal document parser (~src/languages/org/parser/document-parser.ts~) and inline lexer.
-- *Heading Node & Subtree*: A hierarchical Org section (~*~ through ~******~) containing title tokens, status chips (~TODO~, ~DONE~), priority badges (~[#A]~), tag sets (~:TAG:~), and nested child content folded recursively.
-- *Property Drawer*: Metadata blocks enclosed in ~:PROPERTIES: ... :END:~ containing key-value pairs, collapsible via interactive toggles.
-- *Cookie Progress*: Dynamic checkbox fraction indicators (e.g. ~[2/5]~ or ~[40%]~) that recalculate in real-time as child checkboxes are clicked.
-- *Floating HUD (Heads-Up Display)*: An ephemeral floating control panel elevated ~5.5em~ above the bottom-right corner to clear Gemini prompt inputs and footers.
-- *Version Overlay*: A top-right Preact-rendered overlay badge mounted exclusively during development (~__DEV__ === true~) displaying the dynamic dev build identifier and status indicator to visually verify hot-reload synchronization.
-- *Dev Build Suffix*: The unique timestamped version modifier (~0.1.0-dev.YYMMDD.HHMMSS~) generated at build time to differentiate successive dev bundles.
-- *Detection Engine*: Lexical header analyzer and multi-signal heuristic scoring engine determining if a code block contains authentic Org markup.
-- *Layout Manager*: CSS class coordinator applying surgical max-width adjustments (~86%~ default width) to conversation streams without affecting sidebars.
-- *Session State*: Strictly in-memory per-tab configuration flags (~fullWidth~, ~autoRenderOrg~, ~widthPercent~) that reset to default inactive values on every page load.
-- *Markdown AST Engine*: The CommonMark/GFM abstract syntax tree parser and token model (~src/languages/markdown/~) providing normalized representation of conversational turn content.
-- *Org Plaintext Exporter*: AST-to-plaintext compiler (~src/languages/org/export/~) translating Markdown structures to Org syntax, unwrapping embedded Org blocks, and recalculating subtree heading depths.
-- *Turn Metadata Drawer*: Machine-readable property drawer (~:PROPERTIES: ... :END:~) affixed to conversation turn headlines containing role, indices, and timestamps.
-- *StructuredMessageContainer*: Universal Preact container component providing a unified interface for any message box in the DOM (user message, AI reply, or code block), orchestrating folding, collapsed summary badges, portal toolbars, and active view projection while remaining decoupled from language parsing and host element tags.
-- *In-Situ Universal Code Block Shell*: Single Preact root mounted to each host code block, eliminating disjoint imperative DOM mutations and projecting toolbar actions into headers via portals.
-- *Three-Layer Style Mapping*: Decoupled styling architecture separating pure domain computation (~computeLayoutStyles~), DOM I/O adapters (~applyLayoutDeclarations~), and reactive Preact hooks (~useLayoutSync~).
-- *Persistent Content Fingerprint Cache*: $O(1)$ fast hashing (~fnv1a~) of code prefix, length, and language, retaining parsed ASTs and fold states across virtual scrolling unmount cycles.
-- *Message Destruction Signal*: Observer event triggered on DOM removal to safely unmount Preact roots without purging persistent AST caches.
-- *Host Stylesheet Split*: The strict separation between host-agnostic presentation rules (~general.css~) and platform-specific DOM integrations (~gemini.css~).
-- *Declarative Host Stylesheet Scoping*: Using separate WebExtension manifest ~content_scripts~ entries to scope platform stylesheets (~styles/gemini.css~, ~styles/duckai.css~) strictly to their respective platform URLs (~gemini.google.com~, ~duck.ai~), avoiding global CSS bleed across chat providers while retaining zero-FOUC ~document_start~ injection.
-- *Chat Host Provider*: The target conversational AI interface (e.g. Google Gemini, DuckDuckGo AI) where the extension mounts in-situ code block controllers and layout adaptations.
-- *Compile-Time Dev Prepending*: Build subtask (~build:dev:prep~) prepending ~const __DEV__ = true;~ to bundled code before ~deno transpile~, satisfying strict dev-only gating without relying on runtime lookups.
+** 1. Structural & Isolation Roles
+- *AST (Abstract Syntax Tree)* :: A pure, in-memory tree representation of parsed markup or code (e.g., Org-mode syntax nodes). It is completely decoupled from any UI framework, DOM node, or platform API.
+- *Host Application* :: The third-party web application (e.g., Gemini, ChatGPT, Claude) running in the browser tab that the extension inspects and augments.
+- *Host Node* :: A native DOM element created and managed by the Host Application's internal framework (e.g., a native ~<code-block>~ or message container).
+- *Injection Container* :: A lightweight wrapper element created by the extension and inserted as a sibling or wrapper to a Host Node to serve as the mounting anchor for custom UI.
+- *In-Situ Sibling Container* :: A dedicated container mounted directly beside the native host code block or message element, rendering the parsed AST while preserving host layout, native events, and actions.
+- *Shadow Root Boundary* :: An encapsulated DOM subtree (~mountContainer.attachShadow({ mode: 'open' })~) isolating extension styles (~adoptedStyleSheets~) and Preact component trees from host CSS resets and global styles.
 
-* Subsystem Topology
+** 2. Architectural Layers & Components
+- *Pure Domain Layer (~*/ast/~, ~*/model/~, ~*/contracts/~)* :: Headless, deterministic TypeScript modules containing domain models, parsing logic, AST manipulation, and type definitions. Completely free of DOM and WebExtension APIs.
+- *Scraper (~src/chat/<provider>/scraper/~ or controller)* :: A DOM-reading module responsible for locating host elements, extracting raw payload strings, detecting message IDs, and inspecting host streaming markers. It does not manage lifecycle or render UI.
+- *Controller / Adapter (~src/chat/<provider>/controller/~)* :: The orchestration layer connecting Scrapers, background services, caching layers, and View lifecycles. It listens to DOM mutations, manages the settlement state machine, and triggers mounting/unmounting.
+- *View Layer (~*/views/~, ~*/ui/~, ~src/views/~)* :: Preact component trees, hooks, and localized styles that render parsed domain ASTs into visual interfaces inside the Shadow Root.
+- *Platform / Storage Adapter (~src/core/storage/~, ~src/core/rpc/~)* :: The module wrapping browser-specific runtime APIs (~browser.storage~, ~browser.runtime.sendMessage~) behind typed Promise-based contracts.
+- *Site Adapter* :: Host-specific module implementing the standard adapter contract for a specific web AI interface (e.g. Gemini, Claude, ChatGPT).
+- *Language Module* :: A pluggable content handler implementing ~LanguageDefinition~ (e.g., Org-mode, Markdown, LaTeX, Mermaid) loaded dynamically or statically.
 
-- *~src/context/~ (Preact Contexts & Reactive State)*:
-  - *~src/context/SettingsContext.tsx~*: Context provider, ~useSettings~, and ~useLayoutSync~ for reactive settings and 3-layer style synchronization.
-  - *~src/context/BlockStoreContext.tsx~*: Context provider, ~useBlockStore~, content fingerprint cache, and global actions (~renderAll~, ~foldAll~).
-- *~src/languages/~ (Language Engine, Registries & ASTs)*:
-  - *~src/languages/StructuredMessageContainer.tsx~*: Universal wrapper for folding, badges, toolbars, and custom language views.
-  - *~src/languages/org/~*: Dedicated sub-module for universal Org-mode document AST parser (~document-parser.ts~), Preact rendering components (~OrgDocumentView~, ~Section~, etc.), and ~export/~ plaintext/chat generators.
-  - *~src/languages/markdown/~*: Dedicated CommonMark/GFM AST definitions and recursive block/inline tokenizer.
-  - *~src/languages/registry.ts~ & ~definitions.ts~*: Dynamic ~LanguageRegistry~ engine and 37 recognized language definitions.
-- *~src/dom/~ (DOM Orchestration, Extraction & Mutation Observer)*:
-  - *~src/dom/InSituCodeBlock.tsx~*: Preact root component for host code block enhancement.
-  - *~src/dom/code-block.ts~*: Code block lifecycle and Preact mount controller.
-  - *~src/dom/chat-extractor.ts~*: Chat turn discovery, authentic code text extraction, and metadata gathering.
-  - *~src/dom/observer.ts~*: Debounced mutation observer handling streaming token settlement, shadow DOM scanning, and removal signals.
-- *~src/ui/~ (Floating HUD & User Controls)*:
-  - *~src/ui/ExtensionRoot.tsx~*: Unified Preact root mounting contexts, layout sync, HUD, and dev VersionOverlay.
-  - *~src/ui/hud.tsx~*: Floating control widget with 32x32px minimized square state, width presets, response font size control, and export trigger.
-  - *~src/ui/VersionOverlay.tsx~*: Top-center development build indicator.
-- *~src/layout/~ (Layout & Viewport Injection)*:
-  - *~src/layout/layout-manager.ts~*: Layer 1 pure style computation and Layer 2 DOM application adapter.
-- *~src/styles/~ (Modular Stylesheets)*:
-  - *~src/styles/general.css~*: Host-agnostic design system tokens, Org AST typography, collapsed badge styling, and HUD base geometry.
-  - *~src/styles/gemini.css~*: Gemini host-specific full-width rules, query alignment, and scoped response font sizing.
-- *~dist/~ (Build Artifacts & Distribution Topology)*:
-  - *~dist/dev/~*: Development builds (~deno task build:dev~) with live version suffix, vendor dependencies, and development zip package. (Standard build target during development).
-  - *~dist/release/~*: Production release builds (~deno task build~) with version tagging, vendor dependencies, and release zip package. (Only built on explicit user request).
+** 3. Lifecycle & State Machine Concepts
+- *Micro-Debouncing (Observer Batching)* :: An execution delay (200ms minimum) applied to ~MutationObserver~ events to coalesce high-frequency DOM changes before processing.
+- *Macro-Settling (Stream Finalization)* :: The state-machine heuristic (e.g., >300ms mutation silence or presence of host completion indicators) used to determine that the LLM has finished streaming a response.
+- *In-Flight Phase (Streaming)* :: The transient state during token arrival where heavy AST parsing and interactive Preact mounting are suspended in favor of lightweight native/text updates.
+- *Settled Phase (Finalized)* :: The stable state reached after token generation completes, triggering full AST parsing, syntax highlighting, and interactive Preact view mounting.
+- *Mount Guard* :: Explicit HTML dataset attributes (~data-ext-processed~, ~data-ext-mounted~) set on DOM elements to make scrapers and injectors strictly idempotent across multiple observer passes.
+- *Decoupled LRU Cache* :: An in-memory cache keyed by content hash (e.g. fast FNV-1a fingerprint of code prefix, length, and language) that stores parsed ASTs and view state independent of physical host DOM node lifecycle, surviving virtual-scroller recycling.
+- *Message Destruction Signal* :: Observer event triggered on DOM node removal to safely unmount Preact roots without purging persistent AST caches.
+
+** 4. Org-Mode & Content Domain Concepts
+- *Org AST (Abstract Syntax Tree)* :: The strongly-typed data representation of an Org-mode document produced by the universal document parser (~src/languages/org/ast/~) and inline lexers.
+- *Heading Node & Subtree* :: A hierarchical Org section (~*~ through ~******~) containing title tokens, status chips (~TODO~, ~DONE~), priority badges (~[#A]~), tag sets (~:TAG:~), and nested child content folded recursively.
+- *Property Drawer* :: Metadata blocks enclosed in ~:PROPERTIES: ... :END:~ containing key-value pairs, collapsible via interactive toggles.
+- *Cookie Progress* :: Dynamic checkbox fraction indicators (e.g. ~[2/5]~ or ~[40%]~) that recalculate in real-time as child checkboxes are clicked.
+- *Turn Metadata Drawer* :: Machine-readable property drawer (~:PROPERTIES: ... :END:~) affixed to conversation turn headlines containing role, indices, and timestamps.
+- *StructuredMessageContainer* :: Universal Preact container component providing a unified interface for message boxes in the DOM, orchestrating folding, collapsed summary badges, portal toolbars, and active view projection.
+
+** 5. UI Controls & Styling
+- *Floating HUD (Heads-Up Display)* :: An ephemeral floating control panel elevated above the bottom-right corner providing width presets, view toggles, font size controls, and export triggers.
+- *Three-Layer Style Mapping* :: Decoupled styling architecture separating pure domain computation (~computeLayoutStyles~), DOM I/O adapters (~applyLayoutDeclarations~), and reactive Preact hooks (~useLayoutSync~).
+- *Version Overlay* :: Top-center Preact-rendered overlay badge mounted exclusively during development (~__DEV__ === true~) displaying dynamic dev build identifiers.
+
+* System Architecture & Extension Ruleset
+
+** 1. Architectural Layers & Boundary Invariants
+The codebase enforces a strict directional dependency graph:
+
+#+BEGIN_EXAMPLE
+Domain (Pure)  <-  Store / Platform Adapters  <-  Controllers / Scrapers (DOM)  <-  Views / UI (Preact / Shadow DOM)
+#+END_EXAMPLE
+
+*** 1.1 Pure Domain & Headless Layer (~*/ast/~, ~*/model/~, ~*/contracts/~)
+- 100% pure TypeScript/ECMAScript with zero external runtime dependencies.
+- STRICTLY FORBIDDEN: Preact, React, JSX/TSX, CSS/style imports, Browser DOM APIs (~window~, ~document~, ~HTMLElement~, ~MutationObserver~), and WebExtension APIs (~browser.*~).
+- Invariant: Must execute deterministically across headless targets (MV3 ~background.ts~ worker, Web Workers, Node/Deno unit tests).
+
+*** 1.2 Platform & Storage Adapters (~src/core/storage/~, ~src/core/rpc/~)
+- Encapsulates WebExtension APIs exclusively via the standard ~browser.*~ namespace.
+- Direct invocation of ~browser.storage.local~ across arbitrary UI or scraper modules is forbidden; all persistent operations route through typed storage abstractions.
+- RPC message contracts use native Promise resolution over ~browser.runtime.sendMessage~ and ~browser.runtime.onMessage~.
+
+*** 1.3 DOM Scraping & Host Controllers (~src/chat/*/controller/~, ~src/chat/*/scraper/~)
+- Manages host DOM inspection, mutation listening, and lifecycle orchestration.
+- May consume Browser DOM APIs, platform storage, and pure domain contracts.
+- STRICTLY FORBIDDEN: Direct UI framework imports (Preact/React/JSX) and direct HTML rendering.
+- Telemetry & Fallbacks: Selectors must prioritize semantic custom elements (e.g., ~model-response~, ~code-block~) with secondary structural fallbacks (e.g., ~pre > code~). Scrapers run non-throwing diagnostic health checks on load to log DOM schema drift.
+
+*** 1.4 Presentation & View Layer (~*/views/~, ~*/ui/~, ~src/views/~)
+- Houses Preact components, hooks, and stylesheets.
+- Mounts inside isolated Shadow Roots attached to host injection containers.
+- May import domain contracts and controllers; domain layers must NEVER import presentation layers.
+
+*** 1.5 Module Packaging & Deep Import Invariant
+- Barrel files (~index.ts~) must NEVER co-export headless domain logic alongside UI components.
+- Headless execution targets must import explicit deep paths (e.g., ~@/languages/org/ast~) to guarantee zero DOM/CSS evaluation during tree-shaking.
+
+** 2. Host DOM Integration & Mutation Lifecycle
+
+*** 2.1 Non-Destructive Host Mutation
+- Never call ~.remove()~, clear ~.innerHTML~, or alter the internal children of host SPA nodes.
+- Hide superseded host nodes strictly via styling properties (~display: none~ or ~hidden~ attribute) to preserve host virtual DOM state, event listeners, and native actions (copy, retry).
+
+*** 2.2 Idempotent Mount Guards
+- Nodes targeted for processing must be tagged before execution:
+  - ~element.dataset.extProcessed = "true"~ (scraped / parsed)
+  - ~element.dataset.extMounted = "true"~ (UI active)
+- All injection and scrape routines must verify dataset tags before acting to guarantee idempotency across duplicate observer dispatches.
+
+*** 2.3 MutationObserver Batching vs. Stream Settling
+- Mutation Batching: Wrap observer handlers in debouncing (200ms minimum) to batch continuous host streaming events. Filter out mutations originating from extension-tagged subtrees.
+- Stream Settlement State Machine:
+  - *Phase A (In-Flight / Streaming)*: Maintain native view or lightweight plaintext streaming buffer while active stream markers (mutation frequency, typing cursors) exist.
+  - *Phase B (Finalized / Settled)*: Trigger complete AST generation and Preact component mounting only after stream termination criteria are met (host completion indicators or >300ms mutation silence).
+
+*** 2.4 View Lifecycle & Cleanup Registry
+- Every mounted Preact root must be registered in a centralized ~Map<string, { root: HTMLElement, destroy: () => void }>~.
+- Adapters must provide an idempotent ~destroy()~ method that runs ~render(null, shadowRoot)~, removes injected sibling containers, and restores host element visibility.
+
+** 3. View Encapsulation & Memory Management
+
+*** 3.1 Shadow DOM Boundary
+- Mount interactive views inside open Shadow Roots: ~mountContainer.attachShadow({ mode: 'open' })~.
+- Inject component stylesheets via ~shadowRoot.adoptedStyleSheets = [sheet]~ using ~new CSSStyleSheet()~.
+- For non-shadow injection wrappers, prefix all selectors with ~.ext-*~ and explicitly reset host typography inheritance.
+
+*** 3.2 Decoupled In-Memory Cache (Virtual Scroller Defense)
+- Do not store state on host DOM nodes subject to virtual unmounting/recycling.
+- Cache parsed ASTs and view state in a decoupled in-memory LRU cache keyed by a content hash. Do not rely on host-created UUIDs.
+- Scrolling a recycled message into the viewport reads from the LRU cache and hydrates immediately without re-parsing raw text.
+
+* Subsystem Topology & Source Tree Hierarchy
+
+#+BEGIN_EXAMPLE
+src/
+├── manifest.json
+├── index.ts                     # Extension root entrypoint & site coordinator
+├── core/
+│   ├── contracts/
+│   │   ├── adapter.ts           # SiteAdapter lifecycle & contract interfaces
+│   │   ├── language.ts          # LanguageDefinition & matching contracts
+│   │   └── documentView.ts      # DocumentViewProps interface
+│   ├── storage/                 # Typed WebExtension storage abstractions
+│   ├── rpc/                     # Typed messaging & RPC contracts
+│   └── utils/                   # Headless utilities (FNV-1a hashing, debouncing)
+├── store/                       # State management & decoupled AST LRU cache
+├── languages/
+│   ├── registry.ts              # LanguageRegistry resolving language plugins
+│   ├── JSON/                    # JSON view & formatting
+│   ├── LaTeX/                   # LaTeX / KaTeX math block rendering
+│   └── org/
+│       ├── ast/                 # Pure headless Org-mode parser & AST types
+│       ├── views/               # Preact components (OrgDocumentView, Section)
+│       └── styles/              # Org theme stylesheets & adoptedStyleSheets
+├── chat/
+│   ├── registry.ts              # ChatAdapterRegistry matching URLs to adapters
+│   └── gemini/
+│       ├── model/               # Headless Gemini data models
+│       │   ├── conversation.ts
+│       │   ├── message.ts
+│       │   └── codeBlock.ts
+│       ├── controller/          # DOM mutation & lifecycle management
+│       │   ├── scraper.ts       # Host DOM queries & payload extraction
+│       │   ├── injector.ts      # Shadow DOM injection & mount guards
+│       │   └── domObserver.ts   # Micro-debouncing & stream settlement engine
+│       ├── views/               # Gemini-specific Preact wrappers & action buttons
+│       │   ├── MessageActions.tsx
+│       │   └── OrgViewWrapper.tsx
+│       ├── selectors.ts         # Centralized CSS selector definitions
+│       ├── types.ts             # Gemini-specific types and interfaces
+│       └── index.ts             # Gemini adapter implementation facade
+├── views/                       # Shared Preact UI components
+│   ├── common/                  # StructuredMessageContainer, badges, buttons
+│   └── settings/                # HUD and preferences controls
+├── styles/
+│   ├── globals.css              # Host-agnostic design system & resets
+│   └── gemini.css               # Gemini layout adjustments & CSS injection
+└── entrypoints/
+    └── content.ts               # Content script entrypoint loaded by manifest
+#+END_EXAMPLE
+
+* Host Platform Specifics: Gemini Adapter
+
+** 1. Plaintext Extraction vs. Highlighted Syntax
+- For language parsing, inspecting the header node's ~childNodes~ for the leading text node before the button container is fraught and fragile (susceptible to host button ordering, accessible icon labels, and DOM mutation drift); this is recorded as an open issue ([[file:.scratch/gemini-adapter/issues/01-robust-language-detection.org][issue 01: robust language detection]]) to find a more deterministic mechanism.
+- If the language reports ~Code snippet~ or ~Plain text~, evaluate regex patterns against the first 3 lines of ~rawText~ (e.g., ~^\*+\s~ for Org headlines or ~^#\+TITLE:~ for Org headers).
+- Target specific header container classes (~.code-block-decoration~, ~.header-content~) rather than walking raw text nodes of the entire root to avoid capturing copy button or accessibility labels.
+
+** 2. Streaming DOM & Debounced Injection
+- Target ~infinite-scroller~ / ~.conversation-container~ with ~MutationObserver~ (~childList: true, subtree: true~).
+- Apply debouncing (200ms minimum) during active streaming.
+- Transition from streaming buffer to interactive Preact mount only upon settlement (>300ms mutation silence or host completion signal).
+- Check ~dataset.extProcessed~ and ~dataset.extMounted~ to guarantee idempotency.
+
+** 3. Gemini Scraper DOM Hierarchy
+CSS selectors relative to parent containers:
+
+#+BEGIN_EXAMPLE
+chat-window > chat-window-content > infinite-scroller > .conversation-container
+├── user-query > .user-query-container
+│   └── user-query-content.user-query-container .query-text p.query-text-line
+│       (n + 1 p.query-text-line elements for n newlines)
+└── model-response > response-container
+    ├── .response-container-header
+    ├── .presented-response-container
+    │   └── .response-container-content
+    │       └── .response-content
+    │           └── structured-content-container.model-response-content
+    │               └── .container > message-content
+    │                   ├── .markdown.markdown-main-panel.md-content
+    │                   └── .container > message-content > response-element
+    │                       └── code-block
+    │                           ├── [TEXT_NODE header] (Language label)
+    │                           └── code (Raw text or highlighted spans)
+    └── .response-container-footer message-actions[footer]
+        ├── <thumb-up-button>
+        ├── <thumb-down-button>
+        ├── <regenerate-button>
+        ├── <copy-button>
+        └── <gem-icon-button> (Overflow menu ...)
+#+END_EXAMPLE
 
 * Planned Features & Roadmap
-- See [[file:docs/roadmap.org][docs/roadmap.org]] for the live backlog and planned feature milestones.
+See [[file:docs/roadmap.org][docs/roadmap.org]] for the backlog and planned feature milestones.
 
 * Architectural Decision Records (ADRs)
+- [[file:docs/adr/0001-katex-math-pipeline.org][ADR 0001: KaTeX Math and LaTeX Greek Rendering Pipeline]] — Accepted (2026-09-03)
 
-- [[file:docs/adr/0001-preact-in-situ-rendering.org][ADR 0001: Preact In-Situ Sibling Rendering]] — Accepted (2026-09-03)
-- [[file:docs/adr/0002-ephemeral-session-state.org][ADR 0002: Ephemeral In-Memory Session State]] — Accepted (2026-09-03)
-- [[file:docs/adr/0003-streaming-reconciliation-and-caching.org][ADR 0003: Streaming Reconciliation and AST Caching]] — Accepted (2026-09-03)
-- [[file:docs/adr/0004-katex-math-pipeline.org][ADR 0004: KaTeX Math and LaTeX Greek Rendering Pipeline]] — Accepted (2026-09-03)
-- [[file:docs/adr/0005-markdown-ast-and-org-chat-export.org][ADR 0005: Markdown AST Pipeline and Org-Mode Chat Export]] — Accepted (2026-09-04)
-- [[file:docs/adr/0006-universal-code-block-and-style-layers.org][ADR 0006: Universal In-Situ Code Block Shell, 3-Layer Style Mapping, and Fingerprinted AST Caching]] — Accepted (2026-09-04)
-- [[file:docs/adr/0007-declarative-host-stylesheet-scoping.org][ADR 0007: Declarative Host Stylesheet Scoping via WebExtension Content Scripts]] — Accepted (2026-09-04)
-- [[file:docs/adr/0008-turn-level-message-container-and-fold-cycling.org][ADR 0008: Turn-Level Message Targeting, MessageContentContainer, and Multi-Level Fold State Cycling]] — Accepted (2026-09-04)

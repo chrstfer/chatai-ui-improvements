@@ -1,23 +1,37 @@
 #+TITLE: AI Chat UI Improvements — Planned Features & Roadmap
-#+DATE: 2026-09-04
+#+DATE: 2026-09-06
 #+OPTIONS: toc:2 num:nil
 
-* Testing and Toolchain Improvements [0/2]
-- [ ] Create bundle script :: Create a build.ts that bundles appropriately at the language and chat boundaries, ensuring tree-shaking/lazy loading of features is possible.
-- [ ] Chat Independent Testing :: A static example mock-chat for testing features outside of any particular chat AI interface.
-- [ ] Implement preact unit testing :: Suggesting : Airbnb's `Enzyme`, a library for writing tests for React components. It supports different versions of React and React-like libraries using "adapters". There is an adapter for Preact, maintained by the Preact team.
-* Host Interface Extensions [0/3]
-- [ ] Multi-Platform Chat Adapters :: Extend DOM extractors and layout managers to support ChatGPT, Claude, and OpenWebUI.
-  - [ ] Host Auto-Discovery :: Automatically detect and mount appropriate host-specific adapter based on URL hostname and DOM fingerprints.
-* Rendering Capabilities [0/5]
-- [ ] Custom Org Themes & Syntax Highlighting Presets :: User-selectable color schemes (e.g. Org Modern, Doom One, Solarized, Gruvbox) for rendered headlines and code blocks.
+* Architecture & Core Foundation [0/4]
+- [ ] Pluggable Extensibility Contracts :: Standardize ~LanguageDefinition~ and ~SiteAdapter~ contracts in ~src/core/contracts/~.
+- [ ] Tree-Shaking & Dynamic Loading Loader :: Implement dynamic import loading for heavy parsers (e.g. full Org grammar, Prism/Shiki tokenizers, KaTeX for math blocks) to keep initial content script bundle lightweight.
+- [ ] Stream Settlement State Machine :: Formalize Phase A (in-flight streaming buffer) vs. Phase B (settled >300ms macro-settle) transitions with idempotent mount guards (~data-ext-processed~, ~data-ext-mounted~).
+- [ ] Decoupled LRU Cache :: In-memory content-hash indexed LRU cache surviving virtual scroller recycling.
+
+* Testing and Toolchain Improvements [0/3]
+- [ ] Create bundle script :: Create a ~build.ts~ that bundles appropriately at the language and chat boundaries, ensuring tree-shaking/lazy loading of features is possible.
+- [ ] Chat Independent Testing :: A static example mock-chat fixture for testing features outside of any particular chat AI interface.
+- [ ] Headless Domain Unit Testing :: Test pure AST parsing and model contracts deterministically with zero DOM dependencies via ~deno test~.
+
+* Host Interface Extensions [0/4]
+- [ ] Gemini Adapter :: Implement full Gemini scraper, controller, and shadow root injector matching the documented DOM tree.
+- [ ] Host Auto-Discovery Registry :: Automatically detect and mount appropriate host-specific adapter (~ChatAdapterRegistry~) based on URL hostname and DOM fingerprints.
+- [ ] Multi-Platform Chat Adapters :: Extend adapters to support ChatGPT, Claude, and DuckDuckGo AI.
+- [ ] Non-Destructive Host Isolation :: Ensure all adapters strictly use CSS hiding (~display: none~) and open Shadow Roots to eliminate host style collisions.
+
+* Rendering Capabilities & Languages [0/5]
+- [ ] Org-Mode Language Module :: Complete in-situ Preact renderer (~OrgDocumentView~), collapsible sections, property drawers, and cookie progress counters.
+- [ ] LaTeX / KaTeX Module :: Dynamic KaTeX rendering for math blocks and ASCII LaTeX Greek symbols.
+- [ ] Custom Org Themes & Syntax Presets :: User-selectable color schemes (Org Modern, Doom One, Solarized, Gruvbox) for rendered headlines and code blocks.
 - [ ] Inline Image and Dynamic Attachment Previews :: In-situ rendering of embedded ~[[file:...]]~ and ~[[https://...]]~ image links with zoom overlay.
-- [ ] Interactive Babel Execution Sandbox :: Safe client-side code runner simulation for ~#+BEGIN_SRC~ blocks with dynamic ~#+RESULTS:~ updates. This is a stretch goal, and likely mostly impossible, but we can at least keep it in mind.
-- [ ] Non-Org DocumentViews :: Custom rendering for other special chat responses.
-- [ ] Advanced Font Stepping & Typography Controls :: Granular font family selection and line-height controls for response chat streams.
-** HUD & Accessibility Improvements [0/3]
+- [ ] Non-Org DocumentViews :: Pluggable DocumentViews for JSON, Mermaid, and Markdown.
+
+* HUD & User Controls [0/3]
 - [ ] Moveable HUD :: Click and drag the HUD box around the chat column.
-- [ ] Universal HUD Integration :: Compute default position for HUD seamlessly across supported host platforms to avoid visual collision with host toolbars or other UI elements.
+- [ ] Universal HUD Integration :: Compute default position for HUD seamlessly across supported host platforms to avoid visual collision with host toolbars.
 - [ ] Customizable Hotkeys & Keybindings :: User-configurable shortcut bindings for HUD toggle, folding, font sizing, and export actions.
-* Chat Export & Synchronization [0/3]
+
+* Chat Export & Synchronization [0/2]
 - [ ] Subtree & Turn Selection Export :: Allow selective downloading of individual turn subtrees or marked sections into ~.org~ files.
+- [ ] Complete Conversation Exporter :: Markdown-to-Org AST converter generating clean, annotated Org documents with metadata drawers.
+
