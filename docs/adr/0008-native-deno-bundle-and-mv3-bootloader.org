@@ -1,0 +1,39 @@
+#+TITLE: ADR 0008: Native Deno 2 Bundler with Code-Splitting and MV3 Dynamic Bootloader
+#+DATE: 2026-09-06
+
+:PROPERTIES:
+:STATUS: Accepted
+:END:
+
+* Status
+Accepted
+
+* Context
+Browser extension content scripts in WebExtension Manifest V3 run in the isolated execution world of web pages (e.g. ~https://gemini.google.com~). Under this architecture:
+1. Monolithic bundling forces all chat platform adapters (Gemini, DuckAI, Claude) and heavy language view parsers (Org-mode AST, KaTeX, Prism/Shiki) into the initial bundle, degrading page load latency.
+2. Direct ES module relative imports (~import("./chunk.js")~) inside web page contexts fail because the browser resolves relative paths against the web page origin (~https://gemini.google.com/chunk.js~) rather than the extension origin.
+3. In Deno 1.x, ~deno bundle~ was deprecated in favor of ~@deno/emit~, but in Deno 2.x, a brand-new native ~deno bundle~ tool has been introduced with built-in ~--code-splitting~, ~--platform browser~, and ~--minify~.
+
+* Decision
+We adopt *Native Deno 2 Bundling with a Dynamic Import Bootloader*:
+1. *Zero External Bundler Dependencies*: Use Deno 2's native ~deno bundle~ with ~--platform browser~ and ~--code-splitting~ orchestrated by ~build.ts~, avoiding third-party npm bundler installations.
+2. *Dynamic Import Bootloader Pattern*:
+   - ~manifest.json~ injects a lightweight classic script (~content.js~) at ~document_start~.
+   - ~content.js~ executes ~import(chrome.runtime.getURL("app.js"))~ to enter the ES module graph within the isolated ~moz-extension://~ origin.
+   - All subsequent relative dynamic chunk imports (~chunks/*.js~) resolve natively against the extension's base URI.
+   - All emitted JavaScript chunks and stylesheets are declared in ~manifest.json~ under ~web_accessible_resources~.
+3. *Two-Tier Lazy-Loading*:
+   - *Host Adapters*: Loaded dynamically via ~ChatAdapterRegistry.registerLazy()~ and ~findAndLoad()~ immediately upon URL hostname match.
+   - *Language Views*: Loaded dynamically via ~LanguageDefinition.loadView()~ only when an active code block matches the language specification.
+4. *Pre-bundled Typed Environment Module*: ~build.ts~ generates ~src/env.ts~ defining ~__DEV__~ and ~__BUILD_VERSION__~ prior to bundling, ensuring strong TypeScript validation without post-compilation string manipulation.
+
+* Consequences
+** Positive
+- Eliminates npm bundler toolchain dependencies while unlocking sub-10ms native bundling.
+- Strict lazy-loading: users only download and execute code for the active chat platform and encountered languages.
+- Full compliance with Firefox and Chromium MV3 CSP and module isolation policies.
+- Type-safe environment constants via ~src/env.ts~.
+
+** Negative
+- Generated chunks must be declared under ~web_accessible_resources~ in ~manifest.json~.
+- ~deno bundle~ is flagged experimental in Deno 2, requiring stability pinning in ~deno.lock~.

@@ -1,5 +1,5 @@
 import { assertEquals } from "@std/assert";
-import { bootstrapContentScript, type DocumentLike, type WindowLike } from "../src/entrypoints/content.ts";
+import { bootstrapContentScript, type DocumentLike, type WindowLike } from "../src/entrypoints/app.ts";
 import { ChatAdapterRegistry } from "../src/chat/registry.ts";
 import type { SiteAdapter } from "../src/core/contracts/index.ts";
 
@@ -31,7 +31,7 @@ function createLifecycleMockAdapter(id: string, hostname: string) {
     };
 }
 
-Deno.test("bootstrapContentScript: Initializes adapter when URL matches", () => {
+Deno.test("bootstrapContentScript: Initializes adapter when URL matches", async () => {
     const registry = new ChatAdapterRegistry();
     const { adapter, getInitCalls } = createLifecycleMockAdapter("gemini", "gemini.google.com");
     registry.register(adapter);
@@ -46,7 +46,7 @@ Deno.test("bootstrapContentScript: Initializes adapter when URL matches", () => 
         addEventListener: () => {},
     };
 
-    const result = bootstrapContentScript({
+    const result = await bootstrapContentScript({
         registry,
         win: fakeWin,
         doc: fakeDoc,
@@ -58,7 +58,7 @@ Deno.test("bootstrapContentScript: Initializes adapter when URL matches", () => 
     assertEquals(getInitCalls(), 1);
 });
 
-Deno.test("bootstrapContentScript: Exits cleanly when no adapter matches", () => {
+Deno.test("bootstrapContentScript: Exits cleanly when no adapter matches", async () => {
     const registry = new ChatAdapterRegistry();
     const fakeWin: WindowLike = {
         location: { href: "https://unknown-service.com/" },
@@ -70,7 +70,7 @@ Deno.test("bootstrapContentScript: Exits cleanly when no adapter matches", () =>
         addEventListener: () => {},
     };
 
-    const result = bootstrapContentScript({
+    const result = await bootstrapContentScript({
         registry,
         win: fakeWin,
         doc: fakeDoc,
@@ -81,7 +81,7 @@ Deno.test("bootstrapContentScript: Exits cleanly when no adapter matches", () =>
     assertEquals(result.reason, "no_matching_adapter");
 });
 
-Deno.test("bootstrapContentScript: Enforces idempotency guard against double-bootstrapping", () => {
+Deno.test("bootstrapContentScript: Enforces idempotency guard against double-bootstrapping", async () => {
     const registry = new ChatAdapterRegistry();
     const { adapter, getInitCalls } = createLifecycleMockAdapter("gemini", "gemini.google.com");
     registry.register(adapter);
@@ -96,18 +96,18 @@ Deno.test("bootstrapContentScript: Enforces idempotency guard against double-boo
         addEventListener: () => {},
     };
 
-    const res1 = bootstrapContentScript({ registry, win: fakeWin, doc: fakeDoc });
+    const res1 = await bootstrapContentScript({ registry, win: fakeWin, doc: fakeDoc });
     assertEquals(res1.initialized, true);
     assertEquals(getInitCalls(), 1);
 
     // Second invocation on same window
-    const res2 = bootstrapContentScript({ registry, win: fakeWin, doc: fakeDoc });
+    const res2 = await bootstrapContentScript({ registry, win: fakeWin, doc: fakeDoc });
     assertEquals(res2.initialized, false);
     assertEquals(res2.reason, "already_initialized");
     assertEquals(getInitCalls(), 1, "Init should not be called a second time");
 });
 
-Deno.test("bootstrapContentScript: Teardown on pagehide cleans up adapter and guard", () => {
+Deno.test("bootstrapContentScript: Teardown on pagehide cleans up adapter and guard", async () => {
     const registry = new ChatAdapterRegistry();
     const { adapter, getDestroyCalls } = createLifecycleMockAdapter("gemini", "gemini.google.com");
     registry.register(adapter);
@@ -125,7 +125,7 @@ Deno.test("bootstrapContentScript: Teardown on pagehide cleans up adapter and gu
         addEventListener: () => {},
     };
 
-    const res = bootstrapContentScript({ registry, win: fakeWin, doc: fakeDoc });
+    const res = await bootstrapContentScript({ registry, win: fakeWin, doc: fakeDoc });
     assertEquals(res.initialized, true);
 
     // Simulate page navigation / pagehide

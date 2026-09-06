@@ -1,11 +1,9 @@
 {
   "version": "5",
   "specifiers": {
-    "jsr:@b-fuze/deno-dom@*": "0.1.56",
     "jsr:@b-fuze/deno-dom@~0.1.56": "0.1.56",
-    "jsr:@std/assert@*": "1.0.19",
     "jsr:@std/assert@^1.0.19": "1.0.19",
-    "jsr:@std/encoding@*": "1.0.11",
+    "jsr:@std/cli@^1.0.14": "1.0.32",
     "jsr:@std/internal@^1.0.12": "1.0.14",
     "npm:preact@11.0.0-rc.1": "11.0.0-rc.1"
   },
@@ -19,8 +17,8 @@
         "jsr:@std/internal"
       ]
     },
-    "@std/encoding@1.0.11": {
-      "integrity": "e7cef2f0b3153bccc17431e7c864a1de03a4b6d9647389c43e08aaa775d37385"
+    "@std/cli@1.0.32": {
+      "integrity": "188b3a100d6202d64e3f5bd3d799c7fa4f6d77f92cc65eb7f641c1fa0aa92a66"
     },
     "@std/internal@1.0.14": {
       "integrity": "291516b3d4c35024d6ffbc0a9df5bf4c64116e05b50012cf846710152d2ffdf7"
@@ -31,14 +29,11 @@
       "integrity": "sha512-WwZRT+5QYP6A+sUtnLz0fpdi7t/32AtOuDeVo0Z14WC9qCFH8eMo0WQMDJym4k+TNr2DXefEbaWOTMqLIVPwZQ=="
     }
   },
-  "remote": {
-    "https://esm.sh/katex@0.16.21": "9fa04bc7144b202550466cc47f5d77d03fbeba51f9e375c1758e63c3e328256a",
-    "https://esm.sh/katex@0.16.21/denonext/katex.mjs": "daa0d2653aebdf1289d3007abbb65a1b230f25cb71a5c9903371275aab104306"
-  },
   "workspace": {
     "dependencies": [
       "jsr:@b-fuze/deno-dom@~0.1.56",
       "jsr:@std/assert@^1.0.19",
+      "jsr:@std/cli@^1.0.14",
       "npm:preact@11.0.0-rc.1"
     ]
   }

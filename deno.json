@@ -3,17 +3,16 @@
   "imports": {    
     "@b-fuze/deno-dom": "jsr:@b-fuze/deno-dom@^0.1.56", // Dev dependency for tests
     "@std/assert": "jsr:@std/assert@^1.0.19",
+    "@std/cli": "jsr:@std/cli@^1.0.14",
     "katex": "https://esm.sh/katex@0.16.21",
     "preact": "npm:preact@11.0.0-rc.1"
   },
   "tasks": {
-    "clean": "rm -rf dist/ build/ && deno clean",
-    "clean:dev": "rm -rf dist/dev/ build/dev/ && deno clean",
-    "build:dev:prep": "deno eval 'const p=\"./build/dev/bundle.ts\"; const c=await Deno.readTextFile(p); await Deno.writeTextFile(p, \"const __DEV__ = true;\\n\" + c);'",
-    "build:release:prep": "deno eval 'const p=\"./build/release/bundle.ts\"; const c=await Deno.readTextFile(p); await Deno.writeTextFile(p, \"const __DEV__ = false;\\n\" + c);'",
-    "build":     "mkdir -p dist/release/ build/release/ dist/release/src/chat/gemini/styles dist/release/src/styles && cp src/manifest.json dist/release/manifest.json && cp -r src/styles/ dist/release/src/styles/ && cp -r src/chat/gemini/styles/ dist/release/src/chat/gemini/styles/ && cp -r vendor/ dist/release/ && deno bundle -o ./build/release/bundle.ts ./src/content.ts && deno task build:release:prep && deno transpile -o dist/release/content.js ./build/release/bundle.ts",
-    "build:dev": "deno task clean:dev && mkdir -p dist/dev/ build/dev/ dist/dev/src/chat/gemini/styles dist/dev/src/styles && cp src/manifest.json dist/dev/manifest.json && cp -r src/styles/ dist/dev/src/styles/ && cp -r src/chat/gemini/styles/ dist/dev/src/chat/gemini/styles/ && cp -r vendor/ dist/dev/ && deno bundle -o ./build/dev/bundle.ts ./src/content.ts && deno task build:dev:prep && deno transpile -o dist/dev/content.js ./build/dev/bundle.ts",
-    "package": "7z a dist/release/",
+    "clean": "deno run -A build.ts --clean",
+    "clean:dev": "deno run -A build.ts --clean",
+    "build": "deno run -A build.ts",
+    "build:dev": "deno run -A build.ts --dev",
+    "package": "deno run -A build.ts --package",
     "test": "deno test -A tests/",
     "lint": "deno lint",
     "fmt": "deno fmt"
@@ -26,14 +25,14 @@
     "jsxImportSource": "preact"
   },
   "lint": {
-    "include": ["src/", "tests/"],
+    "include": ["src/", "tests/", "build.ts"],
     "exclude": ["dist/", "node_modules/", "vendor/", "dist-amo/", "dist-archive/", "docs/", "tests/gemini/html/"],
     "rules": {
       "tags": ["recommended", "react", "jsx"]
     }
   },
   "fmt": {
-    "include": ["src/", "tests/"],
+    "include": ["src/", "tests/", "build.ts"],
     "exclude": ["dist/", "dist-amo/", "dist-archive/", "tests/gemini/html/"],
     "lineWidth": 120,
     "indentWidth": 4,

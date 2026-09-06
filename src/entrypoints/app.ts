@@ -1,5 +1,6 @@
 import type { SiteAdapter } from "../core/contracts/index.ts";
 import { type ChatAdapterRegistry, defaultChatRegistry } from "../chat/registry.ts";
+import { __BUILD_VERSION__, __DEV__ } from "../env.ts";
 
 export interface WindowLike {
     location: { href: string };
@@ -27,12 +28,8 @@ export interface BootstrapResult {
     reason?: "already_initialized" | "no_matching_adapter" | "success";
 }
 
-/** Global symbol used to prevent duplicate script execution */
 const EXPANDO_GUARD = "__AI_CHAT_UI_LOADED__";
 
-/**
- * Evaluates DOM readiness and invokes callback when the DOM is interactive or complete.
- */
 function onDOMReady(doc: DocumentLike, fn: () => void): void {
     if (doc.readyState === "interactive" || doc.readyState === "complete") {
         fn();
@@ -41,11 +38,7 @@ function onDOMReady(doc: DocumentLike, fn: () => void): void {
     }
 }
 
-/**
- * Pure bootstrap function managing adapter discovery, single-mount guard,
- * DOM-ready sequencing, and teardown registration.
- */
-export function bootstrapContentScript(options: BootstrapOptions = {}): BootstrapResult {
+export async function bootstrapContentScript(options: BootstrapOptions = {}): Promise<BootstrapResult> {
     const win = options.win ?? (typeof window !== "undefined" ? (window as unknown as WindowLike) : undefined);
     const doc = options.doc ?? (typeof document !== "undefined" ? (document as unknown as DocumentLike) : undefined);
     const registry = options.registry ?? defaultChatRegistry;
@@ -54,27 +47,31 @@ export function bootstrapContentScript(options: BootstrapOptions = {}): Bootstra
         return { initialized: false, reason: "no_matching_adapter" };
     }
 
-    // Idempotency guard: prevent duplicate runs in the same browsing context
     if (win[EXPANDO_GUARD]) {
         return { initialized: false, reason: "already_initialized" };
     }
 
     const url = options.currentUrl ?? win.location.href;
-    const adapter = registry.findMatching(url);
-
-    if (!adapter) {
+    if (!registry.hasMatching(url)) {
         return { initialized: false, reason: "no_matching_adapter" };
     }
 
-    // Tag window to mark script loaded
     win[EXPANDO_GUARD] = true;
 
-    // Initialize once DOM is ready (handles run_at: "document_start")
+    if (__DEV__) {
+        console.log(`[AI Chat UI] Booting extension (${__BUILD_VERSION__}) on ${url}`);
+    }
+
+    const adapter = await registry.findAndLoad(url);
+    if (!adapter) {
+        delete win[EXPANDO_GUARD];
+        return { initialized: false, reason: "no_matching_adapter" };
+    }
+
     onDOMReady(doc, () => {
         adapter.initialize();
     });
 
-    // Register teardown on page navigation/unload
     const cleanup = () => {
         adapter.destroy();
         delete win[EXPANDO_GUARD];
@@ -89,7 +86,6 @@ export function bootstrapContentScript(options: BootstrapOptions = {}): Bootstra
     };
 }
 
-// Auto-execute when running directly in browser context
 if (typeof window !== "undefined" && typeof document !== "undefined") {
     bootstrapContentScript();
 }

@@ -21,6 +21,9 @@
 - *Platform / Storage Adapter (~src/core/storage/~, ~src/core/rpc/~)* :: The module wrapping browser-specific runtime APIs (~browser.storage~, ~browser.runtime.sendMessage~) behind typed Promise-based contracts.
 - *Site Adapter* :: Host-specific module implementing the standard adapter contract for a specific web AI interface (e.g. Gemini, Claude, ChatGPT).
 - *Host Theme Authority* :: The property and observation contract supplied by ~src/chat/<host>~ that determines if the host application implements dark/light mode theming and reports the active mode to mounted views.
+- *Dynamic Import Bootloader (~content.js~)* :: A lightweight, zero-dependency classic content script injected by Manifest V3 that dynamically imports the extension's modular entrypoint (~import(chrome.runtime.getURL("app.js"))~), enabling isolated ES module execution, relative split chunk resolution, and full CSP compliance.
+- *Lazy Site Adapter (~src/chat/registry.ts~)* :: An adapter definition pattern allowing host-specific modules (e.g. Gemini, DuckAI) to remain unloaded until the active browser URL matches the host hostname predicate.
+- *Native Deno 2 Bundler (~build.ts~)* :: The build pipeline utilizing Deno 2's native ~deno bundle~ command with ~--platform browser~ and ~--code-splitting~ to emit optimized, modular JavaScript chunks without external npm bundler dependencies.
 - *Language Module* :: A pluggable content handler implementing ~LanguageDefinition~ (e.g., Org-mode, Markdown, LaTeX, Mermaid) loaded dynamically or statically.
 
 ** 3. Lifecycle & State Machine Concepts
