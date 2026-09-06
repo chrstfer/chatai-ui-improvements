@@ -78,7 +78,7 @@ export class GeminiInjector {
                 render(null, shadowRoot);
                 container.remove();
                 hostElement.style.display = "";
-                delete hostElement.dataset[EXTENSION_INJECTED.PROCESSED_ATTR];
+                hostElement.removeAttribute(EXTENSION_INJECTED.PROCESSED_ATTR);
             },
         });
     }

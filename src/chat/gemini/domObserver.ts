@@ -73,8 +73,8 @@ export class GeminiDOMObserver {
 
         if (this.settledBlocks.has(block.id)) return;
 
-        if (!el.dataset[EXTENSION_INJECTED.PROCESSED_ATTR]) {
-            el.dataset[EXTENSION_INJECTED.PROCESSED_ATTR] = "true";
+        if (!el.hasAttribute(EXTENSION_INJECTED.PROCESSED_ATTR)) {
+            el.setAttribute(EXTENSION_INJECTED.PROCESSED_ATTR, "true");
             this.callbacks.onBlockDiscovered(block);
         }
 
