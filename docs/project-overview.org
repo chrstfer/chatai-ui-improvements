@@ -196,3 +196,47 @@ The headings reflect CSS selectors relative to their parent containers.
   - ~<regenerate-button>~
   - ~<copy-button>~
   - ~<gem-icon-button>~ (Overflow menu ~...~)
+* Domain Model
+** 1. Challenging Fuzzy Language & Establishing Canonical Terms
+In accordance with domain modeling conventions, canonical terms must have crisp definitions and explicit _Avoid_ synonyms to prevent semantic drift:
+*** Structural & Isolation Roles
+- Host Application
+  - Definition: The third-party web application (e.g., Gemini, ChatGPT, Claude) running in the browser tab that the extension inspects and augments.
+  - Avoid: Target site, chat platform, host page.
+- Host Node
+  - Definition: A native DOM element managed by the host application's internal virtual DOM framework (e.g., <code-block>, message-content).
+  - Avoid: Native element, SPA node, raw DOM node.
+- Injection Container
+  - Definition: A lightweight div inserted as a sibling or wrapper to a Host Node to serve as the mounting anchor for custom UI.
+  - Avoid: Mount wrapper, container div, hook element.
+- Shadow Root Boundary
+  - Definition: An open Shadow DOM subtree (mountContainer.attachShadow({ mode: 'open' })) encapsulating component stylesheets and Preact trees.
+  - Avoid: Shadow root, styling boundary, isolated DOM.
+*** Architectural Roles
+- Site Adapter
+  - Definition: A host-specific module implementing the lifecycle contract (initialize, destroy) for a specific web AI interface.
+  - Avoid: Chat adapter, platform connector, bot driver.
+- Language Module
+  - Definition: A pluggable content handler implementing LanguageDefinition that parses and renders a specific markup or syntax (e.g., Org-mode, LaTeX).
+  - Avoid: Language plugin, syntax highlighter, parser plugin.
+- Scraper
+  - Definition: A read-only DOM module that queries Host Nodes, extracts payload text, and inspects completion markers without mutating state or rendering UI.
+  - Avoid: Extractor, DOM parser, crawler.
+- Controller
+  - Definition: The host orchestration layer managing the stream settlement state machine, mount guards, and View lifecycles.
+  - Avoid: Manager, coordinator, handler.
+**** Lifecycle & State Machine
+- Micro-Debouncing
+  - Definition: An execution delay (minimum 200ms) coalescing rapid DOM mutation observer events during active token streaming.
+  - Avoid: Observer batching, event throttling.
+- Macro-Settling
+  - Definition: The state-machine transition triggered by mutation silence or host completion markers indicating the LLM stream is finished.
+  - Avoid: Stream finalization, generation done.
+- Mount Guard
+  - Definition: HTML dataset attributes (data-ext-processed, data-ext-mounted) guaranteeing idempotent observer execution.
+  - Avoid: Processed flag, marker attribute, DOM stamp.
+- Decoupled LRU Cache
+  - Definition: An in-memory cache keyed by content hash (FNV-1a) preserving parsed ASTs and view state across virtual-scroller recycling.
+  - Avoid: Block store, AST cache, session store.
+
+

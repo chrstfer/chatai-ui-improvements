@@ -9,7 +9,8 @@
 - *Host Application* :: The third-party web application (e.g., Gemini, ChatGPT, Claude) running in the browser tab that the extension inspects and augments.
 - *Host Node* :: A native DOM element created and managed by the Host Application's internal framework (e.g., a native ~<code-block>~ or message container).
 - *Injection Container* :: A lightweight wrapper element created by the extension and inserted as a sibling or wrapper to a Host Node to serve as the mounting anchor for custom UI.
-- *In-Situ Sibling Container* :: A dedicated container mounted directly beside the native host code block or message element, rendering the parsed AST while preserving host layout, native events, and actions.
+- *In-Situ Sibling Container* :: A dedicated container mounted as a sibling to the native ~<code-block>~ element, rendering an improved header (with equivalent and custom action buttons) and the parsed DocumentView inside an open Shadow Root while hiding the native ~<code-block>~ via ~display: none~.
+- *Data-Island* :: The superseded native DOM element (specifically ~:scope code-block code~) retained in the DOM in a hidden state (~display: none~), serving as the authentic, unmutated payload source for scrapers and copy actions.
 - *Shadow Root Boundary* :: An encapsulated DOM subtree (~mountContainer.attachShadow({ mode: 'open' })~) isolating extension styles (~adoptedStyleSheets~) and Preact component trees from host CSS resets and global styles.
 
 ** 2. Architectural Layers & Components
@@ -19,6 +20,7 @@
 - *View Layer (~*/views/~, ~*/ui/~, ~src/views/~)* :: Preact component trees, hooks, and localized styles that render parsed domain ASTs into visual interfaces inside the Shadow Root.
 - *Platform / Storage Adapter (~src/core/storage/~, ~src/core/rpc/~)* :: The module wrapping browser-specific runtime APIs (~browser.storage~, ~browser.runtime.sendMessage~) behind typed Promise-based contracts.
 - *Site Adapter* :: Host-specific module implementing the standard adapter contract for a specific web AI interface (e.g. Gemini, Claude, ChatGPT).
+- *Host Theme Authority* :: The property and observation contract supplied by ~src/chat/<host>~ that determines if the host application implements dark/light mode theming and reports the active mode to mounted views.
 - *Language Module* :: A pluggable content handler implementing ~LanguageDefinition~ (e.g., Org-mode, Markdown, LaTeX, Mermaid) loaded dynamically or statically.
 
 ** 3. Lifecycle & State Machine Concepts
@@ -28,6 +30,8 @@
 - *Settled Phase (Finalized)* :: The stable state reached after token generation completes, triggering full AST parsing, syntax highlighting, and interactive Preact view mounting.
 - *Mount Guard* :: Explicit HTML dataset attributes (~data-ext-processed~, ~data-ext-mounted~) set on DOM elements to make scrapers and injectors strictly idempotent across multiple observer passes.
 - *Decoupled LRU Cache* :: An in-memory cache keyed by content hash (e.g. fast FNV-1a fingerprint of code prefix, length, and language) that stores parsed ASTs and view state independent of physical host DOM node lifecycle, surviving virtual-scroller recycling.
+- *Conversation Turn* :: The atomic conversational unit composed of a paired user query (raw string) and a model response (array of segmented child elements: prose and exact code blocks), including completion status flags (~isCompleted: boolean~).
+- *Conversation Tree Store* :: A persistent append-only tree repository in ~browser.storage.local~ preserving all conversation turns, edits, and regenerated branches across sessions.
 - *Message Destruction Signal* :: Observer event triggered on DOM node removal to safely unmount Preact roots without purging persistent AST caches.
 
 ** 4. Org-Mode & Content Domain Concepts
@@ -99,6 +103,11 @@ Domain (Pure)  <-  Store / Platform Adapters  <-  Controllers / Scrapers (DOM)  
 - Every mounted Preact root must be registered in a centralized ~Map<string, { root: HTMLElement, destroy: () => void }>~.
 - Adapters must provide an idempotent ~destroy()~ method that runs ~render(null, shadowRoot)~, removes injected sibling containers, and restores host element visibility.
 
+*** 2.5 Incremental Component Replacement Policy
+- Replace host elements incrementally one by one, targeting individual host code blocks (~<code-block>~) as the initial mount boundary.
+- Do not attempt full message container replacements unless the vast majority of child elements are guaranteed to be custom components.
+- Conversational turn containers (~div.conversation-container[id]~) are strictly used for turn boundary discovery, lineage tracking, and persistent backup—never for full UI replacement.
+
 ** 3. View Encapsulation & Memory Management
 
 *** 3.1 Shadow DOM Boundary
@@ -131,6 +140,7 @@ src/
 │   ├── JSON/                    # JSON view & formatting
 │   ├── LaTeX/                   # LaTeX / KaTeX math block rendering
 │   └── org/
+│       ├── definition.ts        # Bundled lightweight matcher (LanguageDefinition)
 │       ├── ast/                 # Pure headless Org-mode parser & AST types
 │       ├── views/               # Preact components (OrgDocumentView, Section)
 │       └── styles/              # Org theme stylesheets & adoptedStyleSheets
@@ -171,29 +181,42 @@ src/
 ** 2. Streaming DOM & Debounced Injection
 - Target ~infinite-scroller~ / ~.conversation-container~ with ~MutationObserver~ (~childList: true, subtree: true~).
 - Apply debouncing (200ms minimum) during active streaming.
-- Transition from streaming buffer to interactive Preact mount only upon settlement (>300ms mutation silence or host completion signal).
+- Transition from streaming buffer to interactive Preact mount only upon settlement (>300ms mutation silence or presence of response footer actions).
+- Completion vs. Interruption Detection: The presence of ~.response-container-footer message-actions[footer]~ indicates normal completion (~isCompleted = true~). If mutations cease for $>2$ seconds without footer actions appearing, the turn is recorded in storage with ~isCompleted = false~ (cancelled or interrupted). Future heuristics may also watch the chat input stop button.
 - Check ~dataset.extProcessed~ and ~dataset.extMounted~ to guarantee idempotency.
 
-** 3. Gemini Scraper DOM Hierarchy
+** 3. Sibling Mount Anchor & Data-Island Pattern
+- The ~Injection Container~ mounts as a sibling to ~<code-block>~ inside ~<response-element>~.
+- The superseded ~:scope code-block code~ element serves as a read-only *Data-Island* containing the authentic LLM output text.
+- The native ~<code-block>~ is hidden via ~display: none~, preserving host nodes, native text, and accessibility trees without destructive DOM mutation.
+- The sibling Preact root mounts inside an open Shadow Root upon macro-settlement (>300ms silence or presence of response footer actions), reading the data-island text once into memory and caching the parsed AST in the LRU store.
+- The Preact root renders an improved header with complete functional parity:
+  1. *Language Badge*: Format indicator (e.g. "Org Mode", "LaTeX", "Python").
+  2. *View Toggle*: Instant flip between "Rendered View" and "Raw Source".
+  3. *Block Folding*: Collapse/expand toggle for the code block body.
+  4. *Primary Copy*: Direct clipboard copy from the ~:scope code-block code~ data-island.
+  5. *Overflow Menu*: Secondary actions (copy as markdown, scoped subtree copy, wrap lines).
+
+** 4. Gemini Scraper DOM Hierarchy
 CSS selectors relative to parent containers:
 
 #+BEGIN_EXAMPLE
-chat-window > chat-window-content > infinite-scroller > .conversation-container
-├── user-query > .user-query-container
-│   └── user-query-content.user-query-container .query-text p.query-text-line
-│       (n + 1 p.query-text-line elements for n newlines)
+chat-window > chat-window-content > infinite-scroller > div.conversation-container[id]
+├── user-query
+│   └── span.user-query-container > user-query-content
+│       └── .query-content .query-text p.query-text-line
+│           (n + 1 p.query-text-line elements for n newlines)
 └── model-response > response-container
     ├── .response-container-header
     ├── .presented-response-container
     │   └── .response-container-content
     │       └── .response-content
-    │           └── structured-content-container.model-response-content
-    │               └── .container > message-content
-    │                   ├── .markdown.markdown-main-panel.md-content
-    │                   └── .container > message-content > response-element
-    │                       └── code-block
-    │                           ├── [TEXT_NODE header] (Language label)
-    │                           └── code (Raw text or highlighted spans)
+    │           └── structured-content-container.model-response-text
+    │               └── .container > message-content[id^="message-content-id-"]
+    │                   ├── p[data-path-to-node] (Prose segments)
+    │                   └── response-element > code-block
+    │                       ├── [TEXT_NODE header] ("Code snippet", "Plain text", or language tag)
+    │                       └── pre > code[data-test-id="code-content"]
     └── .response-container-footer message-actions[footer]
         ├── <thumb-up-button>
         ├── <thumb-down-button>

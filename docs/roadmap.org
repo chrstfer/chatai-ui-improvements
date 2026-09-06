@@ -13,8 +13,9 @@
 - [ ] Chat Independent Testing :: A static example mock-chat fixture for testing features outside of any particular chat AI interface.
 - [ ] Headless Domain Unit Testing :: Test pure AST parsing and model contracts deterministically with zero DOM dependencies via ~deno test~.
 
-* Host Interface Extensions [0/4]
+* Host Interface Extensions [0/5]
 - [ ] Gemini Adapter :: Implement full Gemini scraper, controller, and shadow root injector matching the documented DOM tree.
+- [ ] Host Theme Authority :: Establish ~theme~ and ~onThemeChange~ contracts on ~src/chat/<host>~ to detect host light/dark mode and synchronize Shadow Root themes.
 - [ ] Host Auto-Discovery Registry :: Automatically detect and mount appropriate host-specific adapter (~ChatAdapterRegistry~) based on URL hostname and DOM fingerprints.
 - [ ] Multi-Platform Chat Adapters :: Extend adapters to support ChatGPT, Claude, and DuckDuckGo AI.
 - [ ] Non-Destructive Host Isolation :: Ensure all adapters strictly use CSS hiding (~display: none~) and open Shadow Roots to eliminate host style collisions.
@@ -26,12 +27,16 @@
 - [ ] Inline Image and Dynamic Attachment Previews :: In-situ rendering of embedded ~[[file:...]]~ and ~[[https://...]]~ image links with zoom overlay.
 - [ ] Non-Org DocumentViews :: Pluggable DocumentViews for JSON, Mermaid, and Markdown.
 
-* HUD & User Controls [0/3]
+* HUD & User Controls [0/4]
 - [ ] Moveable HUD :: Click and drag the HUD box around the chat column.
 - [ ] Universal HUD Integration :: Compute default position for HUD seamlessly across supported host platforms to avoid visual collision with host toolbars.
 - [ ] Customizable Hotkeys & Keybindings :: User-configurable shortcut bindings for HUD toggle, folding, font sizing, and export actions.
+- [ ] Previous Versions UI :: Read-only "Previous Versions" inspection panel/button allowing users to review and restore historical user query and model response versions from the tree store.
 
-* Chat Export & Synchronization [0/2]
+* Chat Storage, History & Export [0/5]
+- [ ] Tree-Structured Conversation Store :: Append completed streaming turns to persistent ~browser.storage.local~ in a branching tree model to preserve query edits and regenerated responses.
+- [ ] Branch Navigation & Lineage Resolution :: Map linear chat views to historical branching paths, especially across hosts without native branching support.
+- [ ] Multi-Format & Scoped Subtree Copying :: Provide copy actions for specific headlines, functions, or subtrees, alongside multi-format copy ("Copy as Raw Org", "Copy as Markdown").
 - [ ] Subtree & Turn Selection Export :: Allow selective downloading of individual turn subtrees or marked sections into ~.org~ files.
 - [ ] Complete Conversation Exporter :: Markdown-to-Org AST converter generating clean, annotated Org documents with metadata drawers.
 
