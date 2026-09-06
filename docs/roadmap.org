@@ -3,6 +3,7 @@
 #+OPTIONS: toc:2 num:nil
 
 * Testing and Toolchain Improvements [0/2]
+- [ ] Create bundle script :: Create a build.ts that bundles appropriately at the language and chat boundaries, ensuring tree-shaking/lazy loading of features is possible.
 - [ ] Chat Independent Testing :: A static example mock-chat for testing features outside of any particular chat AI interface.
 - [ ] Implement preact unit testing :: Suggesting : Airbnb's `Enzyme`, a library for writing tests for React components. It supports different versions of React and React-like libraries using "adapters". There is an adapter for Preact, maintained by the Preact team.
 * Host Interface Extensions [0/3]

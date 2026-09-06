@@ -30,10 +30,6 @@
         "vendor/katex.min.css",
         "styles/general.css"
       ],
-      "js": [
-        "vendor/katex.min.js",
-        "content.js"
-      ],
       "run_at": "document_start"
     },
     {
@@ -43,6 +39,7 @@
       "css": [
         "styles/gemini.css"
       ],
+      "js": ["src/entrypoints/content.ts"],
       "run_at": "document_start"
     }
   ]
