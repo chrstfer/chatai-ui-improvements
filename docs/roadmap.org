@@ -3,7 +3,10 @@
 #+OPTIONS: toc:2 num:nil
 
 * Planned Features & Backlog
+- [ ] Implement unit testing with the preact suggested `Enzyme`: Airbnb's Enzyme is a library for writing tests for React components. It supports different versions of React and React-like libraries using "adapters". There is an adapter for Preact, maintained by the Preact team.
 
+  
+* Pinned until above features are finished
 ** Host Interface Extensions [0/3]
 - [ ] Multi-Platform Chat Adapters :: Extend DOM extractors and layout managers to support ChatGPT, Claude, and OpenWebUI.
 - [ ] Host Auto-Discovery :: Automatically detect and mount appropriate host-specific adapter based on URL hostname and DOM fingerprints.

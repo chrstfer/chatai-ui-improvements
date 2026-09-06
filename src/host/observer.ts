@@ -45,6 +45,13 @@ export class DomObserver {
         const discoveredBlocks: HTMLElement[] = [];
 
         for (const block of Array.from(candidates)) {
+            // Skip if this block is nested inside another candidate or extension container
+            const parentBlock = block.parentElement?.closest<HTMLElement>(SELECTOR_ROOT);
+            if (parentBlock) continue;
+            if (block.closest('[data-gemini-org="root"], .orgmod-in-situ-root, #orgmod-extension-root')) {
+                continue;
+            }
+
             if (this.shouldProcessBlock(block)) {
                 block.setAttribute("data-code-processed", "true");
                 this.controller.process(block);

@@ -1,8 +1,10 @@
 /**
  * Collapsible Org-Mode Outline Section Component
+ * Implements 3-state local outline cycling (FOLDED -> CHILDREN -> SUBTREE -> FOLDED).
  */
 
 import { useEffect, useState } from "preact/hooks";
+import { nextLocalFoldState, OutlineFoldState } from "../../../ui/folding.ts";
 import { serializeOrgSection } from "../parser/document-parser.ts";
 import { OrgContentNode, OrgSectionNode } from "../types/ast.ts";
 import { Drawer } from "./Drawer.tsx";
@@ -12,9 +14,9 @@ import { List } from "./List.tsx";
 import { SrcBlock } from "./SrcBlock.tsx";
 import { Table } from "./Table.tsx";
 
-interface SectionProps {
+export interface SectionProps {
     section: OrgSectionNode;
-    forceFoldState?: boolean;
+    forceFoldState?: OutlineFoldState | boolean;
 }
 
 function renderContentNode(node: OrgContentNode, index: number) {
@@ -58,23 +60,33 @@ function renderContentNode(node: OrgContentNode, index: number) {
 }
 
 export function Section({ section, forceFoldState }: SectionProps) {
-    const [isFolded, setIsFolded] = useState(false);
-    const [copied, setCopied] = useState(false);
     const { heading, body, children } = section;
+    const hasChildren = children.length > 0;
     const level = heading.level;
+
+    const [foldState, setFoldState] = useState<OutlineFoldState>(() => {
+        if (typeof forceFoldState === "boolean") {
+            return forceFoldState ? "folded" : "subtree";
+        }
+        return forceFoldState || "subtree";
+    });
+    const [copied, setCopied] = useState(false);
 
     useEffect(() => {
         if (typeof forceFoldState === "boolean") {
-            setIsFolded(forceFoldState);
+            setFoldState(forceFoldState ? "folded" : "subtree");
+        } else if (forceFoldState) {
+            setFoldState(forceFoldState);
         }
     }, [forceFoldState]);
 
-    const toggleFold = (e: MouseEvent) => {
+    const handleCycleFold = (e: MouseEvent) => {
         const target = e.target as HTMLElement;
         if (target.closest("a, button, input, .org-checkbox, .org-src-copy-btn, .org-subtree-copy-btn")) {
             if (!target.closest(".org-fold-btn")) return;
         }
-        setIsFolded(!isFolded);
+        const next = nextLocalFoldState(foldState, hasChildren);
+        setFoldState(next);
     };
 
     const handleCopySubtree = async (e: MouseEvent) => {
@@ -92,26 +104,32 @@ export function Section({ section, forceFoldState }: SectionProps) {
         }
     };
 
+    const isFolded = foldState === "folded";
+    const showBody = foldState === "subtree";
+    const showChildren = foldState === "children" || foldState === "subtree";
+
     return (
         <div
-            className={`org-section org-sec-${level} ${isFolded ? "org-folded" : ""}`}
+            className={`org-section org-sec-${level} org-state-${foldState} ${isFolded ? "org-folded" : ""}`}
             data-gemini-org="section"
             data-level={level}
+            data-fold-state={foldState}
         >
             <div
                 className={`org-heading org-h${level}`}
                 data-gemini-org="heading"
                 data-level={level}
-                onClick={toggleFold}
+                onClick={handleCycleFold}
             >
                 <button
                     type="button"
                     className="org-fold-btn"
                     data-gemini-org="fold-btn"
-                    aria-label="Toggle section"
+                    aria-label={`Cycle section fold state (current: ${foldState})`}
                     onClick={(e) => {
                         e.stopPropagation();
-                        setIsFolded(!isFolded);
+                        const next = nextLocalFoldState(foldState, hasChildren);
+                        setFoldState(next);
                     }}
                 >
                     <span className="org-fold-icon">{isFolded ? "▶" : "▼"}</span>
@@ -134,6 +152,11 @@ export function Section({ section, forceFoldState }: SectionProps) {
                         </span>
                     )}
                     <InlineText text={heading.title} />
+                    {foldState === "children" && (
+                        <span className="org-fold-indicator" style={{ opacity: 0.6, fontSize: "0.85em", marginLeft: "4px" }}>
+                            ...
+                        </span>
+                    )}
                 </span>
 
                 <span className="org-heading-actions" data-gemini-org="heading-actions">
@@ -176,12 +199,12 @@ export function Section({ section, forceFoldState }: SectionProps) {
                     data-gemini-org="section-content"
                     data-level={level}
                 >
-                    {body.map((n, idx) => renderContentNode(n, idx))}
-                    {children.map((c, idx) => (
+                    {showBody && body.map((n, idx) => renderContentNode(n, idx))}
+                    {showChildren && children.map((c, idx) => (
                         <Section
                             key={idx}
                             section={c}
-                            forceFoldState={forceFoldState}
+                            forceFoldState={foldState === "children" ? "folded" : forceFoldState}
                         />
                     ))}
                 </div>

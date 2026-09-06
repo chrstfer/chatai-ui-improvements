@@ -101,11 +101,10 @@ export const DEFAULT_TOOLBAR_TOOLS: ToolbarTool[] = [
     {
         id: "fold-toggle",
         order: 20,
-        isVisible: (ctx) => ctx.isRendered,
-        title: (ctx) => (ctx.allFolded ? "Expand all sections" : "Fold all sections"),
-        className: () => "org-block-btn org-fold-all-btn",
+        title: () => "Cycle outline folding",
+        className: () => "org-block-btn org-fold-btn",
         onClick: (ctx) => ctx.onToggleFold(),
-        render: (ctx) => <span>{ctx.allFolded ? "Expand All" : "Fold All"}</span>,
+        render: () => <span>Fold</span>,
     },
 ];
 

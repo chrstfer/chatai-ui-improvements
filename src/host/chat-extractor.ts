@@ -2,12 +2,9 @@
  * Gemini DOM Conversation Extractor
  * Extracts conversational turns and authentic message contents for Org-mode export.
  */
-
-import { CodeBlockController } from "./code-block.tsx";
 import { ChatConversation, ChatConversationTurn } from "../languages/org/export/chat-exporter.ts";
 
 export function extractChatConversation(
-    controller?: CodeBlockController,
     rootNode?: ParentNode,
 ): ChatConversation {
     const root = (rootNode || (typeof document !== "undefined" ? document.body : null)) as ParentNode;

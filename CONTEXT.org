@@ -19,7 +19,7 @@
 - *Markdown AST Engine*: The CommonMark/GFM abstract syntax tree parser and token model (~src/languages/markdown/~) providing normalized representation of conversational turn content.
 - *Org Plaintext Exporter*: AST-to-plaintext compiler (~src/languages/org/export/~) translating Markdown structures to Org syntax, unwrapping embedded Org blocks, and recalculating subtree heading depths.
 - *Turn Metadata Drawer*: Machine-readable property drawer (~:PROPERTIES: ... :END:~) affixed to conversation turn headlines containing role, indices, and timestamps.
-- *StructuredMessageContainer*: Universal Preact container component managing folding, collapsed line-count badges, portal toolbars, and active renderer state across all language blocks.
+- *StructuredMessageContainer*: Universal Preact container component providing a unified interface for any message box in the DOM (user message, AI reply, or code block), orchestrating folding, collapsed summary badges, portal toolbars, and active view projection while remaining decoupled from language parsing and host element tags.
 - *In-Situ Universal Code Block Shell*: Single Preact root mounted to each host code block, eliminating disjoint imperative DOM mutations and projecting toolbar actions into headers via portals.
 - *Three-Layer Style Mapping*: Decoupled styling architecture separating pure domain computation (~computeLayoutStyles~), DOM I/O adapters (~applyLayoutDeclarations~), and reactive Preact hooks (~useLayoutSync~).
 - *Persistent Content Fingerprint Cache*: $O(1)$ fast hashing (~fnv1a~) of code prefix, length, and language, retaining parsed ASTs and fold states across virtual scrolling unmount cycles.
@@ -69,3 +69,4 @@
 - [[file:docs/adr/0005-markdown-ast-and-org-chat-export.org][ADR 0005: Markdown AST Pipeline and Org-Mode Chat Export]] — Accepted (2026-09-04)
 - [[file:docs/adr/0006-universal-code-block-and-style-layers.org][ADR 0006: Universal In-Situ Code Block Shell, 3-Layer Style Mapping, and Fingerprinted AST Caching]] — Accepted (2026-09-04)
 - [[file:docs/adr/0007-declarative-host-stylesheet-scoping.org][ADR 0007: Declarative Host Stylesheet Scoping via WebExtension Content Scripts]] — Accepted (2026-09-04)
+- [[file:docs/adr/0008-turn-level-message-container-and-fold-cycling.org][ADR 0008: Turn-Level Message Targeting, MessageContentContainer, and Multi-Level Fold State Cycling]] — Accepted (2026-09-04)

@@ -40,7 +40,7 @@ export const Hud: FunctionComponent<HudProps> = ({ onExportChat }) => {
     const handleFontSizeStep = (delta: number, e: MouseEvent) => {
         e.stopPropagation();
         const current = settings.responseFontSize || 100;
-        const next = Math.max(80, Math.min(160, current + delta));
+        const next = Math.max(75, Math.min(200, current + delta));
         updateSettings({ responseFontSize: next });
     };
 

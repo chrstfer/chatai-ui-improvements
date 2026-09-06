@@ -1,0 +1,81 @@
+* Directory Architecture Review & Refactoring Proposal [2026-09-04 Fri 21:32]
+
+Your current structure suffers from "Layering Schizophrenia." It oscillates arbitrarily between grouping by technical concern (e.g., =context/=, =types/=, =ui/=) and grouping by domain feature (e.g., =languages/org/=). This results in high coupling across distant directories and leaky boundaries.
+
+Here are the specific architectural violations in your current tree:
+
+1. Misplaced Universal Components: =StructuredMessageContainer.tsx= is an orchestrator for the host's chat interface. Placing it inside =languages/= implies it is a language definition or parser, which is fundamentally incorrect. It belongs in a feature module dedicated to message rendering.
+2. Contaminated DOM Boundary: =dom/= is supposed to be your host isolation layer (Vanilla TS, MutationObservers), yet it contains Preact components (=code-block.tsx=, =InSituCodeBlock.tsx=). Furthermore, =InSituCodeBlock.tsx= is dead code per ADR 0008 and must be deleted. 
+3. Feature Fragmentation (Settings): A single domain concept—Settings—is scattered across =storage/settings-store.ts=, =context/SettingsContext.tsx=, and =types/settings.ts=. 
+4. Logic Leakage: =folding.ts= is described as a "pure domain UI interaction model" but is placed in =ui/= alongside physical Preact overlays. Pure logic belongs in a domain or models directory.
+
+** Proposed Architecture
+
+Shift toward a feature-driven/vertical-slice architecture for application logic, reserving technical directories only for strict infrastructure. 
+
+*** 1. The =host/= Directory (Formerly =dom/=)
+Rename =dom/= to =host/= to explicitly indicate this is the anti-corruption layer between your extension and Gemini's proprietary DOM. Strip all Preact components out of this layer.
+
+- =host/observer.ts=
+- =host/chat-extractor.ts=
+- =host/turn-controller.ts= (The headless vanilla TS orchestrator from ADR 0008)
+
+*** 2. The =chat/= or =message/= Directory (New)
+Consolidate all Preact structural components that model the conversation interface. 
+- =chat/StructuredMessageContainer.tsx= (Moved from =languages/=)
+- =chat/MessageContentContainer.tsx= 
+- =chat/MessageToolbar.tsx=
+
+*** 3. The =settings/= Directory
+Unify the fragmented settings architecture into a cohesive module.
+- =settings/store.ts= (Formerly =storage/settings-store.ts=)
+- =settings/context.tsx= (Formerly =context/SettingsContext.tsx=)
+- =settings/types.ts= (Formerly =types/settings.ts=)
+Delete the root =storage/= and =types/= directories entirely.
+
+*** 4. The =state/= Directory (Formerly =context/=)
+Since =BlockStore= manages AST caching, fingerprinting, and folding state, rename =context/= to =state/= or =store/=. Move =folding.ts= here, as it defines the pure state transitions that =BlockStore= coordinates.
+- =state/BlockStore.tsx=
+- =state/folding.ts= (Moved from =ui/=)
+
+*** 5. The =languages/= Directory
+Keep this strictly for language registration, AST parsing, and language-specific rendering. The internal structure for =org/= and =markdown/= is solid, provided you remove the universal chat wrappers.
+- =languages/registry.ts=
+- =languages/definitions.ts=
+- =languages/org/...=
+- =languages/markdown/...=
+
+*** 6. The =ui/= Directory
+Restrict this solely to global extension UI that exists outside the flow of the chat conversation.
+- =ui/ExtensionRoot.tsx=
+- =ui/HUD.tsx=
+- =ui/VersionOverlay.tsx=
+
+** Next Steps
+
+I suggest you execute the following moves sequentially to maintain module resolution:
+1. Delete =InSituCodeBlock.tsx=.
+2. Consolidate Settings into =src/settings/=.
+3. Migrate pure DOM/observer files to =src/host/=.
+4. Move =StructuredMessageContainer= and associated turn components into =src/chat/=.
+
+Review this target structure. If it aligns with your boundary invariants, apply the moves.
+
+* The Fate of code-block.tsx [2026-09-04 Fri 21:38]
+Burn it. 
+
+Under the new ADR 0008 architecture, =code-block.tsx= is an obsolete artifact of the old disjointed code-block mounting strategy. Its responsibilities have been completely cannibalized by the new message-level architecture.
+
+Here is where its internal logic must be redistributed before you delete the file:
+
+1. Code Block Discovery and Record Management -> =host/turn-controller.ts=
+   The vanilla TS controller now discovers the code blocks alongside the chat message boundaries. It extracts the raw host elements and passes them down as props to the Preact roots.
+     
+2. Single-Portal Mount Container Creation -> =chat/MessageContentContainer.tsx=
+   The Preact-side projection and mounting logic is entirely absorbed by =MessageContentContainer=. It maps over the raw code block host elements and issues =createPortal= directly for either the =OrgDocumentView= or the folding badge.
+
+3. AST Caching Synchronization -> =state/BlockStore.tsx=
+   Any remaining logic coordinating the AST cache or content fingerprinting belongs strictly in the =BlockStore= context. This should be invoked by the downstream document views (e.g., =OrgDocumentView=) when they mount and parse, rather than being managed by an intermediary component controller.
+
+   Once you have extracted the fingerprinting and caching logic to =BlockStore= and the projection logic to =MessageContentContainer=, =dom/code-block.tsx= must be deleted alongside =InSituCodeBlock.tsx=.
+

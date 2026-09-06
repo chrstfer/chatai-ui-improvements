@@ -7,13 +7,14 @@ import { Drawer } from "./Drawer.tsx";
 import { InlineText } from "./InlineText.tsx";
 import { Latex } from "./Latex.tsx";
 import { List } from "./List.tsx";
+import { OutlineFoldState } from "../../../state/folding.ts";
 import { Section } from "./Section.tsx";
 import { SrcBlock } from "./SrcBlock.tsx";
 import { Table } from "./Table.tsx";
 
-interface OrgDocumentViewProps {
+export interface OrgDocumentViewProps {
     doc: OrgDocument;
-    forceFoldAll?: boolean;
+    forceFoldAll?: OutlineFoldState | boolean;
 }
 
 function renderPreambleNode(node: OrgContentNode, index: number) {

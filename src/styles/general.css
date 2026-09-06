@@ -230,19 +230,17 @@
    2. Version Overlay Base Styles
    ========================================================================== */
 
-#orgmod-version-overlay-root {
+#orgmod-version-overlay-root,
+#orgmod-version-overlay,
+.orgmod-version-overlay {
     position: fixed;
     top: 12px;
     left: 50%;
     transform: translateX(-50%);
     z-index: 99999;
-    pointer-events: none;
-    display: flex;
-    justify-content: center;
-}
-
-.orgmod-version-overlay {
     pointer-events: auto;
+    width: fit-content;
+    max-width: 90vw;
     background: var(--orgmod-bg-elevated);
     border: 1px solid var(--orgmod-border-color);
     border-radius: 6px;

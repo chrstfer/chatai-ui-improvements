@@ -1,0 +1,462 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN"
+"http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" lang="en" xml:lang="en">
+<head>
+<!-- 2026-09-04 Fri 20:32 -->
+<meta http-equiv="Content-Type" content="text/html;charset=utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>&lrm;</title>
+<meta name="author" content="chrstfer" />
+<meta name="generator" content="Org Mode" />
+</head>
+<body>
+<div id="content" class="content">
+<div id="table-of-contents" role="doc-toc">
+<h2>Table of Contents</h2>
+<div id="text-table-of-contents" role="doc-toc">
+<ul>
+<li><a href="#org7750d8a">1. Thinking</a></li>
+<li><a href="#org99504e0">2. Rendering Architecture Choice</a>
+<ul>
+<li><a href="#problem-space-constraints">2.1. 1. Problem Space &amp; Constraints</a>
+<ul>
+<li><a href="#the-problem">2.1.1. The Problem</a></li>
+<li><a href="#constraints-invariants">2.1.2. Constraints &amp; Invariants</a></li>
+</ul>
+</li>
+<li><a href="#design-it-twice-three-alternative-interfaces">2.2. 2. Design It Twice: Three Alternative Interfaces</a>
+<ul>
+<li><a href="#design-a-the-deep-turn-controller-minimized-interface-maximum-leverage">2.2.1. Design A: The Deep Turn Controller (Minimized Interface, Maximum Leverage)</a></li>
+<li><a href="#org4e3befb">2.2.2. Design B: The Virtual Document Pipeline (Maximized Declarative Purity)</a></li>
+<li><a href="#design-c-the-in-place-slot-proxy-maximized-coexistence-seam-locality">2.2.3. Design C: The In-Place Slot Proxy (Maximized Coexistence &amp; Seam Locality)</a></li>
+</ul>
+</li>
+<li><a href="#comparison-of-alternatives">2.3. 3. Comparison of Alternatives</a></li>
+<li><a href="#recommended-architecture-hybrid-a-c">2.4. 4. Recommended Architecture: Hybrid A + C</a></li>
+</ul>
+</li>
+</ul>
+</div>
+</div>
+<div id="outline-container-org7750d8a" class="outline-2">
+<h2 id="org7750d8a"><span class="section-number-2">1.</span> Thinking</h2>
+<div class="outline-text-2" id="text-1">
+<p>
+<b>Re-evaluating Component Design</b>
+</p>
+
+<p>
+The core design choice: whether <code>InSituCodeBlock</code> remains relevant given the shift towards encompassing entire message components. The existing <code>StructuredMessageContainer</code> now handles the broader scope of user queries and model responses. Initial consideration suggested <code>InSituCodeBlock</code> might be redundant.
+</p>
+
+<p>
+<b>Defining Message Rendering Structure</b>
+</p>
+
+<p>
+The <code>MessageContentContainer</code> will be the new top-level component, housing message content derived from DOM nodes. Inside, structured content will be rendered based on DOM elements. This includes text (e.g., <code>&lt;p&gt;</code>) and code blocks, which will potentially be rendered with specialized views. It is necessary to consider how the code block render buttons should cycle through different renderers, rather than using toggle states.
+</p>
+
+<p>
+<b>Reframing Code Block Handling</b>
+</p>
+
+<p>
+The <code>DomObserver</code>'s role needs refinement given the new architecture; it must now target entire message turns, not just individual code blocks. The current code block management strategy, specifically <code>InSituCodeBlock</code>, is potentially being overscoped with the move toward turn-level components. This impacts the function of the <code>StructuredMessageContainer</code>, which may not need to deal with each code block, but instead should be able to render the content container containing code blocks.
+</p>
+
+<p>
+<b>Defining Component Interaction Boundaries</b>
+</p>
+
+<p>
+Considering strict constraints, the primary concern is managing Preact-Angular integration. Preact's rendering must not interfere with Angular's streaming; therefore, strict adherence to <code>createPortal</code> is required. The <code>MessageTurnController</code> will encapsulate all Preact rendering within a single root, avoiding conflicts with the host application's DOM management. The interaction with existing features like KaTeX math rendering and AST caching should be validated to ensure their continued functionality.
+</p>
+
+<p>
+<b>Evaluating Rendering Architecture Options</b>
+</p>
+
+<p>
+The system can render a toolbar and a content container within a turn. Inside the content container, code blocks are handled by portal projection (Design 1).
+</p>
+
+<p>
+Design 2 (virtual pipeline) uses a parsed AST for virtual DOM rendering; this could cause live-streaming desync. Design 3 (hybrid slot projection) prioritizes Angular integration.
+</p>
+
+<p>
+I'm thinking through how to approach this.
+</p>
+
+<p>
+<b>Codebase Design: Turn-Level Message Architecture &amp; Outline Fold Cycling</b>
+</p>
+
+<p>
+We are executing the transition from isolated code-block enhancement to full conversation turn targeting (user-query and model-response), replacing binary toggles with multi-level outline cycling.
+</p>
+</div>
+</div>
+<div id="outline-container-org99504e0" class="outline-2">
+<h2 id="org99504e0"><span class="section-number-2">2.</span> Rendering Architecture Choice</h2>
+<div class="outline-text-2" id="text-2">
+</div>
+<div id="outline-container-problem-space-constraints" class="outline-3">
+<h3 id="problem-space-constraints"><span class="section-number-3">2.1.</span> 1. Problem Space &amp; Constraints</h3>
+<div class="outline-text-3" id="text-problem-space-constraints">
+</div>
+<div id="outline-container-the-problem" class="outline-4">
+<h4 id="the-problem"><span class="section-number-4">2.1.1.</span> The Problem</h4>
+<div class="outline-text-4" id="text-the-problem">
+<p>
+Previously, observer.ts targeted individual code-block elements, mounting a disjoint InSituCodeBlock.tsx root for each code block. This isolated code snippets from the message turn context (turn role, header actions, prompt text, disclaimers) and made message-level folding impossible.
+</p>
+</div>
+</div>
+<div id="outline-container-constraints-invariants" class="outline-4">
+<h4 id="constraints-invariants"><span class="section-number-4">2.1.2.</span> Constraints &amp; Invariants</h4>
+<div class="outline-text-4" id="text-constraints-invariants">
+<ol class="org-ol">
+<li>Declarative Preact-First Boundary: Exactly one Preact root per host element boundary. Extension UI elements must be projected into host slots via createPortal.</li>
+<li>Host Angular Coexistence: Gemini's Angular framework dynamically mutates .markdown-main-panel during streaming. Replacing or removing Angular's DOM nodes directly triggers NotFoundError / ExpressionChangedAfterItHasBeenCheckedError crashes.</li>
+<li>In-Place Replacement: When an embedded code block (response-element.no-md &gt; code-block) has a registered renderer (e.g. Org-mode), it must be replaced in-place by DocumentView (OrgDocumentView), hiding the raw code container without detaching it from Angular. Non-renderable code blocks remain native with collapsible folding.</li>
+<li>Universal 3-State Fold Cycling: Section headings and fold buttons must cycle through FOLDED → CHILDREN → SUBTREE → FOLDED (leaf headings cycle FOLDED ↔ EXPANDED).</li>
+<li>Dependency Categories (per DEEPENING.md):
+<ul class="org-ul">
+<li>In-process: Outline fold state transitions, KaTeX math parsing, AST document parsing, style calculations. Always deepenable with zero I/O adapters.</li>
+<li>Local-substitutable / DOM: Browser DOM elements (HTMLElement), MutationObserver, Preact portals.</li>
+</ul></li>
+</ol>
+</div>
+</div>
+</div>
+<div id="outline-container-design-it-twice-three-alternative-interfaces" class="outline-3">
+<h3 id="design-it-twice-three-alternative-interfaces"><span class="section-number-3">2.2.</span> 2. Design It Twice: Three Alternative Interfaces</h3>
+<div class="outline-text-3" id="text-design-it-twice-three-alternative-interfaces">
+</div>
+<div id="outline-container-design-a-the-deep-turn-controller-minimized-interface-maximum-leverage" class="outline-4">
+<h4 id="design-a-the-deep-turn-controller-minimized-interface-maximum-leverage"><span class="section-number-4">2.2.1.</span> Design A: The Deep Turn Controller (Minimized Interface, Maximum Leverage)</h4>
+<div class="outline-text-4" id="text-design-a-the-deep-turn-controller-minimized-interface-maximum-leverage">
+<p>
+Focus: Reduce the external interface to the smallest possible surface area.
+</p>
+
+<table border="2" cellspacing="0" cellpadding="6" rules="groups" frame="hsides">
+
+
+<colgroup>
+<col  class="org-left" />
+
+<col  class="org-left" />
+</colgroup>
+<thead>
+<tr>
+<th scope="col" class="org-left">MessageTurnController (Small Interface)</th>
+<th scope="col" class="org-left">- processTurn(turnEl: HTMLElement): TurnRecord</th>
+</tr>
+
+<tr>
+<th scope="col" class="org-left">&nbsp;</th>
+<th scope="col" class="org-left">- unmountTurn(turnEl: HTMLElement): void</th>
+</tr>
+
+<tr>
+<th scope="col" class="org-left">&nbsp;</th>
+<th scope="col" class="org-left">- cycleFoldingAll(): void</th>
+</tr>
+
+<tr>
+<th scope="col" class="org-left">&nbsp;</th>
+<th scope="col" class="org-left">- cycleRenderingAll(): void</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td class="org-left">Deep Implementation:</td>
+<td class="org-left">- Role detection (user-query vs model-response)</td>
+</tr>
+
+<tr>
+<td class="org-left">&nbsp;</td>
+<td class="org-left">- StructuredMessageContainer Preact Root</td>
+</tr>
+
+<tr>
+<td class="org-left">&nbsp;</td>
+<td class="org-left">- Portal into Header Actions (MessageToolbar)</td>
+</tr>
+
+<tr>
+<td class="org-left">&nbsp;</td>
+<td class="org-left">- MessageContentContainer Slot Coordinator</td>
+</tr>
+
+<tr>
+<td class="org-left">&nbsp;</td>
+<td class="org-left">- Code block in-place swap &amp; OrgDocumentView mount</td>
+</tr>
+</tbody>
+</table>
+</div>
+<ol class="org-ol">
+<li><a id="interface"></a>Interface<br />
+<div class="outline-text-5" id="text-interface">
+<div class="org-src-container">
+<pre class="src src-typescript"><code><span style="color: #a020f0;">export</span> <span style="color: #a020f0;">interface</span> <span style="color: #228b22;">TurnRecord</span> {
+    <span style="color: #a0522d;">id</span>: <span style="color: #228b22;">string</span>;
+    <span style="color: #a0522d;">role</span>: <span style="color: #228b22;">&#8220;user&#8221;</span> | <span style="color: #228b22;">&#8220;model&#8221;</span>;
+    <span style="color: #a0522d;">turnEl</span>: <span style="color: #228b22;">HTMLElement</span>;
+    <span style="color: #a0522d;">mountEl</span>: <span style="color: #228b22;">HTMLElement</span>;
+    <span style="color: #a0522d;">codeBlocks</span>: <span style="color: #228b22;">CodeBlockRecord</span>[];
+}
+
+<span style="color: #a020f0;">export</span> <span style="color: #a020f0;">class</span> <span style="color: #228b22;">MessageTurnController</span> {
+    <span style="color: #0000ff;">processTurn</span>(<span style="color: #a0522d;">turnEl</span>: <span style="color: #228b22;">HTMLElement</span>): <span style="color: #228b22;">TurnRecord</span> | <span style="color: #008b8b;">undefined</span>;
+    <span style="color: #0000ff;">unmountTurn</span>(<span style="color: #a0522d;">turnEl</span>: <span style="color: #228b22;">HTMLElement</span>): <span style="color: #a020f0;">void</span>;
+    <span style="color: #0000ff;">prune</span>(): <span style="color: #a020f0;">void</span>;
+    <span style="color: #0000ff;">cycleFoldingAll</span>(): <span style="color: #a020f0;">void</span>;
+    <span style="color: #0000ff;">cycleRenderingAll</span>(): <span style="color: #a020f0;">void</span>;
+}
+</code></pre>
+</div>
+</div>
+</li>
+<li><a id="org2c0d287"></a>What sits behind the seam<br />
+<div class="outline-text-5" id="text-2-2-1-2">
+<p>
+Callers (DomObserver) know nothing about Preact, portals, AST parsing, or Angular class names. They simply pass turnEl when discovered and detached. Behind the seam, MessageTurnController mounts StructuredMessageContainer, which portals MessageToolbar into the host action container and renders MessageContentContainer over the content slots.
+──────
+</p>
+</div>
+</li>
+</ol>
+</div>
+<div id="outline-container-org4e3befb" class="outline-4">
+<h4 id="org4e3befb"><span class="section-number-4">2.2.2.</span> Design B: The Virtual Document Pipeline (Maximized Declarative Purity)</h4>
+<div class="outline-text-4" id="text-2-2-2">
+<p>
+Focus: Pure declarative Preact tree; eliminate all portal surgery.
+</p>
+
+<div class="org-src-container">
+<label class="org-src-name"><span class="listing-number">Listing 1: </span>Implementation: Complete DOM takeover via clone/AST</label><pre class="src src-tsx"><code><span style="color: #0000ff;">MessageContentContainer</span> (<span style="color: #a0522d;">Declarative</span> Interface)       
+&lt;StructuredMessageContainer message={<span style="color: #a0522d;">turnModel</span>}&gt;      
+  &lt;<span style="color: #0000ff;">MessageToolbar</span> /&gt;                                  
+  &lt;<span style="color: #228b22;">MessageContentContainer</span>&gt;                         
+    {<span style="color: #a0522d;">segments</span>.map(s =&gt;                                
+       <span style="color: #a0522d;">s</span>.type === <span style="color: #8b2252;">'text'</span> ? &lt;<span style="color: #0000ff;">Paragraph</span> <span style="color: #008b8b;">text</span>={<span style="color: #a0522d;">s</span>.text}/&gt;:
+       <span style="color: #a0522d;">s</span>.lang === <span style="color: #8b2252;">'org'</span>  ? &lt;<span style="color: #0000ff;">OrgDocumentView</span> ... /&gt; :  
+    )}                                                
+  &lt;/<span style="color: #0000ff;">MessageContentContainer</span>&gt;                          
+&lt;/StructuredMessageContainer&gt;                         
+</code></pre>
+</div>
+</div>
+<ol class="org-ol">
+<li><a id="orgdc98ba5"></a>Interface<br />
+<div class="outline-text-5" id="text-2-2-2-1">
+<div class="org-src-container">
+<pre class="src src-typescript"><code><span style="color: #a020f0;">export</span> <span style="color: #a020f0;">interface</span> <span style="color: #228b22;">MessageSegment</span> {
+   <span style="color: #a0522d;">type</span>: <span style="color: #8b2252;">"paragraph"</span> | <span style="color: #8b2252;">"code_block"</span> | <span style="color: #8b2252;">"disclaimer"</span>;
+   <span style="color: #a0522d;">rawText</span>: <span style="color: #228b22;">string</span>;
+   <span style="color: #a0522d;">lang</span>?: <span style="color: #228b22;">string</span>;
+}
+
+<span style="color: #a020f0;">export</span> <span style="color: #a020f0;">interface</span> <span style="color: #228b22;">MessageTurnModel</span> {
+   <span style="color: #a0522d;">id</span>: <span style="color: #228b22;">string</span>;
+   <span style="color: #a0522d;">role</span>: <span style="color: #8b2252;">"user"</span> | <span style="color: #8b2252;">"model"</span>;
+   <span style="color: #a0522d;">segments</span>: <span style="color: #228b22;">MessageSegment</span>[];
+}
+
+<span style="color: #a020f0;">export</span> <span style="color: #a020f0;">function</span> <span style="color: #0000ff;">parseMessageTurn</span>(<span style="color: #a0522d;">turnEl</span>: <span style="color: #228b22;">HTMLElement</span>): <span style="color: #228b22;">MessageTurnModel</span>;
+</code></pre>
+</div>
+</div>
+</li>
+<li><a id="trade-offs"></a>Trade-offs<br />
+<div class="outline-text-5" id="text-trade-offs">
+<ul class="org-ul">
+<li>High Purity: Eliminates portals and DOM slot surgery.</li>
+<li>Fragile Coexistence: Hides the host's entire .markdown-main-panel behind display: none and rebuilds the whole message in Preact. During live token streaming, re-parsing and re-rendering paragraphs introduces micro-stutters and desynchronization with Angular's active mutation stream.</li>
+</ul>
+</div>
+</li>
+</ol>
+</div>
+<div id="outline-container-design-c-the-in-place-slot-proxy-maximized-coexistence-seam-locality" class="outline-4">
+<h4 id="design-c-the-in-place-slot-proxy-maximized-coexistence-seam-locality"><span class="section-number-4">2.2.3.</span> Design C: The In-Place Slot Proxy (Maximized Coexistence &amp; Seam Locality)</h4>
+<div class="outline-text-4" id="text-design-c-the-in-place-slot-proxy-maximized-coexistence-seam-locality">
+<p>
+Focus: Seamless coexistence with Angular streaming; surgical in-place replacement of renderable code blocks.
+</p>
+
+<table border="2" cellspacing="0" cellpadding="6" rules="groups" frame="hsides">
+
+
+<colgroup>
+<col  class="org-left" />
+
+<col  class="org-left" />
+</colgroup>
+<tbody>
+<tr>
+<td class="org-left">StructuredMessageContainer (Turn Seam)</td>
+<td class="org-left">Role: user-query OR model-response</td>
+</tr>
+
+<tr>
+<td class="org-left">&nbsp;</td>
+<td class="org-left">MessageToolbar: Portaled to host actions header</td>
+</tr>
+
+<tr>
+<td class="org-left">&nbsp;</td>
+<td class="org-left">MessageContentContainer: Subscribes to contentEl</td>
+</tr>
+
+<tr>
+<td class="org-left">MessageContentContainer (Content Seam)</td>
+<td class="org-left">Scans children of .markdown-main-panel</td>
+</tr>
+
+<tr>
+<td class="org-left">&nbsp;</td>
+<td class="org-left">Leaves untouched for Angular streaming</td>
+</tr>
+
+<tr>
+<td class="org-left">&nbsp;</td>
+<td class="org-left">Detects response-element.no-md &gt; code-block</td>
+</tr>
+
+<tr>
+<td class="org-left">&nbsp;</td>
+<td class="org-left">For Org: Hides code-block, portals OrgDocumentView</td>
+</tr>
+
+<tr>
+<td class="org-left">&nbsp;</td>
+<td class="org-left">For non-Org: Injects folding collapse bar</td>
+</tr>
+</tbody>
+</table>
+</div>
+<ol class="org-ol">
+<li><a id="interface-1"></a>Interface<br />
+<div class="outline-text-5" id="text-interface-1">
+<div class="org-src-container">
+<pre class="src src-typescript"><code><span style="color: #a020f0;">export</span> <span style="color: #a020f0;">interface</span> <span style="color: #228b22;">StructuredMessageContainerProps</span> {
+    <span style="color: #a0522d;">id</span>: <span style="color: #228b22;">string</span>;
+    <span style="color: #a0522d;">role</span>: <span style="color: #228b22;">&#8220;user&#8221;</span> | <span style="color: #228b22;">&#8220;model&#8221;</span>;
+    <span style="color: #a0522d;">turnEl</span>: <span style="color: #228b22;">HTMLElement</span>;
+    <span style="color: #a0522d;">contentContainerEl</span>: <span style="color: #228b22;">HTMLElement</span>;
+    <span style="color: #a0522d;">headerActionsEl</span>?: <span style="color: #228b22;">HTMLElement</span> | <span style="color: #008b8b;">null</span>;
+    <span style="color: #a0522d;">blockStore</span>?: <span style="color: #228b22;">BlockStore</span>;
+}
+
+<span style="color: #a020f0;">export</span> <span style="color: #a020f0;">interface</span> <span style="color: #228b22;">MessageContentContainerProps</span> {
+    <span style="color: #a0522d;">turnId</span>: <span style="color: #228b22;">string</span>;
+    <span style="color: #a0522d;">contentEl</span>: <span style="color: #228b22;">HTMLElement</span>;
+    <span style="color: #a0522d;">foldState</span>: <span style="color: #228b22;">OutlineFoldState</span>;
+    <span style="color: #a0522d;">renderMode</span>: <span style="color: #228b22;">RenderMode</span>;
+}
+</code></pre>
+</div>
+<p>
+──────
+</p>
+</div>
+</li>
+</ol>
+</div>
+</div>
+<div id="outline-container-comparison-of-alternatives" class="outline-3">
+<h3 id="comparison-of-alternatives"><span class="section-number-3">2.3.</span> 3. Comparison of Alternatives</h3>
+<div class="outline-text-3" id="text-comparison-of-alternatives">
+<table border="2" cellspacing="0" cellpadding="6" rules="groups" frame="hsides">
+
+
+<colgroup>
+<col  class="org-left" />
+
+<col  class="org-left" />
+
+<col  class="org-left" />
+
+<col  class="org-left" />
+</colgroup>
+<thead>
+<tr>
+<th scope="col" class="org-left">Quality</th>
+<th scope="col" class="org-left">Design A: Deep Turn Controller</th>
+<th scope="col" class="org-left">Design B: Virtual Pipeline</th>
+<th scope="col" class="org-left">Design C: In-Place Slot Proxy</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td class="org-left">Depth (Leverage)</td>
+<td class="org-left">Very High: Callers use 2 methods (processTurn,unmountTurn). All complexity hidden.</td>
+<td class="org-left">Medium: Callers must coordinate parsing, segmenting, and rendering cycles.</td>
+<td class="org-left">High: Clean component boundary between turn shell and content slots.</td>
+</tr>
+
+<tr>
+<td class="org-left">Locality</td>
+<td class="org-left">High: Turn lifecycle, DOM observation, and unmounting concentrated in one controller.</td>
+<td class="org-left">Low: Logic split between extractor, segmenter, and virtual render components.</td>
+<td class="org-left">High: Angular DOM isolation concentrated strictly within MessageContentContainer.</td>
+</tr>
+
+<tr>
+<td class="org-left">Seam Placement</td>
+<td class="org-left">Seam placed at DOM turn discovery boundary (DomObserver → MessageTurnController).</td>
+<td class="org-left">Seam placed at text extraction boundary (parseMessageTurn).</td>
+<td class="org-left">Seam placed at Preact root boundary per message turn.</td>
+</tr>
+
+<tr>
+<td class="org-left">Host Safety</td>
+<td class="org-left">Safely wraps host nodes without fighting Angular.</td>
+<td class="org-left">High risk of streaming desync or flicker.</td>
+<td class="org-left">Zero streaming interference; paragraphs stream natively.</td>
+</tr>
+</tbody>
+</table>
+</div>
+</div>
+<div id="outline-container-recommended-architecture-hybrid-a-c" class="outline-3">
+<h3 id="recommended-architecture-hybrid-a-c"><span class="section-number-3">2.4.</span> 4. Recommended Architecture: Hybrid A + C</h3>
+<div class="outline-text-3" id="text-recommended-architecture-hybrid-a-c">
+<p>
+The strongest design is a hybrid of Design A and Design C:
+</p>
+<ol class="org-ol">
+<li>Outer Seam (Module Depth): Implement Design A (MessageTurnController) at the DOM discovery seam. DomObserver only knows how to process and unmount turns (model-response and user-query).</li>
+<li>Inner Seam (Preact Composition): Inside MessageTurnController, mount a single Preact root per message turn:
+<ul class="org-ul">
+<li>StructuredMessageContainer.tsx wraps the turn.</li>
+<li>Projects OrgToolbar.tsx (with persistent “Fold” outline cycler and “View Org/Raw” render mode cycler) via portal into the turn actions container.</li>
+<li>Renders MessageContentContainer to manage code block slots:</li>
+<li>For Org blocks: hides response-element.no-md &gt; code-block with display: none and projects OrgDocumentView.tsx in-situ into an adjacent mount slot.</li>
+<li>For non-Org blocks: wraps the native code element with the collapsible folding badge (📦 [lang] (N lines) &mdash; Click to expand).</li>
+<li>For text paragraphs: preserves native elements without interfering with Angular's streaming mutation stream.</li>
+</ul></li>
+<li>Retire InSituCodeBlock: Deleted entirely as its responsibilities are absorbed by MessageContentContainer.</li>
+</ol>
+
+<p>
+Would you like to proceed with implementing this hybrid architecture?
+</p>
+</div>
+</div>
+</div>
+</div>
+<div id="postamble" class="status">
+<p class="author">Author: chrstfer</p>
+<p class="date">Created: 2026-09-04 Fri 20:32</p>
+</div>
+</body>
+</html>

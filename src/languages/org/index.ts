@@ -9,7 +9,7 @@ import { parseOrgDocument, serializeOrgDocument, serializeOrgSection } from "./p
 import { isOrgContent } from "./parser/detector.ts";
 import { OrgDocument } from "./types/ast.ts";
 
-export * from "./parser/document-parser.ts";
+// export * from "./parser/document-parser.ts";
 export * from "./parser/detector.ts";
 export * from "./parser/inline-lexer.ts";
 export * from "./parser/latex.ts";
