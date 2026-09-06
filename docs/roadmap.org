@@ -1,29 +1,22 @@
-#+TITLE: Gemini Org UI — Planned Features & Roadmap
+#+TITLE: AI Chat UI Improvements — Planned Features & Roadmap
 #+DATE: 2026-09-04
 #+OPTIONS: toc:2 num:nil
 
-* Planned Features & Backlog
-- [ ] Implement unit testing with the preact suggested `Enzyme`: Airbnb's Enzyme is a library for writing tests for React components. It supports different versions of React and React-like libraries using "adapters". There is an adapter for Preact, maintained by the Preact team.
-
-  
-* Pinned until above features are finished
-** Host Interface Extensions [0/3]
+* Testing and Toolchain Improvements [0/2]
+- [ ] Chat Independent Testing :: A static example mock-chat for testing features outside of any particular chat AI interface.
+- [ ] Implement preact unit testing :: Suggesting : Airbnb's `Enzyme`, a library for writing tests for React components. It supports different versions of React and React-like libraries using "adapters". There is an adapter for Preact, maintained by the Preact team.
+* Host Interface Extensions [0/3]
 - [ ] Multi-Platform Chat Adapters :: Extend DOM extractors and layout managers to support ChatGPT, Claude, and OpenWebUI.
-- [ ] Host Auto-Discovery :: Automatically detect and mount appropriate host-specific adapter based on URL hostname and DOM fingerprints.
-- [ ] Universal HUD Integration :: Position and render HUD seamlessly across supported host platforms without visual collision with host toolbars.
-
-** Org-Mode AST & Rendering Capabilities [0/5]
-- [ ] Universal Code Block Shell & Folding :: Extend the in-situ code block controller to non-Org code blocks across all programming languages, providing a unified action toolbar and collapsible folding mechanics for easier reading.
-- [ ] Standalone Document Viewer :: Enable importing and rendering arbitrary external ~.org~ files inside the browser viewport.
-- [ ] Interactive Babel Execution Sandbox :: Safe client-side code runner simulation for ~#+BEGIN_SRC~ blocks with dynamic ~#+RESULTS:~ updates.
-- [ ] Inline Image and Dynamic Attachment Previews :: In-situ rendering of embedded ~[[file:...]]~ and ~[[https://...]]~ image links with zoom overlay.
+  - [ ] Host Auto-Discovery :: Automatically detect and mount appropriate host-specific adapter based on URL hostname and DOM fingerprints.
+* Rendering Capabilities [0/5]
 - [ ] Custom Org Themes & Syntax Highlighting Presets :: User-selectable color schemes (e.g. Org Modern, Doom One, Solarized, Gruvbox) for rendered headlines and code blocks.
-
-** Chat Export & Synchronization [0/3]
-- [ ] Subtree & Turn Selection Export :: Allow selective downloading of individual turn subtrees or marked sections into ~.org~ files.
-- [ ] Bidirectional Turn Editing :: Edit Org AST blocks in-situ and back-propagate changes directly into chat prompt inputs.
-- [ ] Org Archive & Journaling Integration :: Direct append-to-file synchronization for local Org-agenda and daily journal workflows.
-
-** HUD & Accessibility Improvements [0/2]
-- [ ] Customizable Hotkeys & Keybindings :: User-configurable shortcut bindings for HUD toggle, folding, font sizing, and export actions.
+- [ ] Inline Image and Dynamic Attachment Previews :: In-situ rendering of embedded ~[[file:...]]~ and ~[[https://...]]~ image links with zoom overlay.
+- [ ] Interactive Babel Execution Sandbox :: Safe client-side code runner simulation for ~#+BEGIN_SRC~ blocks with dynamic ~#+RESULTS:~ updates. This is a stretch goal, and likely mostly impossible, but we can at least keep it in mind.
+- [ ] Non-Org DocumentViews :: Custom rendering for other special chat responses.
 - [ ] Advanced Font Stepping & Typography Controls :: Granular font family selection and line-height controls for response chat streams.
+** HUD & Accessibility Improvements [0/3]
+- [ ] Moveable HUD :: Click and drag the HUD box around the chat column.
+- [ ] Universal HUD Integration :: Compute default position for HUD seamlessly across supported host platforms to avoid visual collision with host toolbars or other UI elements.
+- [ ] Customizable Hotkeys & Keybindings :: User-configurable shortcut bindings for HUD toggle, folding, font sizing, and export actions.
+* Chat Export & Synchronization [0/3]
+- [ ] Subtree & Turn Selection Export :: Allow selective downloading of individual turn subtrees or marked sections into ~.org~ files.

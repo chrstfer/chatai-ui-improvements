@@ -1,0 +1,1916 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<!-- 2026-09-06 Sun 00:43 -->
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Research Report: Preact Modern Syntax, Best Practices, and Architecture</title>
+<meta name="generator" content="Org Mode" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<style> body { grid-template-columns: 1fr min(1600px, 95%) 1fr; } h4 { font-size: 1rem; } h5 { font-size: 0.8rem; } h6 { font-size: 0.5rem; } </style>
+<link rel="stylesheet" type="text/css" href="/home/chrstfer/.emacs.d/org/includes/simple.css" />
+<link rel="stylesheet" type="text/css" href="/home/chrstfer/.emacs.d/org/includes/table-improvements.css" />
+<script>
+  window.MathJax = {
+    tex: {
+      ams: {
+        multlineWidth: '85%'
+      },
+      tags: 'ams',
+      tagSide: 'right',
+      tagIndent: '.8em'
+    },
+    chtml: {
+      scale: 1.0,
+      displayAlign: 'center',
+      displayIndent: '0em'
+    },
+    svg: {
+      scale: 1.0,
+      displayAlign: 'center',
+      displayIndent: '0em'
+    },
+    output: {
+      font: 'mathjax-modern',
+      displayOverflow: 'overflow'
+    }
+  };
+</script>
+
+<script
+  id="MathJax-script"
+  async
+  src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js">
+</script>
+</head>
+<body>
+<div id="content" class="content">
+<h1 class="title">Research Report: Preact Modern Syntax, Best Practices, and Architecture</h1>
+<div id="table-of-contents" role="doc-toc">
+<h2>Table of Contents</h2>
+<div id="text-table-of-contents" role="doc-toc">
+<ul>
+<li><a href="#org80f2879">1. Executive Summary &amp; Strategic Verdict</a></li>
+<li><a href="#orge9219e6">2. Architectural Comparison: Preact vs. React 18 / 19</a>
+<ul>
+<li><a href="#orga473dd9">2.1. Reconciliation Call Stack Mechanics</a></li>
+</ul>
+</li>
+<li><a href="#org64af7ef">3. Core Syntax &amp; Modern Standards</a>
+<ul>
+<li><a href="#org8fff39b">3.1. Modern JSX Transform (<code>preact/jsx-runtime</code>) vs Classic Pragma (<code>h</code>)</a>
+<ul>
+<li><a href="#org783cbe1">3.1.1. 1. Automatic JSX Runtime (Recommended Standard)</a></li>
+<li><a href="#orgca99d72">3.1.2. 2. Classic Runtime (<code>h</code> Pragma)</a></li>
+<li><a href="#org6dca8e0">3.1.3. 3. HTM (Hyperscript Tagged Markup) - Zero-Build Environments</a></li>
+</ul>
+</li>
+<li><a href="#org0c6fc5b">3.2. Attribute Normalization: <code>class</code> vs. <code>className</code>, <code>for</code> vs. <code>htmlFor</code></a></li>
+<li><a href="#orge80353b">3.3. Style Property Handling &amp; CSS Custom Properties</a></li>
+</ul>
+</li>
+<li><a href="#org4080a2b">4. Preact Hooks &amp; State Architecture</a>
+<ul>
+<li><a href="#org27aa947">4.1. Core Hooks Reference</a></li>
+<li><a href="#org2d277da">4.2. The Preact-Exclusive <code>useErrorBoundary</code> Hook</a></li>
+<li><a href="#org2446981">4.3. Ref Management: <code>useRef</code>, Callback Refs, and Forwarding</a>
+<ul>
+<li><a href="#org4ef5146">4.3.1. 1. Object Refs (<code>useRef</code>)</a></li>
+<li><a href="#org34f61fc">4.3.2. 2. Callback Refs with Cleanup Pattern</a></li>
+<li><a href="#org48c3153">4.3.3. 3. Ref Forwarding</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li><a href="#orgba311dc">5. Preact Signals (<code>@preact/signals</code>) &amp; Fine-Grained Reactivity</a>
+<ul>
+<li><a href="#org645eaf5">5.1. Core Reactive Primitives</a></li>
+<li><a href="#orgaa2d12f">5.2. The Direct DOM Bypass Superpower (\(\mathcal{O}(1)\) Updates)</a>
+<ul>
+<li><a href="#org94a7d01">5.2.1. Under the Hood: How Direct DOM Bypass Works</a></li>
+<li><a href="#org7f602ef">5.2.2. Comparison: Direct Signal vs. Signal Value Access</a></li>
+</ul>
+</li>
+<li><a href="#orgbc854fe">5.3. Component-Scoped Signals: <code>useSignal</code> and <code>useComputed</code></a></li>
+<li><a href="#org7ab6ee8">5.4. Module-Level Global Signals (Eliminating Context Providers)</a></li>
+</ul>
+</li>
+<li><a href="#org6fb0c35">6. Browser Extension &amp; DOM Injection Patterns</a>
+<ul>
+<li><a href="#org2491d4c">6.1. Pattern 1: Shadow DOM Encapsulation (Recommended for Floating HUD &amp; Overlays)</a></li>
+<li><a href="#org6c3feed">6.2. Pattern 2: Contextual In-Situ Mounting (Embedding inside Host Message Blocks)</a></li>
+<li><a href="#orge29c6dc">6.3. Keyboard Shortcut &amp; Event Isolation in Injected Contexts</a></li>
+</ul>
+</li>
+<li><a href="#org8d0de7d">7. Memory Management &amp; Lifecycle Cleanup</a>
+<ul>
+<li><a href="#orge68b31d">7.1. The Proper Preact Unmounting Protocol</a>
+<ul>
+<li><a href="#org1ea7664">7.1.1. What Happens Internally During <code>render(null, container)</code>:</a></li>
+</ul>
+</li>
+<li><a href="#org10bc13c">7.2. MutationObserver Automatic Cleanup Manager</a></li>
+</ul>
+</li>
+<li><a href="#org67c8e45">8. TypeScript Standards &amp; Deep Type Safety</a>
+<ul>
+<li><a href="#org2d08129">8.1. Key Type Definitions</a></li>
+<li><a href="#org1a10450">8.2. Strongly Typed Component Template</a></li>
+<li><a href="#org5a07904">8.3. Event Typing with <code>JSX.TargetedEvent</code></a></li>
+<li><a href="#orgc4f6195">8.4. Augmenting Global JSX Intrinsic Elements</a></li>
+</ul>
+</li>
+<li><a href="#org8431b7e">9. Pitfalls, Gotchas &amp; Anti-Patterns</a>
+<ul>
+<li><a href="#org6fa46f9">9.1. 1. Controlled Input Cursor Jumps</a>
+<ul>
+<li><a href="#org2855ddb">9.1.1. The Problem:</a></li>
+<li><a href="#org1804f5a">9.1.2. The Solution:</a></li>
+</ul>
+</li>
+<li><a href="#org6134309">9.2. 2. The <code>props.children</code> Array Assumption Trap</a>
+<ul>
+<li><a href="#org7d6eba7">9.2.1. The Problem:</a></li>
+<li><a href="#orga15219b">9.2.2. The Solution:</a></li>
+</ul>
+</li>
+<li><a href="#org8b21990">9.3. 3. Shallow Equality Breakdown in <code>memo</code></a>
+<ul>
+<li><a href="#org213126b">9.3.1. The Problem:</a></li>
+<li><a href="#orge975cdf">9.3.2. The Solution:</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li><a href="#org4f7e673">10. Advanced Tips, Tricks &amp; Hidden Gems</a>
+<ul>
+<li><a href="#org7a1ee7a">10.1. The Preact <code>options</code> Middleware Pipeline</a>
+<ul>
+<li><a href="#org76a0851">10.1.1. Practical Gem: Custom Frame-Aligned Rendering Scheduler</a></li>
+<li><a href="#org15b7fdd">10.1.2. Practical Gem: Automated Test ID Injection Middleware</a></li>
+</ul>
+</li>
+<li><a href="#org8e9b354">10.2. Production Diagnostics with <code>preact/debug</code></a></li>
+</ul>
+</li>
+<li><a href="#org210402b">11. Practical Refactoring Blueprint: HudController Case Study</a>
+<ul>
+<li><a href="#orgde43125">11.1. Before: Imperative Vanilla DOM (<code>hud.ts</code>)</a></li>
+<li><a href="#org1c5a308">11.2. After: Declarative Preact + Signals (<code>hud.tsx</code>)</a></li>
+</ul>
+</li>
+<li><a href="#org5045678">12. References &amp; Primary Citations</a></li>
+</ul>
+</div>
+</div>
+<div id="outline-container-org80f2879" class="outline-2">
+<h2 id="org80f2879"><span class="section-number-2">1.</span> Executive Summary &amp; Strategic Verdict</h2>
+<div class="outline-text-2" id="text-1">
+<p>
+Preact is an ultra-lightweight (~3kB to 4.5kB minified + gzipped) virtual DOM library that provides the modern declarative component model of React with near-zero abstraction overhead over native Web standards. Originally conceived by Jason Miller in 2015, Preact has evolved into a premier frontend architecture for resource-constrained environments, high-performance dashboards, embedded widgets, and browser extensions operating within complex third-party Single Page Applications (SPAs) such as Google Gemini, ChatGPT, Claude, and GitHub.
+</p>
+
+<p>
+Unlike React—which has transitioned toward complex scheduling fibers, asynchronous concurrent lanes, synthetic event delegation matrices, and server component pipelines resulting in a runtime footprint exceeding 45kB+ gzip—Preact adheres strictly to the philosophy of direct DOM alignment, native W3C event dispatching, and high-velocity reconciliation.
+</p>
+
+<p>
+With the introduction of <b>Preact Signals</b> (~1.6kB core), Preact established a paradigm shift in web reactivity: fine-grained reactive state primitives that update real DOM nodes directly (bypassing the Virtual DOM reconciliation loop entirely for text nodes and dynamic attributes), achieving \(\mathcal{O}(1)\) DOM updates with 0ms component diffing overhead.
+</p>
+
+<p>
+<b><b>Strategic Verdict for Browser Extensions &amp; Embedded UI:</b></b>
+Preact, combined with `@preact/signals` and Shadow DOM encapsulation, is the optimal architectural standard for browser extensions and in-situ DOM injection. It provides:
+</p>
+<ol class="org-ol">
+<li>Negligible bundle footprint and sub-millisecond initial parse/execution time.</li>
+<li>Complete style and DOM isolation via native Shadow DOM.</li>
+<li>Surgical \(\mathcal{O}(1)\) UI updates without risking re-render churn or interfering with the host page's event loop.</li>
+<li>Clean lifecycle teardown via <code>render(null, container)</code>, preventing memory leaks in dynamic, long-lived SPA sessions.</li>
+</ol>
+</div>
+</div>
+<div id="outline-container-orge9219e6" class="outline-2">
+<h2 id="orge9219e6"><span class="section-number-2">2.</span> Architectural Comparison: Preact vs. React 18 / 19</h2>
+<div class="outline-text-2" id="text-2">
+<p>
+Preact intentionally diverges from React in key architectural areas to minimize memory allocation, maximize execution speed, and stay close to browser primitives.
+</p>
+
+<table>
+<caption class="t-above"><span class="table-number">Table 1:</span> Comprehensive Architectural Comparison: Preact 10 vs. React 18/19</caption>
+
+<colgroup>
+<col  class="org-left">
+
+<col  class="org-left">
+
+<col  class="org-left">
+
+<col  class="org-left">
+</colgroup>
+<thead>
+<tr>
+<th scope="col" class="org-left">Architectural Vector</th>
+<th scope="col" class="org-left">Preact 10.x</th>
+<th scope="col" class="org-left">React 18.x / 19.x</th>
+<th scope="col" class="org-left">Engineering Impact</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td class="org-left"><b><b>Bundle Footprint</b></b></td>
+<td class="org-left">~3.5 kB (Core) + ~1.6 kB (Signals)</td>
+<td class="org-left">~45 kB - 55 kB (React + ReactDOM)</td>
+<td class="org-left">~10x reduction in bundle size; instant script parsing in extensions.</td>
+</tr>
+
+<tr>
+<td class="org-left"><b><b>Event Subsystem</b></b></td>
+<td class="org-left">Direct native DOM listeners (<code>addEventListener</code>)</td>
+<td class="org-left">Custom SyntheticEvent delegation at root container</td>
+<td class="org-left">Preact uses native W3C <code>Event</code>; zero event pooling overhead; perfect standard compatibility.</td>
+</tr>
+
+<tr>
+<td class="org-left"><b><b>Reconciliation Engine</b></b></td>
+<td class="org-left">Direct VNode-to-DOM diffing with internal node pointer (<code>_dom</code>)</td>
+<td class="org-left">Fiber Reconciler with double-buffering &amp; priority lanes</td>
+<td class="org-left">Preact has much lower memory overhead and simpler call stacks; React supports time-slicing concurrency.</td>
+</tr>
+
+<tr>
+<td class="org-left"><b><b>State Primaries</b></b></td>
+<td class="org-left">Hooks (<code>preact/hooks</code>) + Signals (<code>@preact/signals</code>)</td>
+<td class="org-left">Hooks (<code>useState</code>, <code>useTransition</code>, <code>useActionState</code>)</td>
+<td class="org-left">Preact Signals enable direct DOM bypass updates without re-rendering parent components.</td>
+</tr>
+
+<tr>
+<td class="org-left"><b><b>HTML Attribute Mapping</b></b></td>
+<td class="org-left">Native HTML attributes (<code>class</code>, <code>for</code>) + React aliases (<code>className</code>, <code>htmlFor</code>)</td>
+<td class="org-left">React aliases required (<code>className</code>, <code>htmlFor</code>)</td>
+<td class="org-left">Preact accepts standard HTML syntax natively without translation warnings.</td>
+</tr>
+
+<tr>
+<td class="org-left"><b><b>Form Inputs</b></b></td>
+<td class="org-left">Native inputs; microtask-batched state sync</td>
+<td class="org-left">Synthetic controlled input wrappers with selection tracking</td>
+<td class="org-left">Preact requires intentional handling (<code>onInput</code> vs <code>onChange</code>) to avoid cursor jumps.</td>
+</tr>
+
+<tr>
+<td class="org-left"><b><b>Custom Elements / Web Components</b></b></td>
+<td class="org-left">First-class native support; passes objects to properties &amp; primitives to attributes</td>
+<td class="org-left">Historically broken; partial improvements in React 19</td>
+<td class="org-left">Preact seamlessly bridges Custom Elements without synthetic wrapper hacks.</td>
+</tr>
+
+<tr>
+<td class="org-left"><b><b>Error Boundaries</b></b></td>
+<td class="org-left">Functional Hook (<code>useErrorBoundary</code>) and Class (<code>componentDidCatch</code>)</td>
+<td class="org-left">Class components only (<code>componentDidCatch</code>)</td>
+<td class="org-left">Preact enables 100% functional component architectures with zero class boilerplate.</td>
+</tr>
+
+<tr>
+<td class="org-left"><b><b>Internal Extensibility</b></b></td>
+<td class="org-left">Public <code>options</code> middleware pipeline</td>
+<td class="org-left">Closed internal dispatcher and reconciler</td>
+<td class="org-left">Preact allows arbitrary plugins, devtools, and schedulers via <code>options</code> hooks.</td>
+</tr>
+</tbody>
+</table>
+</div>
+<div id="outline-container-orga473dd9" class="outline-3">
+<h3 id="orga473dd9"><span class="section-number-3">2.1.</span> Reconciliation Call Stack Mechanics</h3>
+<div class="outline-text-3" id="text-2-1">
+<p>
+React Fiber maintains a doubly-linked tree of fiber nodes representing work-in-progress and current states. This enables cooperative scheduling and interruptions, but incurs substantial heap allocations per node (~15-20 fields per Fiber).
+</p>
+
+<p>
+Preact diffs Virtual DOM trees directly against existing DOM nodes or preceding VNodes. A Preact <code>VNode</code> is a lightweight JavaScript object:
+</p>
+
+<div class="org-src-container">
+<pre class="src src-typescript"><code><span style="color: #a020f0;">export</span> <span style="color: #a020f0;">interface</span> <span style="color: #228b22;">VNode</span>&lt;<span style="color: #228b22;">P</span> = {}&gt; {
+    <span style="color: #a0522d;">type</span>: <span style="color: #228b22;">ComponentType</span>&lt;<span style="color: #228b22;">P</span>&gt; | <span style="color: #228b22;">string</span>;
+    <span style="color: #a0522d;">props</span>: <span style="color: #228b22;">P</span> &amp; { <span style="color: #a0522d;">children</span>: <span style="color: #228b22;">ComponentChildren</span> };
+    <span style="color: #a0522d;">key</span>: <span style="color: #228b22;">any</span>;
+    <span style="color: #a0522d;">ref</span>: <span style="color: #228b22;">any</span>;
+    <span style="color: #a0522d;">_dom</span>: <span style="color: #228b22;">PreactNode</span> | <span style="color: #008b8b;">null</span>;       <span style="color: #b22222;">// Reference to the rendered real DOM node</span>
+    <span style="color: #a0522d;">_children</span>: <span style="color: #228b22;">Array</span>&lt;<span style="color: #228b22;">VNode</span>&gt; | <span style="color: #008b8b;">null</span>; <span style="color: #b22222;">// Child VNodes</span>
+    <span style="color: #a0522d;">_component</span>: <span style="color: #228b22;">Component</span> | <span style="color: #008b8b;">null</span>;  <span style="color: #b22222;">// Component instance (if class) or internal state container</span>
+    <span style="color: #a0522d;">_depth</span>: <span style="color: #228b22;">number</span>;                <span style="color: #b22222;">// Nesting depth for diff prioritization</span>
+}
+</code></pre>
+</div>
+
+<p>
+Because Preact holds a direct pointer <code>_dom</code> to the real DOM node, the diffing algorithm operates with minimal recursion depth and near-zero garbage collection pressure.
+</p>
+</div>
+</div>
+</div>
+<div id="outline-container-org64af7ef" class="outline-2">
+<h2 id="org64af7ef"><span class="section-number-2">3.</span> Core Syntax &amp; Modern Standards</h2>
+<div class="outline-text-2" id="text-3">
+</div>
+<div id="outline-container-org8fff39b" class="outline-3">
+<h3 id="org8fff39b"><span class="section-number-3">3.1.</span> Modern JSX Transform (<code>preact/jsx-runtime</code>) vs Classic Pragma (<code>h</code>)</h3>
+<div class="outline-text-3" id="text-3-1">
+<p>
+Modern Preact applications utilize the automatic JSX runtime introduced in modern ECMAScript standards (supported by TypeScript 4.1+, Deno, Vite, esbuild, and Rollup).
+</p>
+</div>
+<div id="outline-container-org783cbe1" class="outline-4">
+<h4 id="org783cbe1"><span class="section-number-4">3.1.1.</span> 1. Automatic JSX Runtime (Recommended Standard)</h4>
+<div class="outline-text-4" id="text-3-1-1">
+<p>
+With automatic runtime configuration, developers do not need to manually import <code>h</code> or <code>Fragment</code> in every TSX/JSX file.
+</p>
+
+<div class="org-src-container">
+<label class="org-src-name"><span class="listing-number">Listing 1: </span><code>deno.json</code> / <code>tsconfig.json</code> Configuration</label><pre class="src src-json"><code>{
+  "compilerOptions": {
+    "jsx": "react-jsx",
+    "jsxImportSource": "preact"
+  }
+}
+</code></pre>
+</div>
+
+<p>
+Under this configuration:
+</p>
+<ul class="org-ul">
+<li><code>&lt;div class="card"&gt;Hello&lt;/div&gt;</code> transpiles to <code>_jsx("div", { class: "card", children: "Hello" })</code>.</li>
+<li><code>&lt;&gt;&lt;span&gt;A&lt;/span&gt;&lt;span&gt;B&lt;/span&gt;&lt;/&gt;</code> transpiles to <code>_jsxs(Fragment, { children: [...] })</code>.</li>
+</ul>
+</div>
+</div>
+<div id="outline-container-orgca99d72" class="outline-4">
+<h4 id="orgca99d72"><span class="section-number-4">3.1.2.</span> 2. Classic Runtime (<code>h</code> Pragma)</h4>
+<div class="outline-text-4" id="text-3-1-2">
+<p>
+When working in environments without automatic runtime transforms, configure the classic pragma explicitly:
+</p>
+
+<div class="org-src-container">
+<pre class="src src-typescript"><code><span style="color: #b22222;">/** @jsx h */</span>
+<span style="color: #b22222;">/** @jsxFrag Fragment */</span>
+<span style="color: #a020f0;">import</span> { <span style="color: #a0522d;">h</span>, <span style="color: #a0522d;">Fragment</span>, <span style="color: #a0522d;">render</span> } <span style="color: #a020f0;">from</span> <span style="color: #8b2252;">"preact"</span>;
+
+<span style="color: #a020f0;">const</span> <span style="color: #0000ff;">App</span> = () =&gt; (
+    &lt;<span style="color: #228b22;">Fragment</span>&gt;
+        &lt;div <span style="color: #228b22;">class</span>=<span style="color: #8b2252;">"header"</span>&gt;Classic Runtime&lt;<span style="color: #8b2252;">/div&gt;</span>
+    &lt;<span style="color: #8b2252;">/Fragment&gt;</span>
+);
+</code></pre>
+</div>
+</div>
+</div>
+<div id="outline-container-org6dca8e0" class="outline-4">
+<h4 id="org6dca8e0"><span class="section-number-4">3.1.3.</span> 3. HTM (Hyperscript Tagged Markup) - Zero-Build Environments</h4>
+<div class="outline-text-4" id="text-3-1-3">
+<p>
+For browser extensions or runtime scripts requiring zero bundler/transpiler overhead, HTM provides JSX ergonomics via ES2015 tagged template literals:
+</p>
+
+<div class="org-src-container">
+<pre class="src src-typescript"><code><span style="color: #a020f0;">import</span> { <span style="color: #a0522d;">html</span>, <span style="color: #a0522d;">render</span> } <span style="color: #a020f0;">from</span> <span style="color: #8b2252;">"https://esm.sh/htm/preact"</span>;
+
+<span style="color: #a020f0;">const</span> <span style="color: #0000ff;">Button</span> = ({ <span style="color: #a0522d;">label</span>, <span style="color: #a0522d;">onClick</span> }) =&gt; <span style="color: #0000ff;">html</span><span style="color: #8b2252;">`
+    &lt;button class="btn" onClick=</span>${<span style="color: #a0522d;">onClick</span>}<span style="color: #8b2252;">&gt;
+        &lt;span&gt;</span>${<span style="color: #a0522d;">label</span>}<span style="color: #8b2252;">&lt;/span&gt;
+    &lt;/button&gt;
+`</span>;
+
+<span style="color: #0000ff;">render</span>(<span style="color: #0000ff;">html</span><span style="color: #8b2252;">`&lt;</span>${<span style="color: #a0522d;">Button</span>}<span style="color: #8b2252;"> label="Click Me" onClick=</span>${() =&gt; <span style="color: #008b8b;">console</span>.<span style="color: #0000ff;">log</span>(<span style="color: #8b2252;">"OK"</span>)}<span style="color: #8b2252;"> /&gt;`</span>, <span style="color: #008b8b;">document</span>.body);
+</code></pre>
+</div>
+</div>
+</div>
+</div>
+<div id="outline-container-org0c6fc5b" class="outline-3">
+<h3 id="org0c6fc5b"><span class="section-number-3">3.2.</span> Attribute Normalization: <code>class</code> vs. <code>className</code>, <code>for</code> vs. <code>htmlFor</code></h3>
+<div class="outline-text-3" id="text-3-2">
+<p>
+Preact normalizes property names directly to the underlying DOM element properties or attributes:
+</p>
+
+<ul class="org-ul">
+<li><b><b><code>class</code> and <code>className</code>:</b></b> Both are fully supported. In idiomatic Preact, standard <code>class="foo bar"</code> is preferred because it mirrors native HTML.</li>
+<li><b><b><code>for</code> and <code>htmlFor</code>:</b></b> Both are fully supported for <code>&lt;label&gt;</code> elements.</li>
+<li><b><b>Boolean Attributes:</b></b> Passing <code>true</code> or <code>""</code> (empty string) sets the boolean attribute/property (e.g. <code>disabled</code>, <code>checked</code>, <code>readOnly</code>, <code>hidden</code>, <code>required</code>). Passing <code>false</code>, <code>null</code>, or <code>undefined</code> removes the attribute and sets the DOM property to <code>false</code>.</li>
+</ul>
+
+<div class="org-src-container">
+<pre class="src src-tsx"><code><span style="color: #b22222;">// Idiomatic Preact: Clean, standard HTML attributes</span>
+<span style="color: #a020f0;">export</span> <span style="color: #a020f0;">function</span> <span style="color: #0000ff;">LoginForm</span>({ <span style="color: #a0522d;">isSubmitting</span> }: { <span style="color: #a0522d;">isSubmitting</span>: <span style="color: #228b22;">boolean</span> }) {
+    <span style="color: #a020f0;">return</span> (
+        &lt;<span style="color: #0000ff;">form</span> <span style="color: #008b8b;">class</span>=<span style="color: #8b2252;">"auth-form"</span> <span style="color: #008b8b;">method</span>=<span style="color: #8b2252;">"dialog"</span>&gt;
+            &lt;<span style="color: #0000ff;">label</span> <span style="color: #008b8b;">for</span>=<span style="color: #8b2252;">"user-email"</span> <span style="color: #008b8b;">class</span>=<span style="color: #8b2252;">"form-label"</span>&gt;Email Address&lt;/<span style="color: #0000ff;">label</span>&gt;
+            &lt;<span style="color: #0000ff;">input</span>
+                <span style="color: #008b8b;">id</span>=<span style="color: #8b2252;">"user-email"</span>
+                <span style="color: #008b8b;">type</span>=<span style="color: #8b2252;">"email"</span>
+                <span style="color: #008b8b;">required</span>
+                <span style="color: #008b8b;">disabled</span>={<span style="color: #a0522d;">isSubmitting</span>}
+                <span style="color: #008b8b;">class</span>=<span style="color: #8b2252;">"form-input"</span>
+            /&gt;
+        &lt;/<span style="color: #0000ff;">form</span>&gt;
+    );
+}
+</code></pre>
+</div>
+</div>
+</div>
+<div id="outline-container-orge80353b" class="outline-3">
+<h3 id="orge80353b"><span class="section-number-3">3.3.</span> Style Property Handling &amp; CSS Custom Properties</h3>
+<div class="outline-text-3" id="text-3-3">
+<p>
+Preact provides flexible style property resolution:
+</p>
+
+<ol class="org-ol">
+<li><p>
+<b><b>String Styles:</b></b> Unlike React (which throws a runtime invariant error on string styles), Preact supports raw CSS strings:
+</p>
+<div class="org-src-container">
+<pre class="src src-tsx"><code>&lt;<span style="color: #0000ff;">div</span> <span style="color: #008b8b;">style</span>=<span style="color: #8b2252;">"display: flex; gap: 8px; align-items: center;"</span> /&gt;
+</code></pre>
+</div>
+<p>
+Preact applies string styles directly via <code>dom.style.cssText = style</code>.
+</p></li>
+
+<li><b><b>Style Objects:</b></b> CamelCase properties are supported as in React (<code>backgroundColor</code>, <code>marginTop</code>).</li>
+
+<li><p>
+<b><b>CSS Custom Properties (Variables):</b></b> CSS variables (keys starting with <code>--</code>) are natively handled by Preact via <code>dom.style.setProperty(name, value)</code>:
+</p>
+<div class="org-src-container">
+<pre class="src src-tsx"><code>&lt;<span style="color: #0000ff;">div</span> <span style="color: #008b8b;">style</span>={{
+    <span style="color: #8b2252;">"--theme-accent"</span>: <span style="color: #8b2252;">"#3b82f6"</span>,
+    <span style="color: #8b2252;">"--panel-opacity"</span>: 0.95,
+    <span style="color: #a0522d;">display</span>: <span style="color: #8b2252;">"flex"</span>,
+    <span style="color: #a0522d;">padding</span>: 16 <span style="color: #b22222;">// Preact appends 'px' for non-unitless CSS properties</span>
+}}&gt;
+    Themed Panel
+&lt;/<span style="color: #0000ff;">div</span>&gt;
+</code></pre>
+</div></li>
+
+<li><b><b>Unitless Numbers:</b></b> Preact maintains an internal table of unitless CSS properties (<code>opacity</code>, <code>zIndex</code>, <code>flexGrow</code>, <code>lineHeight</code>, <code>order</code>, etc.). For dimensional properties like <code>width</code>, <code>height</code>, and <code>margin</code>, numeric values automatically receive the <code>px</code> suffix.</li>
+</ol>
+</div>
+</div>
+</div>
+<div id="outline-container-org4080a2b" class="outline-2">
+<h2 id="org4080a2b"><span class="section-number-2">4.</span> Preact Hooks &amp; State Architecture</h2>
+<div class="outline-text-2" id="text-4">
+<p>
+Hooks in Preact are packaged in <code>preact/hooks</code>. They hook into Preact's internal <code>options</code> pipeline without adding weight to core components.
+</p>
+</div>
+<div id="outline-container-org27aa947" class="outline-3">
+<h3 id="org27aa947"><span class="section-number-3">4.1.</span> Core Hooks Reference</h3>
+<div class="outline-text-3" id="text-4-1">
+<table>
+<caption class="t-above"><span class="table-number">Table 2:</span> Core Preact Hooks Overview</caption>
+
+<colgroup>
+<col  class="org-left">
+
+<col  class="org-left">
+
+<col  class="org-left">
+</colgroup>
+<thead>
+<tr>
+<th scope="col" class="org-left">Hook</th>
+<th scope="col" class="org-left">Signature</th>
+<th scope="col" class="org-left">Primary Use Case &amp; Nuance</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td class="org-left"><code>useState&lt;T&gt;</code></td>
+<td class="org-left"><code>[state, setState] = useState(initial)</code></td>
+<td class="org-left">Local functional state. Supports functional updater <code>(prev) =&gt; next</code>.</td>
+</tr>
+
+<tr>
+<td class="org-left"><code>useReducer&lt;S, A&gt;</code></td>
+<td class="org-left"><code>[state, dispatch] = useReducer(reducer, init)</code></td>
+<td class="org-left">Complex local state transitions with action dispatching.</td>
+</tr>
+
+<tr>
+<td class="org-left"><code>useEffect</code></td>
+<td class="org-left"><code>useEffect(() =&gt; { ... return cleanup; }, deps)</code></td>
+<td class="org-left">Asynchronous post-paint side-effects (runs after DOM commit).</td>
+</tr>
+
+<tr>
+<td class="org-left"><code>useLayoutEffect</code></td>
+<td class="org-left"><code>useLayoutEffect(() =&gt; { ... return cleanup; }, deps)</code></td>
+<td class="org-left">Synchronous pre-paint side-effects for DOM measurements and layout shifts.</td>
+</tr>
+
+<tr>
+<td class="org-left"><code>useMemo&lt;T&gt;</code></td>
+<td class="org-left"><code>val = useMemo(() =&gt; compute(), deps)</code></td>
+<td class="org-left">Memoizes expensive computations across renders.</td>
+</tr>
+
+<tr>
+<td class="org-left"><code>useCallback&lt;T&gt;</code></td>
+<td class="org-left"><code>cb = useCallback(fn, deps)</code></td>
+<td class="org-left">Memoizes function reference stability.</td>
+</tr>
+
+<tr>
+<td class="org-left"><code>useRef&lt;T&gt;</code></td>
+<td class="org-left"><code>ref = useRef&lt;T&gt;(initial)</code></td>
+<td class="org-left">Mutable container <code>{ current: T }</code> persisting across renders without triggering re-render.</td>
+</tr>
+
+<tr>
+<td class="org-left"><code>useContext&lt;T&gt;</code></td>
+<td class="org-left"><code>ctx = useContext(Context)</code></td>
+<td class="org-left">Subscribes to nearest Context Provider.</td>
+</tr>
+
+<tr>
+<td class="org-left"><code>useId</code></td>
+<td class="org-left"><code>id = useId()</code></td>
+<td class="org-left">Generates deterministic, collision-free unique IDs for accessibility.</td>
+</tr>
+
+<tr>
+<td class="org-left"><code>useErrorBoundary</code></td>
+<td class="org-left"><code>[error, reset] = useErrorBoundary(handler?)</code></td>
+<td class="org-left"><b>Preact-Exclusive</b>: Functional component error boundary.</td>
+</tr>
+</tbody>
+</table>
+</div>
+</div>
+<div id="outline-container-org2d277da" class="outline-3">
+<h3 id="org2d277da"><span class="section-number-3">4.2.</span> The Preact-Exclusive <code>useErrorBoundary</code> Hook</h3>
+<div class="outline-text-3" id="text-4-2">
+<p>
+React requires class components with <code>componentDidCatch</code> or <code>getDerivedStateFromError</code> to catch rendering exceptions. Preact introduces <code>useErrorBoundary</code>, enabling 100% functional error containment:
+</p>
+
+<div class="org-src-container">
+<pre class="src src-tsx"><code><span style="color: #a020f0;">import</span> { <span style="color: #a0522d;">useErrorBoundary</span> } <span style="color: #a020f0;">from</span> <span style="color: #8b2252;">"preact/hooks"</span>;
+<span style="color: #a020f0;">import</span> <span style="color: #a020f0;">type</span> { <span style="color: #a0522d;">ComponentChildren</span>, <span style="color: #a0522d;">JSX</span> } <span style="color: #a020f0;">from</span> <span style="color: #8b2252;">"preact"</span>;
+
+<span style="color: #a020f0;">interface</span> <span style="color: #228b22;">SafeBoundaryProps</span> {
+    <span style="color: #a0522d;">children</span>: <span style="color: #228b22;">ComponentChildren</span>;
+    <span style="color: #a0522d;">fallbackTitle</span>?: <span style="color: #228b22;">string</span>;
+}
+
+<span style="color: #a020f0;">export</span> <span style="color: #a020f0;">function</span> <span style="color: #0000ff;">SafeBoundary</span>({ <span style="color: #a0522d;">children</span>, <span style="color: #a0522d;">fallbackTitle</span> = <span style="color: #8b2252;">"Component Error"</span> }: <span style="color: #228b22;">SafeBoundaryProps</span>): <span style="color: #008b8b;">JSX</span>.<span style="color: #228b22;">Element</span> {
+    <span style="color: #a020f0;">const</span> [<span style="color: #a0522d;">error</span>, <span style="color: #a0522d;">resetError</span>] = <span style="color: #0000ff;">useErrorBoundary</span>((<span style="color: #a0522d;">err</span>) =&gt; {
+        <span style="color: #008b8b;">console</span>.<span style="color: #0000ff;">error</span>(<span style="color: #8b2252;">"[SafeBoundary Caught Exception]:"</span>, <span style="color: #a0522d;">err</span>);
+    });
+
+    <span style="color: #a020f0;">if</span> (error) {
+        <span style="color: #a020f0;">return</span> (
+            &lt;<span style="color: #0000ff;">div</span> <span style="color: #008b8b;">class</span>=<span style="color: #8b2252;">"error-container p-4 bg-red-900/20 border border-red-500 rounded"</span>&gt;
+                &lt;<span style="color: #0000ff;">h4</span> <span style="color: #008b8b;">class</span>=<span style="color: #8b2252;">"text-red-400 font-semibold"</span>&gt;{<span style="color: #a0522d;">fallbackTitle</span>}&lt;/<span style="color: #0000ff;">h4</span>&gt;
+                &lt;<span style="color: #0000ff;">p</span> <span style="color: #008b8b;">class</span>=<span style="color: #8b2252;">"text-xs text-red-200 font-mono mt-1"</span>&gt;{<span style="color: #a0522d;">error</span>.message}&lt;/<span style="color: #0000ff;">p</span>&gt;
+                &lt;<span style="color: #0000ff;">button</span>
+                    <span style="color: #008b8b;">class</span>=<span style="color: #8b2252;">"mt-2 px-3 py-1 bg-red-600 hover:bg-red-500 text-white text-xs rounded"</span>
+                    <span style="color: #008b8b;">onClick</span>={() =&gt; <span style="color: #0000ff;">resetError</span>()}
+                &gt;
+                    Retry Component
+                &lt;/<span style="color: #0000ff;">button</span>&gt;
+            &lt;/<span style="color: #0000ff;">div</span>&gt;
+        );
+    }
+
+    <span style="color: #a020f0;">return</span> &lt;&gt;{<span style="color: #a0522d;">children</span>}&lt;/&gt;;
+}
+</code></pre>
+</div>
+</div>
+</div>
+<div id="outline-container-org2446981" class="outline-3">
+<h3 id="org2446981"><span class="section-number-3">4.3.</span> Ref Management: <code>useRef</code>, Callback Refs, and Forwarding</h3>
+<div class="outline-text-3" id="text-4-3">
+<p>
+Preact supports three primary ref paradigms:
+</p>
+</div>
+<div id="outline-container-org4ef5146" class="outline-4">
+<h4 id="org4ef5146"><span class="section-number-4">4.3.1.</span> 1. Object Refs (<code>useRef</code>)</h4>
+<div class="outline-text-4" id="text-4-3-1">
+<div class="org-src-container">
+<pre class="src src-tsx"><code><span style="color: #a020f0;">import</span> { <span style="color: #a0522d;">useRef</span>, <span style="color: #a0522d;">useEffect</span> } <span style="color: #a020f0;">from</span> <span style="color: #8b2252;">"preact/hooks"</span>;
+
+<span style="color: #a020f0;">export</span> <span style="color: #a020f0;">function</span> <span style="color: #0000ff;">AutoFocusInput</span>() {
+    <span style="color: #a020f0;">const</span> <span style="color: #a0522d;">inputRef</span> = <span style="color: #0000ff;">useRef</span>&lt;<span style="color: #228b22;">HTMLInputElement</span>&gt;(<span style="color: #008b8b;">null</span>);
+
+    <span style="color: #0000ff;">useEffect</span>(() =&gt; {
+        <span style="color: #a0522d;">inputRef</span>.current?.<span style="color: #0000ff;">focus</span>();
+    }, []);
+
+    <span style="color: #a020f0;">return</span> &lt;<span style="color: #0000ff;">input</span> <span style="color: #008b8b;">ref</span>={<span style="color: #a0522d;">inputRef</span>} <span style="color: #008b8b;">class</span>=<span style="color: #8b2252;">"search-field"</span> <span style="color: #008b8b;">placeholder</span>=<span style="color: #8b2252;">"Search..."</span> /&gt;;
+}
+</code></pre>
+</div>
+</div>
+</div>
+<div id="outline-container-org34f61fc" class="outline-4">
+<h4 id="org34f61fc"><span class="section-number-4">4.3.2.</span> 2. Callback Refs with Cleanup Pattern</h4>
+<div class="outline-text-4" id="text-4-3-2">
+<p>
+Callback refs allow direct observation of when a DOM element is mounted or unmounted:
+</p>
+
+<div class="org-src-container">
+<pre class="src src-tsx"><code><span style="color: #a020f0;">import</span> { <span style="color: #a0522d;">useCallback</span>, <span style="color: #a0522d;">useRef</span> } <span style="color: #a020f0;">from</span> <span style="color: #8b2252;">"preact/hooks"</span>;
+
+<span style="color: #a020f0;">export</span> <span style="color: #a020f0;">function</span> <span style="color: #0000ff;">MeasuredElement</span>() {
+    <span style="color: #a020f0;">const</span> <span style="color: #a0522d;">resizeObserverRef</span> = <span style="color: #0000ff;">useRef</span>&lt;<span style="color: #228b22;">ResizeObserver</span> | <span style="color: #008b8b;">null</span>&gt;(<span style="color: #008b8b;">null</span>);
+
+    <span style="color: #a020f0;">const</span> <span style="color: #a0522d;">measureCallback</span> = <span style="color: #0000ff;">useCallback</span>((<span style="color: #a0522d;">node</span>: <span style="color: #228b22;">HTMLDivElement</span> | <span style="color: #008b8b;">null</span>) =&gt; {
+        <span style="color: #a020f0;">if</span> (node !== <span style="color: #008b8b;">null</span>) {
+            <span style="color: #b22222;">// Element mounted</span>
+            <span style="color: #a0522d;">resizeObserverRef</span>.current = <span style="color: #a020f0;">new</span> <span style="color: #228b22;">ResizeObserver</span>((<span style="color: #a0522d;">entries</span>) =&gt; {
+                <span style="color: #a020f0;">for</span> (<span style="color: #a020f0;">const</span> <span style="color: #a0522d;">entry</span> <span style="color: #a020f0;">of</span> entries) {
+                    <span style="color: #008b8b;">console</span>.<span style="color: #0000ff;">log</span>(<span style="color: #8b2252;">"Element dimensions:"</span>, <span style="color: #a0522d;">entry</span>.contentRect);
+                }
+            });
+            <span style="color: #a0522d;">resizeObserverRef</span>.current.<span style="color: #0000ff;">observe</span>(<span style="color: #a0522d;">node</span>);
+        } <span style="color: #a020f0;">else</span> {
+            <span style="color: #b22222;">// Element unmounted</span>
+            <span style="color: #a0522d;">resizeObserverRef</span>.current?.<span style="color: #0000ff;">disconnect</span>();
+            <span style="color: #a0522d;">resizeObserverRef</span>.current = <span style="color: #008b8b;">null</span>;
+        }
+    }, []);
+
+    <span style="color: #a020f0;">return</span> &lt;<span style="color: #0000ff;">div</span> <span style="color: #008b8b;">ref</span>={<span style="color: #a0522d;">measureCallback</span>} <span style="color: #008b8b;">class</span>=<span style="color: #8b2252;">"measured-box"</span>&gt;Observed Content&lt;/<span style="color: #0000ff;">div</span>&gt;;
+}
+</code></pre>
+</div>
+</div>
+</div>
+<div id="outline-container-org48c3153" class="outline-4">
+<h4 id="org48c3153"><span class="section-number-4">4.3.3.</span> 3. Ref Forwarding</h4>
+<div class="outline-text-4" id="text-4-3-3">
+<p>
+In Preact, <code>ref</code> can be passed as a normal prop to function components, or wrapped with <code>forwardRef</code> from <code>preact/compat</code> for universal library interop:
+</p>
+
+<div class="org-src-container">
+<pre class="src src-tsx"><code><span style="color: #a020f0;">import</span> <span style="color: #a020f0;">type</span> { <span style="color: #a0522d;">JSX</span>, <span style="color: #a0522d;">Ref</span> } <span style="color: #a020f0;">from</span> <span style="color: #8b2252;">"preact"</span>;
+
+<span style="color: #a020f0;">interface</span> <span style="color: #228b22;">CustomButtonProps</span> <span style="color: #a020f0;">extends</span> <span style="color: #008b8b;">JSX</span>.<span style="color: #228b22;">HTMLAttributes</span>&lt;<span style="color: #228b22;">HTMLButtonElement</span>&gt; {
+    <span style="color: #a0522d;">innerRef</span>?: <span style="color: #228b22;">Ref</span>&lt;<span style="color: #228b22;">HTMLButtonElement</span>&gt;;
+    <span style="color: #a0522d;">variant</span>?: <span style="color: #8b2252;">"primary"</span> | <span style="color: #8b2252;">"secondary"</span>;
+}
+
+<span style="color: #a020f0;">export</span> <span style="color: #a020f0;">function</span> <span style="color: #0000ff;">CustomButton</span>({ <span style="color: #a0522d;">innerRef</span>, <span style="color: #a0522d;">variant</span> = <span style="color: #8b2252;">"primary"</span>, <span style="color: #a0522d;">children</span>, ...props }: <span style="color: #228b22;">CustomButtonProps</span>) {
+    <span style="color: #a020f0;">return</span> (
+        &lt;<span style="color: #0000ff;">button</span> <span style="color: #008b8b;">ref</span>={<span style="color: #a0522d;">innerRef</span>} <span style="color: #008b8b;">class</span>={<span style="color: #8b2252;">`btn btn-</span>${<span style="color: #a0522d;">variant</span>}<span style="color: #8b2252;">`</span>} {...props}&gt;
+            {<span style="color: #a0522d;">children</span>}
+        &lt;/<span style="color: #0000ff;">button</span>&gt;
+    );
+}
+</code></pre>
+</div>
+</div>
+</div>
+</div>
+</div>
+<div id="outline-container-orgba311dc" class="outline-2">
+<h2 id="orgba311dc"><span class="section-number-2">5.</span> Preact Signals (<code>@preact/signals</code>) &amp; Fine-Grained Reactivity</h2>
+<div class="outline-text-2" id="text-5">
+<p>
+Preact Signals represent the most significant architectural evolution in modern frontend performance. Built upon `@preact/signals-core`, signals decouple state tracking from component render cycles.
+</p>
+</div>
+<div id="outline-container-org645eaf5" class="outline-3">
+<h3 id="org645eaf5"><span class="section-number-3">5.1.</span> Core Reactive Primitives</h3>
+<div class="outline-text-3" id="text-5-1">
+<div class="org-src-container">
+<pre class="src src-typescript"><code><span style="color: #a020f0;">import</span> { <span style="color: #a0522d;">signal</span>, <span style="color: #a0522d;">computed</span>, <span style="color: #a0522d;">effect</span>, <span style="color: #a0522d;">batch</span>, <span style="color: #a0522d;">untracked</span> } <span style="color: #a020f0;">from</span> <span style="color: #8b2252;">"@preact/signals"</span>;
+
+<span style="color: #b22222;">// 1. Reactive State Primitive</span>
+<span style="color: #a020f0;">export</span> <span style="color: #a020f0;">const</span> <span style="color: #a0522d;">counter</span> = <span style="color: #0000ff;">signal</span>&lt;<span style="color: #228b22;">number</span>&gt;(0);
+
+<span style="color: #b22222;">// 2. Memoized Derived Computation</span>
+<span style="color: #a020f0;">export</span> <span style="color: #a020f0;">const</span> <span style="color: #a0522d;">isEven</span> = <span style="color: #0000ff;">computed</span>&lt;<span style="color: #228b22;">boolean</span>&gt;(() =&gt; <span style="color: #a0522d;">counter</span>.value % 2 === 0);
+
+<span style="color: #b22222;">// 3. Side Effect with Automatic Dependency Tracking</span>
+<span style="color: #a020f0;">const</span> <span style="color: #a0522d;">disposeEffect</span> = <span style="color: #0000ff;">effect</span>(() =&gt; {
+    <span style="color: #008b8b;">console</span>.<span style="color: #0000ff;">log</span>(<span style="color: #8b2252;">`Current Count: </span>${<span style="color: #a0522d;">counter</span>.value}<span style="color: #8b2252;">, IsEven: </span>${<span style="color: #a0522d;">isEven</span>.value}<span style="color: #8b2252;">`</span>);
+});
+
+<span style="color: #b22222;">// 4. Atomic Multi-State Mutation</span>
+<span style="color: #a020f0;">export</span> <span style="color: #a020f0;">function</span> <span style="color: #0000ff;">resetAndIncrement</span>(<span style="color: #a0522d;">val</span>: <span style="color: #228b22;">number</span>) {
+    <span style="color: #0000ff;">batch</span>(() =&gt; {
+        <span style="color: #a0522d;">counter</span>.value = 0;
+        <span style="color: #a0522d;">counter</span>.value += val;
+    }); <span style="color: #b22222;">// Listeners and subscribers are notified exactly once!</span>
+}
+</code></pre>
+</div>
+</div>
+</div>
+<div id="outline-container-orgaa2d12f" class="outline-3">
+<h3 id="orgaa2d12f"><span class="section-number-3">5.2.</span> The Direct DOM Bypass Superpower (\(\mathcal{O}(1)\) Updates)</h3>
+<div class="outline-text-3" id="text-5-2">
+<p>
+The defining performance breakthrough of Preact Signals is the <b><b>Direct DOM Bypass</b></b>.
+</p>
+
+<p>
+When a Signal is passed directly into JSX text content or standard HTML attributes:
+</p>
+
+<div class="org-src-container">
+<pre class="src src-tsx"><code><span style="color: #a020f0;">import</span> { <span style="color: #a0522d;">signal</span> } <span style="color: #a020f0;">from</span> <span style="color: #8b2252;">"@preact/signals"</span>;
+
+<span style="color: #a020f0;">const</span> <span style="color: #a0522d;">clickCount</span> = <span style="color: #0000ff;">signal</span>(0);
+
+<span style="color: #b22222;">// COMPONENT DOES NOT RE-RENDER WHEN clickCount CHANGES!</span>
+<span style="color: #a020f0;">export</span> <span style="color: #a020f0;">function</span> <span style="color: #0000ff;">HighFrequencyCounter</span>() {
+    <span style="color: #008b8b;">console</span>.<span style="color: #0000ff;">log</span>(<span style="color: #8b2252;">"[HighFrequencyCounter Rendered]"</span>); <span style="color: #b22222;">// Runs ONCE on mount</span>
+
+    <span style="color: #a020f0;">return</span> (
+        &lt;<span style="color: #0000ff;">div</span> <span style="color: #008b8b;">class</span>=<span style="color: #8b2252;">"counter-card"</span>&gt;
+            {<span style="color: #b22222;">/* Passing the Signal directly binds to the underlying Text DOM Node */</span>}
+            &lt;<span style="color: #0000ff;">h3</span>&gt;Clicks: {<span style="color: #a0522d;">clickCount</span>}&lt;/<span style="color: #0000ff;">h3</span>&gt;
+            &lt;<span style="color: #0000ff;">button</span> <span style="color: #008b8b;">onClick</span>={() =&gt; <span style="color: #a0522d;">clickCount</span>.value++}&gt;Increment&lt;/<span style="color: #0000ff;">button</span>&gt;
+        &lt;/<span style="color: #0000ff;">div</span>&gt;
+    );
+}
+</code></pre>
+</div>
+</div>
+<div id="outline-container-org94a7d01" class="outline-4">
+<h4 id="org94a7d01"><span class="section-number-4">5.2.1.</span> Under the Hood: How Direct DOM Bypass Works</h4>
+<div class="outline-text-4" id="text-5-2-1">
+<ol class="org-ol">
+<li>During initial render, Preact encounters a <code>Signal</code> instance as a child node.</li>
+<li>Preact creates a native <code>Text</code> node in the DOM (<code>document.createTextNode(String(signal.value))</code>).</li>
+<li><p>
+Preact attaches a fine-grained subscriber directly to that <code>Text</code> node:
+</p>
+<div class="org-src-container">
+<pre class="src src-javascript"><code>signal.<span style="color: #0000ff;">subscribe</span>(val =&gt; { <span style="color: #a0522d;">textNode</span>.<span style="color: #a0522d;">data</span> = val; });
+</code></pre>
+</div></li>
+<li>When <code>clickCount.value++</code> is executed:
+<ul class="org-ul">
+<li>The <code>HighFrequencyCounter</code> function is <b><b>NOT called</b></b>.</li>
+<li>No Virtual DOM trees are created or compared.</li>
+<li>The browser directly mutates <code>textNode.data</code> in \(\mathcal{O}(1)\) time with 0ms reconciler overhead.</li>
+</ul></li>
+</ol>
+</div>
+</div>
+<div id="outline-container-org7f602ef" class="outline-4">
+<h4 id="org7f602ef"><span class="section-number-4">5.2.2.</span> Comparison: Direct Signal vs. Signal Value Access</h4>
+<div class="outline-text-4" id="text-5-2-2">
+<div class="org-src-container">
+<pre class="src src-tsx"><code><span style="color: #b22222;">// Case A: Component Re-Renders (Accessed .value in render body)</span>
+<span style="color: #a020f0;">function</span> <span style="color: #0000ff;">ComponentA</span>() {
+    <span style="color: #a020f0;">return</span> &lt;<span style="color: #0000ff;">span</span>&gt;{<span style="color: #a0522d;">counter</span>.value}&lt;/<span style="color: #0000ff;">span</span>&gt;; <span style="color: #b22222;">// Subscribes ComponentA to counter updates</span>
+}
+
+<span style="color: #b22222;">// Case B: Direct DOM Bypass (Zero Component Re-Renders)</span>
+<span style="color: #a020f0;">function</span> <span style="color: #0000ff;">ComponentB</span>() {
+    <span style="color: #a020f0;">return</span> &lt;<span style="color: #0000ff;">span</span>&gt;{<span style="color: #a0522d;">counter</span>}&lt;/<span style="color: #0000ff;">span</span>&gt;; <span style="color: #b22222;">// Subscribes Text Node directly to counter updates</span>
+}
+</code></pre>
+</div>
+</div>
+</div>
+</div>
+<div id="outline-container-orgbc854fe" class="outline-3">
+<h3 id="orgbc854fe"><span class="section-number-3">5.3.</span> Component-Scoped Signals: <code>useSignal</code> and <code>useComputed</code></h3>
+<div class="outline-text-3" id="text-5-3">
+<p>
+When state must be scoped to an individual component instance and cleaned up upon unmounting:
+</p>
+
+<div class="org-src-container">
+<pre class="src src-tsx"><code><span style="color: #a020f0;">import</span> { <span style="color: #a0522d;">useSignal</span>, <span style="color: #a0522d;">useComputed</span> } <span style="color: #a020f0;">from</span> <span style="color: #8b2252;">"@preact/signals"</span>;
+
+<span style="color: #a020f0;">export</span> <span style="color: #a020f0;">function</span> <span style="color: #0000ff;">SearchFilter</span>({ <span style="color: #a0522d;">items</span> }: { <span style="color: #a0522d;">items</span>: <span style="color: #228b22;">string</span>[] }) {
+    <span style="color: #a020f0;">const</span> <span style="color: #a0522d;">query</span> = <span style="color: #0000ff;">useSignal</span>(<span style="color: #8b2252;">""</span>);
+
+    <span style="color: #a020f0;">const</span> <span style="color: #a0522d;">filtered</span> = <span style="color: #0000ff;">useComputed</span>(() =&gt; {
+        <span style="color: #a020f0;">const</span> <span style="color: #a0522d;">q</span> = <span style="color: #a0522d;">query</span>.value.<span style="color: #0000ff;">trim</span>().<span style="color: #0000ff;">toLowerCase</span>();
+        <span style="color: #a020f0;">if</span> (<span style="color: #a020f0;">!</span>q) <span style="color: #a020f0;">return</span> items;
+        <span style="color: #a020f0;">return</span> <span style="color: #a0522d;">items</span>.<span style="color: #0000ff;">filter</span>(<span style="color: #a0522d;">item</span> =&gt; <span style="color: #a0522d;">item</span>.<span style="color: #0000ff;">toLowerCase</span>().<span style="color: #0000ff;">includes</span>(<span style="color: #a0522d;">q</span>));
+    });
+
+    <span style="color: #a020f0;">return</span> (
+        &lt;<span style="color: #0000ff;">div</span> <span style="color: #008b8b;">class</span>=<span style="color: #8b2252;">"search-container"</span>&gt;
+            &lt;<span style="color: #0000ff;">input</span>
+                <span style="color: #008b8b;">value</span>={<span style="color: #a0522d;">query</span>.value}
+                <span style="color: #008b8b;">onInput</span>={(<span style="color: #a0522d;">e</span>) =&gt; (<span style="color: #a0522d;">query</span>.value = <span style="color: #a0522d;">e</span>.currentTarget.value)}
+                <span style="color: #008b8b;">placeholder</span>=<span style="color: #8b2252;">"Filter items..."</span>
+            /&gt;
+            &lt;<span style="color: #0000ff;">ul</span> <span style="color: #008b8b;">class</span>=<span style="color: #8b2252;">"results-list"</span>&gt;
+                {<span style="color: #a0522d;">filtered</span>.value.<span style="color: #0000ff;">map</span>(<span style="color: #a0522d;">item</span> =&gt; (
+                    &lt;<span style="color: #0000ff;">li</span> <span style="color: #008b8b;">key</span>={<span style="color: #a0522d;">item</span>}&gt;{<span style="color: #a0522d;">item</span>}&lt;/<span style="color: #0000ff;">li</span>&gt;
+                ))}
+            &lt;/<span style="color: #0000ff;">ul</span>&gt;
+        &lt;/<span style="color: #0000ff;">div</span>&gt;
+    );
+}
+</code></pre>
+</div>
+</div>
+</div>
+<div id="outline-container-org7ab6ee8" class="outline-3">
+<h3 id="org7ab6ee8"><span class="section-number-3">5.4.</span> Module-Level Global Signals (Eliminating Context Providers)</h3>
+<div class="outline-text-3" id="text-5-4">
+<p>
+Signals completely eliminate "Context Hell" and top-level provider re-render cascades in browser extensions and web apps:
+</p>
+
+<div class="org-src-container">
+<pre class="src src-typescript"><code><span style="color: #b22222;">// src/store/extension-store.ts</span>
+<span style="color: #a020f0;">import</span> { <span style="color: #a0522d;">signal</span> } <span style="color: #a020f0;">from</span> <span style="color: #8b2252;">"@preact/signals"</span>;
+
+<span style="color: #a020f0;">export</span> <span style="color: #a020f0;">interface</span> <span style="color: #228b22;">ExtensionSettings</span> {
+    <span style="color: #a0522d;">fullWidth</span>: <span style="color: #228b22;">boolean</span>;
+    <span style="color: #a0522d;">widthPercent</span>: <span style="color: #228b22;">number</span>;
+    <span style="color: #a0522d;">autoRenderOrg</span>: <span style="color: #228b22;">boolean</span>;
+    <span style="color: #a0522d;">hudCollapsed</span>: <span style="color: #228b22;">boolean</span>;
+}
+
+<span style="color: #a020f0;">export</span> <span style="color: #a020f0;">const</span> <span style="color: #a0522d;">extensionSettings</span> = <span style="color: #0000ff;">signal</span>&lt;<span style="color: #228b22;">ExtensionSettings</span>&gt;({
+    <span style="color: #a0522d;">fullWidth</span>: <span style="color: #008b8b;">true</span>,
+    <span style="color: #a0522d;">widthPercent</span>: 94,
+    <span style="color: #a0522d;">autoRenderOrg</span>: <span style="color: #008b8b;">true</span>,
+    <span style="color: #a0522d;">hudCollapsed</span>: <span style="color: #008b8b;">false</span>,
+});
+
+<span style="color: #a020f0;">export</span> <span style="color: #a020f0;">const</span> <span style="color: #0000ff;">toggleFullWidth</span> = () =&gt; {
+    <span style="color: #a0522d;">extensionSettings</span>.value = {
+        ...<span style="color: #a0522d;">extensionSettings</span>.value,
+        <span style="color: #a0522d;">fullWidth</span>: <span style="color: #a020f0;">!</span><span style="color: #a0522d;">extensionSettings</span>.value.fullWidth,
+    };
+};
+</code></pre>
+</div>
+
+<p>
+Any component across the entire codebase can import <code>extensionSettings</code> directly without wrapping the DOM tree in a <code>&lt;SettingsProvider&gt;</code>.
+</p>
+</div>
+</div>
+</div>
+<div id="outline-container-org6fb0c35" class="outline-2">
+<h2 id="org6fb0c35"><span class="section-number-2">6.</span> Browser Extension &amp; DOM Injection Patterns</h2>
+<div class="outline-text-2" id="text-6">
+<p>
+Browser extensions injecting UI into host web applications (e.g. Google Gemini, Claude, GitHub) face severe hostile-environment constraints:
+</p>
+<ul class="org-ul">
+<li><b><b>Host CSS Bleed:</b></b> Global stylesheets, CSS resets, or utility classes from the host page corrupt extension widgets.</li>
+<li><b><b>Dynamic DOM Replacement:</b></b> Host SPAs re-render entire message trees during AI streaming or client-side navigation.</li>
+<li><b><b>Event Interception Traps:</b></b> Host keyboard listeners intercept shortcut keystrokes before extension inputs receive them.</li>
+</ul>
+</div>
+<div id="outline-container-org2491d4c" class="outline-3">
+<h3 id="org2491d4c"><span class="section-number-3">6.1.</span> Pattern 1: Shadow DOM Encapsulation (Recommended for Floating HUD &amp; Overlays)</h3>
+<div class="outline-text-3" id="text-6-1">
+<p>
+Shadow DOM provides impenetrable boundary isolation for styles and DOM trees.
+</p>
+
+<div class="org-src-container">
+<pre class="src src-tsx"><code><span style="color: #a020f0;">import</span> { <span style="color: #a0522d;">render</span> } <span style="color: #a020f0;">from</span> <span style="color: #8b2252;">"preact"</span>;
+<span style="color: #a020f0;">import</span> <span style="color: #a020f0;">type</span> { <span style="color: #a0522d;">JSX</span> } <span style="color: #a020f0;">from</span> <span style="color: #8b2252;">"preact"</span>;
+<span style="color: #a020f0;">import</span> { <span style="color: #a0522d;">extensionSettings</span>, <span style="color: #a0522d;">toggleFullWidth</span> } <span style="color: #a020f0;">from</span> <span style="color: #8b2252;">"../store/extension-store.ts"</span>;
+
+<span style="color: #a020f0;">function</span> <span style="color: #0000ff;">FloatingHud</span>(): <span style="color: #008b8b;">JSX</span>.<span style="color: #228b22;">Element</span> {
+    <span style="color: #a020f0;">const</span> <span style="color: #a0522d;">s</span> = <span style="color: #a0522d;">extensionSettings</span>.value;
+
+    <span style="color: #a020f0;">return</span> (
+        &lt;<span style="color: #0000ff;">div</span> <span style="color: #008b8b;">class</span>={<span style="color: #8b2252;">`hud-container </span>${<span style="color: #a0522d;">s</span>.hudCollapsed ? <span style="color: #8b2252;">"collapsed"</span> : <span style="color: #8b2252;">"expanded"</span>}<span style="color: #8b2252;">`</span>}&gt;
+            &lt;<span style="color: #0000ff;">header</span> <span style="color: #008b8b;">class</span>=<span style="color: #8b2252;">"hud-header"</span>&gt;
+                &lt;<span style="color: #0000ff;">span</span> <span style="color: #008b8b;">class</span>=<span style="color: #8b2252;">"hud-title"</span>&gt;&#9889; Gemini OrgUI&lt;/<span style="color: #0000ff;">span</span>&gt;
+                &lt;<span style="color: #0000ff;">button</span>
+                    <span style="color: #008b8b;">class</span>=<span style="color: #8b2252;">"hud-toggle"</span>
+                    <span style="color: #008b8b;">onClick</span>={() =&gt; {
+                        <span style="color: #a0522d;">extensionSettings</span>.value = {
+                            ...s,
+                            <span style="color: #a0522d;">hudCollapsed</span>: <span style="color: #a020f0;">!</span><span style="color: #a0522d;">s</span>.hudCollapsed,
+                        };
+                    }}
+                &gt;
+                    {<span style="color: #a0522d;">s</span>.hudCollapsed ? <span style="color: #8b2252;">"+"</span> : <span style="color: #8b2252;">"&#8722;"</span>}
+                &lt;/<span style="color: #0000ff;">button</span>&gt;
+            &lt;/<span style="color: #0000ff;">header</span>&gt;
+            {<span style="color: #a020f0;">!</span><span style="color: #a0522d;">s</span>.hudCollapsed &amp;&amp; (
+                &lt;<span style="color: #0000ff;">div</span> <span style="color: #008b8b;">class</span>=<span style="color: #8b2252;">"hud-body"</span>&gt;
+                    &lt;<span style="color: #0000ff;">button</span>
+                        <span style="color: #008b8b;">class</span>={<span style="color: #8b2252;">`hud-btn </span>${<span style="color: #a0522d;">s</span>.fullWidth ? <span style="color: #8b2252;">"active"</span> : <span style="color: #8b2252;">""</span>}<span style="color: #8b2252;">`</span>}
+                        <span style="color: #008b8b;">onClick</span>={<span style="color: #a0522d;">toggleFullWidth</span>}
+                    &gt;
+                        Width: {<span style="color: #a0522d;">s</span>.fullWidth ? <span style="color: #8b2252;">`</span>${<span style="color: #a0522d;">s</span>.widthPercent}<span style="color: #8b2252;">%`</span> : <span style="color: #8b2252;">"Off"</span>}
+                    &lt;/<span style="color: #0000ff;">button</span>&gt;
+                &lt;/<span style="color: #0000ff;">div</span>&gt;
+            )}
+        &lt;/<span style="color: #0000ff;">div</span>&gt;
+    );
+}
+
+<span style="color: #b22222;">// Injected Stylesheet string scoped 100% inside the Shadow Root</span>
+<span style="color: #a020f0;">const</span> <span style="color: #a0522d;">SHADOW_CSS</span> = <span style="color: #8b2252;">`
+:host {
+    all: initial;
+    position: fixed;
+    bottom: 24px;
+    right: 24px;
+    z-index: 2147483647;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+}
+.hud-container {
+    background: #1e1e2e;
+    color: #cdd6f4;
+    border: 1px solid #45475a;
+    border-radius: 8px;
+    box-shadow: 0 8px 24px rgba(0,0,0,0.4);
+    overflow: hidden;
+    font-size: 13px;
+}
+.hud-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 8px 12px;
+    background: #181825;
+    cursor: pointer;
+}
+.hud-btn {
+    background: #313244;
+    color: #cdd6f4;
+    border: 1px solid #45475a;
+    padding: 6px 12px;
+    border-radius: 4px;
+    cursor: pointer;
+}
+.hud-btn.active {
+    background: #89b4fa;
+    color: #11111b;
+}
+`</span>;
+
+<span style="color: #a020f0;">export</span> <span style="color: #a020f0;">class</span> <span style="color: #228b22;">ShadowHudMount</span> {
+    <span style="color: #a020f0;">private</span> <span style="color: #a0522d;">hostEl</span>: <span style="color: #228b22;">HTMLDivElement</span> | <span style="color: #008b8b;">null</span> = <span style="color: #008b8b;">null</span>;
+    <span style="color: #a020f0;">private</span> <span style="color: #a0522d;">shadowRoot</span>: <span style="color: #228b22;">ShadowRoot</span> | <span style="color: #008b8b;">null</span> = <span style="color: #008b8b;">null</span>;
+
+    <span style="color: #0000ff;">mount</span>(): <span style="color: #a020f0;">void</span> {
+        <span style="color: #a020f0;">if</span> (<span style="color: #a020f0;">typeof</span> <span style="color: #008b8b;">document</span> === <span style="color: #8b2252;">"undefined"</span>) <span style="color: #a020f0;">return</span>;
+        <span style="color: #a020f0;">if</span> (<span style="color: #008b8b;">document</span>.<span style="color: #0000ff;">getElementById</span>(<span style="color: #8b2252;">"gemini-org-hud-host"</span>)) <span style="color: #a020f0;">return</span>;
+
+        <span style="color: #a020f0;">this</span>.hostEl = <span style="color: #008b8b;">document</span>.<span style="color: #0000ff;">createElement</span>(<span style="color: #8b2252;">"div"</span>);
+        <span style="color: #a020f0;">this</span>.hostEl.id = <span style="color: #8b2252;">"gemini-org-hud-host"</span>;
+
+        <span style="color: #b22222;">// Attach open Shadow Root</span>
+        <span style="color: #a020f0;">this</span>.shadowRoot = <span style="color: #a020f0;">this</span>.hostEl.<span style="color: #0000ff;">attachShadow</span>({ <span style="color: #a0522d;">mode</span>: <span style="color: #8b2252;">"open"</span> });
+
+        <span style="color: #b22222;">// Inject Stylesheet</span>
+        <span style="color: #a020f0;">const</span> <span style="color: #a0522d;">style</span> = <span style="color: #008b8b;">document</span>.<span style="color: #0000ff;">createElement</span>(<span style="color: #8b2252;">"style"</span>);
+        <span style="color: #a0522d;">style</span>.textContent = <span style="color: #008b8b;">SHADOW_CSS</span>;
+        <span style="color: #a020f0;">this</span>.shadowRoot.<span style="color: #0000ff;">appendChild</span>(<span style="color: #a0522d;">style</span>);
+
+        <span style="color: #b22222;">// Render Preact application directly into Shadow Root</span>
+        <span style="color: #a020f0;">const</span> <span style="color: #a0522d;">container</span> = <span style="color: #008b8b;">document</span>.<span style="color: #0000ff;">createElement</span>(<span style="color: #8b2252;">"div"</span>);
+        <span style="color: #a020f0;">this</span>.shadowRoot.<span style="color: #0000ff;">appendChild</span>(<span style="color: #a0522d;">container</span>);
+        <span style="color: #0000ff;">render</span>(&lt;<span style="color: #0000ff;">FloatingHud</span> /&gt;, <span style="color: #a0522d;">container</span>);
+
+        <span style="color: #008b8b;">document</span>.body.<span style="color: #0000ff;">appendChild</span>(<span style="color: #a020f0;">this</span>.hostEl);
+    }
+
+    <span style="color: #0000ff;">unmount</span>(): <span style="color: #a020f0;">void</span> {
+        <span style="color: #a020f0;">if</span> (<span style="color: #a020f0;">this</span>.shadowRoot &amp;&amp; <span style="color: #a020f0;">this</span>.hostEl) {
+            <span style="color: #a020f0;">const</span> <span style="color: #a0522d;">container</span> = <span style="color: #a020f0;">this</span>.shadowRoot.<span style="color: #0000ff;">querySelector</span>(<span style="color: #8b2252;">"div"</span>);
+            <span style="color: #a020f0;">if</span> (container) {
+                <span style="color: #0000ff;">render</span>(<span style="color: #008b8b;">null</span>, <span style="color: #a0522d;">container</span>); <span style="color: #b22222;">// Preact lifecycle unmount</span>
+            }
+            <span style="color: #a020f0;">this</span>.hostEl.<span style="color: #0000ff;">remove</span>();
+            <span style="color: #a020f0;">this</span>.hostEl = <span style="color: #008b8b;">null</span>;
+            <span style="color: #a020f0;">this</span>.shadowRoot = <span style="color: #008b8b;">null</span>;
+        }
+    }
+}
+</code></pre>
+</div>
+</div>
+</div>
+<div id="outline-container-org6c3feed" class="outline-3">
+<h3 id="org6c3feed"><span class="section-number-3">6.2.</span> Pattern 2: Contextual In-Situ Mounting (Embedding inside Host Message Blocks)</h3>
+<div class="outline-text-3" id="text-6-2">
+<p>
+When mounting interactive toolbars directly above code blocks or inside AI chat turns, we utilize lightweight micro-mounts managed by a disconnected node tracker:
+</p>
+
+<div class="org-src-container">
+<pre class="src src-tsx"><code><span style="color: #a020f0;">import</span> { <span style="color: #a0522d;">render</span> } <span style="color: #a020f0;">from</span> <span style="color: #8b2252;">"preact"</span>;
+<span style="color: #a020f0;">import</span> <span style="color: #a020f0;">type</span> { <span style="color: #a0522d;">JSX</span> } <span style="color: #a020f0;">from</span> <span style="color: #8b2252;">"preact"</span>;
+
+<span style="color: #a020f0;">interface</span> <span style="color: #228b22;">BlockActionProps</span> {
+    <span style="color: #a0522d;">rawOrgText</span>: <span style="color: #228b22;">string</span>;
+    <span style="color: #a0522d;">onToggleFold</span>: () =&gt; <span style="color: #a020f0;">void</span>;
+}
+
+<span style="color: #a020f0;">function</span> <span style="color: #0000ff;">BlockActionToolbar</span>({ <span style="color: #a0522d;">rawOrgText</span>, <span style="color: #a0522d;">onToggleFold</span> }: <span style="color: #228b22;">BlockActionProps</span>): <span style="color: #008b8b;">JSX</span>.<span style="color: #228b22;">Element</span> {
+    <span style="color: #a020f0;">const</span> <span style="color: #0000ff;">handleCopy</span> = <span style="color: #a020f0;">async</span> (<span style="color: #a0522d;">e</span>: <span style="color: #008b8b;">JSX</span>.<span style="color: #228b22;">TargetedMouseEvent</span>&lt;<span style="color: #228b22;">HTMLButtonElement</span>&gt;) =&gt; {
+        <span style="color: #a0522d;">e</span>.<span style="color: #0000ff;">stopPropagation</span>();
+        <span style="color: #a020f0;">await</span> <span style="color: #a0522d;">navigator</span>.clipboard.<span style="color: #0000ff;">writeText</span>(<span style="color: #a0522d;">rawOrgText</span>);
+    };
+
+    <span style="color: #a020f0;">return</span> (
+        &lt;<span style="color: #0000ff;">div</span> <span style="color: #008b8b;">class</span>=<span style="color: #8b2252;">"org-block-toolbar"</span> <span style="color: #008b8b;">onClick</span>={(<span style="color: #a0522d;">e</span>) =&gt; <span style="color: #a0522d;">e</span>.<span style="color: #0000ff;">stopPropagation</span>()}&gt;
+            &lt;<span style="color: #0000ff;">button</span> <span style="color: #008b8b;">class</span>=<span style="color: #8b2252;">"toolbar-btn"</span> <span style="color: #008b8b;">onClick</span>={<span style="color: #a0522d;">onToggleFold</span>}&gt;Toggle Fold&lt;/<span style="color: #0000ff;">button</span>&gt;
+            &lt;<span style="color: #0000ff;">button</span> <span style="color: #008b8b;">class</span>=<span style="color: #8b2252;">"toolbar-btn"</span> <span style="color: #008b8b;">onClick</span>={<span style="color: #a0522d;">handleCopy</span>}&gt;Copy Org Source&lt;/<span style="color: #0000ff;">button</span>&gt;
+        &lt;/<span style="color: #0000ff;">div</span>&gt;
+    );
+}
+
+<span style="color: #a020f0;">export</span> <span style="color: #a020f0;">function</span> <span style="color: #0000ff;">mountBlockToolbar</span>(<span style="color: #a0522d;">targetContainer</span>: <span style="color: #228b22;">HTMLElement</span>, <span style="color: #a0522d;">rawOrgText</span>: <span style="color: #228b22;">string</span>, <span style="color: #a0522d;">onFold</span>: () =&gt; <span style="color: #a020f0;">void</span>) {
+    <span style="color: #a020f0;">const</span> <span style="color: #a0522d;">mountPoint</span> = <span style="color: #008b8b;">document</span>.<span style="color: #0000ff;">createElement</span>(<span style="color: #8b2252;">"div"</span>);
+    <span style="color: #a0522d;">mountPoint</span>.className = <span style="color: #8b2252;">"org-toolbar-mount"</span>;
+    <span style="color: #a0522d;">targetContainer</span>.<span style="color: #0000ff;">prepend</span>(<span style="color: #a0522d;">mountPoint</span>);
+
+    <span style="color: #0000ff;">render</span>(
+        &lt;<span style="color: #0000ff;">BlockActionToolbar</span> <span style="color: #008b8b;">rawOrgText</span>={<span style="color: #a0522d;">rawOrgText</span>} <span style="color: #008b8b;">onToggleFold</span>={<span style="color: #a0522d;">onFold</span>} /&gt;,
+        <span style="color: #a0522d;">mountPoint</span>
+    );
+
+    <span style="color: #a020f0;">return</span> () =&gt; {
+        <span style="color: #0000ff;">render</span>(<span style="color: #008b8b;">null</span>, <span style="color: #a0522d;">mountPoint</span>);
+        <span style="color: #a0522d;">mountPoint</span>.<span style="color: #0000ff;">remove</span>();
+    };
+}
+</code></pre>
+</div>
+</div>
+</div>
+<div id="outline-container-orge29c6dc" class="outline-3">
+<h3 id="orge29c6dc"><span class="section-number-3">6.3.</span> Keyboard Shortcut &amp; Event Isolation in Injected Contexts</h3>
+<div class="outline-text-3" id="text-6-3">
+<p>
+To prevent the host SPA (e.g. Gemini listening for hotkeys or Escape) from hijacking keypresses inside injected form fields:
+</p>
+
+<div class="org-src-container">
+<pre class="src src-tsx"><code><span style="color: #a020f0;">export</span> <span style="color: #a020f0;">function</span> <span style="color: #0000ff;">IsolatedSearchInput</span>() {
+    <span style="color: #a020f0;">const</span> <span style="color: #0000ff;">handleKeyDown</span> = (<span style="color: #a0522d;">e</span>: <span style="color: #008b8b;">JSX</span>.<span style="color: #228b22;">TargetedKeyboardEvent</span>&lt;<span style="color: #228b22;">HTMLInputElement</span>&gt;) =&gt; {
+        <span style="color: #b22222;">// Stop propagation so host application keyboard listeners are not triggered</span>
+        <span style="color: #a0522d;">e</span>.<span style="color: #0000ff;">stopPropagation</span>();
+
+        <span style="color: #a020f0;">if</span> (<span style="color: #a0522d;">e</span>.key === <span style="color: #8b2252;">"Escape"</span>) {
+            <span style="color: #a0522d;">e</span>.currentTarget.<span style="color: #0000ff;">blur</span>();
+        }
+    };
+
+    <span style="color: #a020f0;">return</span> (
+        &lt;<span style="color: #0000ff;">input</span>
+            <span style="color: #008b8b;">type</span>=<span style="color: #8b2252;">"text"</span>
+            <span style="color: #008b8b;">class</span>=<span style="color: #8b2252;">"search-box"</span>
+            <span style="color: #008b8b;">onKeyDown</span>={<span style="color: #a0522d;">handleKeyDown</span>}
+            <span style="color: #008b8b;">onKeyUp</span>={(<span style="color: #a0522d;">e</span>) =&gt; <span style="color: #a0522d;">e</span>.<span style="color: #0000ff;">stopPropagation</span>()}
+            <span style="color: #008b8b;">onKeyPress</span>={(<span style="color: #a0522d;">e</span>) =&gt; <span style="color: #a0522d;">e</span>.<span style="color: #0000ff;">stopPropagation</span>()}
+            <span style="color: #008b8b;">placeholder</span>=<span style="color: #8b2252;">"Type query..."</span>
+        /&gt;
+    );
+}
+</code></pre>
+</div>
+</div>
+</div>
+</div>
+<div id="outline-container-org8d0de7d" class="outline-2">
+<h2 id="org8d0de7d"><span class="section-number-2">7.</span> Memory Management &amp; Lifecycle Cleanup</h2>
+<div class="outline-text-2" id="text-7">
+<p>
+Memory management is paramount in browser extensions. If a host SPA runs continuously for days across thousands of message turns, uncleaned Preact roots will retain closures, DOM nodes, and signal listeners, causing massive heap bloat.
+</p>
+</div>
+<div id="outline-container-orge68b31d" class="outline-3">
+<h3 id="orge68b31d"><span class="section-number-3">7.1.</span> The Proper Preact Unmounting Protocol</h3>
+<div class="outline-text-3" id="text-7-1">
+<p>
+In Preact, tearing down a virtual tree is executed by rendering <code>null</code> into the container:
+</p>
+
+<div class="org-src-container">
+<pre class="src src-typescript"><code><span style="color: #a020f0;">import</span> { <span style="color: #a0522d;">render</span> } <span style="color: #a020f0;">from</span> <span style="color: #8b2252;">"preact"</span>;
+
+<span style="color: #b22222;">// Mounting</span>
+<span style="color: #a020f0;">const</span> <span style="color: #a0522d;">container</span> = <span style="color: #008b8b;">document</span>.<span style="color: #0000ff;">getElementById</span>(<span style="color: #8b2252;">"my-root"</span>)<span style="color: #a020f0;">!</span>;
+<span style="color: #0000ff;">render</span>(&lt;<span style="color: #228b22;">MyComponent</span> /&gt;, container);
+
+<span style="color: #b22222;">// Clean Unmounting: Triggers all unmount hooks, effect cleanups, and clears references</span>
+<span style="color: #0000ff;">render</span>(<span style="color: #008b8b;">null</span>, <span style="color: #a0522d;">container</span>);
+</code></pre>
+</div>
+</div>
+<div id="outline-container-org1ea7664" class="outline-4">
+<h4 id="org1ea7664"><span class="section-number-4">7.1.1.</span> What Happens Internally During <code>render(null, container)</code>:</h4>
+<div class="outline-text-4" id="text-7-1-1">
+<ol class="org-ol">
+<li>Preact traverses the active VNode tree stored on <code>container._children</code>.</li>
+<li>Invokes all <code>componentWillUnmount</code> lifecycle methods in reverse topological order.</li>
+<li>Executes all cleanup functions returned by <code>useEffect</code>, <code>useLayoutEffect</code>, and <code>useSignalEffect</code>.</li>
+<li>Removes event listener proxies attached to DOM elements.</li>
+<li>Detaches child DOM nodes from the container.</li>
+<li>Nulls out internal references (<code>container._children = null</code>), releasing VNode graphs for Garbage Collection.</li>
+</ol>
+</div>
+</div>
+</div>
+<div id="outline-container-org10bc13c" class="outline-3">
+<h3 id="org10bc13c"><span class="section-number-3">7.2.</span> MutationObserver Automatic Cleanup Manager</h3>
+<div class="outline-text-3" id="text-7-2">
+<p>
+To prevent zombie mounts when the host SPA removes parent DOM nodes without notifying the extension:
+</p>
+
+<div class="org-src-container">
+<pre class="src src-typescript"><code><span style="color: #a020f0;">import</span> { <span style="color: #a0522d;">render</span> } <span style="color: #a020f0;">from</span> <span style="color: #8b2252;">"preact"</span>;
+<span style="color: #a020f0;">import</span> <span style="color: #a020f0;">type</span> { <span style="color: #a0522d;">JSX</span> } <span style="color: #a020f0;">from</span> <span style="color: #8b2252;">"preact"</span>;
+
+<span style="color: #a020f0;">export</span> <span style="color: #a020f0;">class</span> <span style="color: #228b22;">DOMInjectionLifecycleManager</span> {
+    <span style="color: #a020f0;">private</span> <span style="color: #a0522d;">activeMounts</span> = <span style="color: #a020f0;">new</span> <span style="color: #228b22;">Map</span>&lt;<span style="color: #228b22;">HTMLElement</span>, () =&gt; <span style="color: #a020f0;">void</span>&gt;();
+    <span style="color: #a020f0;">private</span> <span style="color: #a0522d;">observer</span>: <span style="color: #228b22;">MutationObserver</span> | <span style="color: #008b8b;">null</span> = <span style="color: #008b8b;">null</span>;
+
+    <span style="color: #0000ff;">constructor</span>() {
+        <span style="color: #a020f0;">this</span>.<span style="color: #0000ff;">initObserver</span>();
+    }
+
+    <span style="color: #a020f0;">private</span> <span style="color: #0000ff;">initObserver</span>(): <span style="color: #a020f0;">void</span> {
+        <span style="color: #a020f0;">this</span>.observer = <span style="color: #a020f0;">new</span> <span style="color: #228b22;">MutationObserver</span>((<span style="color: #a0522d;">mutations</span>) =&gt; {
+            <span style="color: #a020f0;">for</span> (<span style="color: #a020f0;">const</span> <span style="color: #a0522d;">mutation</span> <span style="color: #a020f0;">of</span> mutations) {
+                <span style="color: #a020f0;">for</span> (<span style="color: #a020f0;">const</span> <span style="color: #a0522d;">removedNode</span> <span style="color: #a020f0;">of</span> <span style="color: #228b22;">Array</span>.<span style="color: #0000ff;">from</span>(<span style="color: #a0522d;">mutation</span>.removedNodes)) {
+                    <span style="color: #a020f0;">if</span> (removedNode <span style="color: #a020f0;">instanceof</span> HTMLElement) {
+                        <span style="color: #a020f0;">this</span>.<span style="color: #0000ff;">sweepDisconnectedRoots</span>(<span style="color: #a0522d;">removedNode</span>);
+                    }
+                }
+            }
+        });
+
+        <span style="color: #a020f0;">this</span>.observer.<span style="color: #0000ff;">observe</span>(<span style="color: #008b8b;">document</span>.body, {
+            <span style="color: #a0522d;">childList</span>: <span style="color: #008b8b;">true</span>,
+            <span style="color: #a0522d;">subtree</span>: <span style="color: #008b8b;">true</span>,
+        });
+    }
+
+    <span style="color: #0000ff;">mount</span>(<span style="color: #a0522d;">container</span>: <span style="color: #228b22;">HTMLElement</span>, <span style="color: #a0522d;">vnode</span>: <span style="color: #008b8b;">JSX</span>.<span style="color: #228b22;">Element</span>): () =&gt; <span style="color: #a020f0;">void</span> {
+        <span style="color: #0000ff;">render</span>(<span style="color: #a0522d;">vnode</span>, <span style="color: #a0522d;">container</span>);
+
+        <span style="color: #a020f0;">const</span> <span style="color: #0000ff;">unmountFn</span> = () =&gt; {
+            <span style="color: #0000ff;">render</span>(<span style="color: #008b8b;">null</span>, <span style="color: #a0522d;">container</span>);
+            <span style="color: #a020f0;">this</span>.activeMounts.<span style="color: #0000ff;">delete</span>(<span style="color: #a0522d;">container</span>);
+        };
+
+        <span style="color: #a020f0;">this</span>.activeMounts.<span style="color: #0000ff;">set</span>(<span style="color: #a0522d;">container</span>, <span style="color: #a0522d;">unmountFn</span>);
+        <span style="color: #a020f0;">return</span> unmountFn;
+    }
+
+    <span style="color: #a020f0;">private</span> <span style="color: #0000ff;">sweepDisconnectedRoots</span>(<span style="color: #a0522d;">detachedSubtree</span>: <span style="color: #228b22;">HTMLElement</span>): <span style="color: #a020f0;">void</span> {
+        <span style="color: #a020f0;">for</span> (<span style="color: #a020f0;">const</span> [<span style="color: #a0522d;">container</span>, <span style="color: #a0522d;">unmountFn</span>] <span style="color: #a020f0;">of</span> <span style="color: #a020f0;">this</span>.activeMounts.<span style="color: #0000ff;">entries</span>()) {
+            <span style="color: #a020f0;">if</span> (<span style="color: #a0522d;">detachedSubtree</span>.<span style="color: #0000ff;">contains</span>(<span style="color: #a0522d;">container</span>) || <span style="color: #a020f0;">!</span><span style="color: #008b8b;">document</span>.body.<span style="color: #0000ff;">contains</span>(<span style="color: #a0522d;">container</span>)) {
+                <span style="color: #008b8b;">console</span>.<span style="color: #0000ff;">debug</span>(<span style="color: #8b2252;">"[LifecycleManager] Sweeping detached Preact root:"</span>, <span style="color: #a0522d;">container</span>);
+                <span style="color: #0000ff;">unmountFn</span>();
+            }
+        }
+    }
+
+    <span style="color: #0000ff;">destroy</span>(): <span style="color: #a020f0;">void</span> {
+        <span style="color: #a020f0;">this</span>.observer?.<span style="color: #0000ff;">disconnect</span>();
+        <span style="color: #a020f0;">for</span> (<span style="color: #a020f0;">const</span> <span style="color: #a0522d;">unmountFn</span> <span style="color: #a020f0;">of</span> <span style="color: #a020f0;">this</span>.activeMounts.<span style="color: #0000ff;">values</span>()) {
+            <span style="color: #0000ff;">unmountFn</span>();
+        }
+        <span style="color: #a020f0;">this</span>.activeMounts.<span style="color: #0000ff;">clear</span>();
+    }
+}
+</code></pre>
+</div>
+</div>
+</div>
+</div>
+<div id="outline-container-org67c8e45" class="outline-2">
+<h2 id="org67c8e45"><span class="section-number-2">8.</span> TypeScript Standards &amp; Deep Type Safety</h2>
+<div class="outline-text-2" id="text-8">
+<p>
+Preact provides strict TypeScript typings that accurately represent DOM events and VNode structures.
+</p>
+</div>
+<div id="outline-container-org2d08129" class="outline-3">
+<h3 id="org2d08129"><span class="section-number-3">8.1.</span> Key Type Definitions</h3>
+<div class="outline-text-3" id="text-8-1">
+<table>
+<caption class="t-above"><span class="table-number">Table 3:</span> Essential Preact TypeScript Types</caption>
+
+<colgroup>
+<col  class="org-left">
+
+<col  class="org-left">
+
+<col  class="org-left">
+</colgroup>
+<thead>
+<tr>
+<th scope="col" class="org-left">Type</th>
+<th scope="col" class="org-left">Source</th>
+<th scope="col" class="org-left">Definition &amp; Usage</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td class="org-left"><code>JSX.Element</code></td>
+<td class="org-left"><code>preact</code></td>
+<td class="org-left">Return type of JSX expressions (~VNode&lt;any&gt; \</td>
+<td class="org-left">null~).</td>
+</tr>
+
+<tr>
+<td class="org-left"><code>ComponentChildren</code></td>
+<td class="org-left"><code>preact</code></td>
+<td class="org-left">Type for <code>props.children</code> (accepts <code>VNode</code>, string, number, array, boolean, null, undefined).</td>
+</tr>
+
+<tr>
+<td class="org-left"><code>VNode&lt;P&gt;</code></td>
+<td class="org-left"><code>preact</code></td>
+<td class="org-left">Virtual DOM node representation with props of type <code>P</code>.</td>
+</tr>
+
+<tr>
+<td class="org-left"><code>Ref&lt;T&gt;</code></td>
+<td class="org-left"><code>preact</code></td>
+<td class="org-left">Unified ref type (~RefObject&lt;T&gt; \</td>
+<td class="org-left">RefCallback&lt;T&gt; \</td>
+<td class="org-left">null~).</td>
+</tr>
+
+<tr>
+<td class="org-left"><code>JSX.TargetedEvent&lt;Target, Event&gt;</code></td>
+<td class="org-left"><code>preact</code></td>
+<td class="org-left">Strongly typed event where <code>currentTarget</code> is guaranteed to be <code>Target</code>.</td>
+</tr>
+
+<tr>
+<td class="org-left"><code>JSX.TargetedMouseEvent&lt;T&gt;</code></td>
+<td class="org-left"><code>preact</code></td>
+<td class="org-left">MouseEvent specialized with <code>currentTarget: T</code>.</td>
+</tr>
+
+<tr>
+<td class="org-left"><code>JSX.TargetedKeyboardEvent&lt;T&gt;</code></td>
+<td class="org-left"><code>preact</code></td>
+<td class="org-left">KeyboardEvent specialized with <code>currentTarget: T</code>.</td>
+</tr>
+
+<tr>
+<td class="org-left"><code>JSX.HTMLAttributes&lt;T&gt;</code></td>
+<td class="org-left"><code>preact</code></td>
+<td class="org-left">Standard HTML attributes supporting <code>class</code>, dataset, and typed handlers.</td>
+</tr>
+
+<tr>
+<td class="org-left"><code>JSX.CSSProperties</code></td>
+<td class="org-left"><code>preact</code></td>
+<td class="org-left">Strongly typed CSS style object supporting custom properties (<code>--*</code>).</td>
+</tr>
+</tbody>
+</table>
+</div>
+</div>
+<div id="outline-container-org1a10450" class="outline-3">
+<h3 id="org1a10450"><span class="section-number-3">8.2.</span> Strongly Typed Component Template</h3>
+<div class="outline-text-3" id="text-8-2">
+<div class="org-src-container">
+<pre class="src src-tsx"><code><span style="color: #a020f0;">import</span> <span style="color: #a020f0;">type</span> { <span style="color: #a0522d;">ComponentChildren</span>, <span style="color: #a0522d;">JSX</span> } <span style="color: #a020f0;">from</span> <span style="color: #8b2252;">"preact"</span>;
+
+<span style="color: #a020f0;">export</span> <span style="color: #a020f0;">interface</span> <span style="color: #228b22;">CardProps</span> <span style="color: #a020f0;">extends</span> <span style="color: #008b8b;">JSX</span>.<span style="color: #228b22;">HTMLAttributes</span>&lt;<span style="color: #228b22;">HTMLDivElement</span>&gt; {
+    <span style="color: #a0522d;">title</span>: <span style="color: #228b22;">string</span>;
+    <span style="color: #a0522d;">isActive</span>?: <span style="color: #228b22;">boolean</span>;
+    <span style="color: #a0522d;">headerIcon</span>?: <span style="color: #008b8b;">JSX</span>.<span style="color: #228b22;">Element</span>;
+    <span style="color: #a0522d;">children</span>?: <span style="color: #228b22;">ComponentChildren</span>;
+    <span style="color: #a0522d;">onHeaderClick</span>?: (<span style="color: #a0522d;">e</span>: <span style="color: #008b8b;">JSX</span>.<span style="color: #228b22;">TargetedMouseEvent</span>&lt;<span style="color: #228b22;">HTMLDivElement</span>&gt;) =&gt; <span style="color: #a020f0;">void</span>;
+}
+
+<span style="color: #a020f0;">export</span> <span style="color: #a020f0;">function</span> <span style="color: #0000ff;">Card</span>({
+    <span style="color: #a0522d;">title</span>,
+    <span style="color: #a0522d;">isActive</span> = <span style="color: #008b8b;">false</span>,
+    <span style="color: #a0522d;">headerIcon</span>,
+    <span style="color: #a0522d;">children</span>,
+    <span style="color: #a0522d;">onHeaderClick</span>,
+    <span style="color: #a0522d;">class</span>: <span style="color: #a0522d;">className</span> = <span style="color: #8b2252;">""</span>,
+    ...restProps
+}: <span style="color: #228b22;">CardProps</span>): <span style="color: #008b8b;">JSX</span>.<span style="color: #228b22;">Element</span> {
+    <span style="color: #a020f0;">return</span> (
+        &lt;<span style="color: #0000ff;">div</span> <span style="color: #008b8b;">class</span>={<span style="color: #8b2252;">`card-root </span>${isActive ? <span style="color: #8b2252;">"active"</span> : <span style="color: #8b2252;">""</span>}<span style="color: #8b2252;"> </span>${<span style="color: #a0522d;">className</span>}<span style="color: #8b2252;">`</span>} {...restProps}&gt;
+            &lt;<span style="color: #0000ff;">div</span> <span style="color: #008b8b;">class</span>=<span style="color: #8b2252;">"card-header"</span> <span style="color: #008b8b;">onClick</span>={<span style="color: #a0522d;">onHeaderClick</span>}&gt;
+                {headerIcon &amp;&amp; &lt;<span style="color: #0000ff;">span</span> <span style="color: #008b8b;">class</span>=<span style="color: #8b2252;">"header-icon"</span>&gt;{<span style="color: #a0522d;">headerIcon</span>}&lt;/<span style="color: #0000ff;">span</span>&gt;}
+                &lt;<span style="color: #0000ff;">h3</span> <span style="color: #008b8b;">class</span>=<span style="color: #8b2252;">"header-title"</span>&gt;{<span style="color: #a0522d;">title</span>}&lt;/<span style="color: #0000ff;">h3</span>&gt;
+            &lt;/<span style="color: #0000ff;">div</span>&gt;
+            &lt;<span style="color: #0000ff;">div</span> <span style="color: #008b8b;">class</span>=<span style="color: #8b2252;">"card-body"</span>&gt;
+                {<span style="color: #a0522d;">children</span>}
+            &lt;/<span style="color: #0000ff;">div</span>&gt;
+        &lt;/<span style="color: #0000ff;">div</span>&gt;
+    );
+}
+</code></pre>
+</div>
+</div>
+</div>
+<div id="outline-container-org5a07904" class="outline-3">
+<h3 id="org5a07904"><span class="section-number-3">8.3.</span> Event Typing with <code>JSX.TargetedEvent</code></h3>
+<div class="outline-text-3" id="text-8-3">
+<p>
+Avoid insecure type assertions like <code>(e.target as HTMLInputElement).value</code>. Use Preact's <code>TargetedEvent</code>:
+</p>
+
+<div class="org-src-container">
+<pre class="src src-tsx"><code><span style="color: #a020f0;">import</span> <span style="color: #a020f0;">type</span> { <span style="color: #a0522d;">JSX</span> } <span style="color: #a020f0;">from</span> <span style="color: #8b2252;">"preact"</span>;
+
+<span style="color: #a020f0;">export</span> <span style="color: #a020f0;">function</span> <span style="color: #0000ff;">FormInputs</span>() {
+    <span style="color: #a020f0;">const</span> <span style="color: #0000ff;">handleTextInput</span> = (<span style="color: #a0522d;">e</span>: <span style="color: #008b8b;">JSX</span>.<span style="color: #228b22;">TargetedEvent</span>&lt;<span style="color: #228b22;">HTMLInputElement</span>, <span style="color: #228b22;">Event</span>&gt;) =&gt; {
+        <span style="color: #b22222;">// e.currentTarget is statically known to be HTMLInputElement!</span>
+        <span style="color: #008b8b;">console</span>.<span style="color: #0000ff;">log</span>(<span style="color: #8b2252;">"Input text:"</span>, <span style="color: #a0522d;">e</span>.currentTarget.value);
+    };
+
+    <span style="color: #a020f0;">const</span> <span style="color: #0000ff;">handleSelectChange</span> = (<span style="color: #a0522d;">e</span>: <span style="color: #008b8b;">JSX</span>.<span style="color: #228b22;">TargetedEvent</span>&lt;<span style="color: #228b22;">HTMLSelectElement</span>, <span style="color: #228b22;">Event</span>&gt;) =&gt; {
+        <span style="color: #b22222;">// e.currentTarget is HTMLSelectElement</span>
+        <span style="color: #008b8b;">console</span>.<span style="color: #0000ff;">log</span>(<span style="color: #8b2252;">"Selected index:"</span>, <span style="color: #a0522d;">e</span>.currentTarget.selectedIndex);
+    };
+
+    <span style="color: #a020f0;">return</span> (
+        &lt;<span style="color: #0000ff;">div</span>&gt;
+            &lt;<span style="color: #0000ff;">input</span> <span style="color: #008b8b;">type</span>=<span style="color: #8b2252;">"text"</span> <span style="color: #008b8b;">onInput</span>={<span style="color: #a0522d;">handleTextInput</span>} /&gt;
+            &lt;<span style="color: #0000ff;">select</span> <span style="color: #008b8b;">onChange</span>={<span style="color: #a0522d;">handleSelectChange</span>}&gt;
+                &lt;<span style="color: #0000ff;">option</span> <span style="color: #008b8b;">value</span>=<span style="color: #8b2252;">"1"</span>&gt;Option 1&lt;/<span style="color: #0000ff;">option</span>&gt;
+                &lt;<span style="color: #0000ff;">option</span> <span style="color: #008b8b;">value</span>=<span style="color: #8b2252;">"2"</span>&gt;Option 2&lt;/<span style="color: #0000ff;">option</span>&gt;
+            &lt;/<span style="color: #0000ff;">select</span>&gt;
+        &lt;/<span style="color: #0000ff;">div</span>&gt;
+    );
+}
+</code></pre>
+</div>
+</div>
+</div>
+<div id="outline-container-orgc4f6195" class="outline-3">
+<h3 id="orgc4f6195"><span class="section-number-3">8.4.</span> Augmenting Global JSX Intrinsic Elements</h3>
+<div class="outline-text-3" id="text-8-4">
+<p>
+When integrating Web Components or custom HTML elements:
+</p>
+
+<div class="org-src-container">
+<pre class="src src-typescript"><code><span style="color: #a020f0;">import</span> <span style="color: #a020f0;">type</span> { <span style="color: #a0522d;">JSX</span> } <span style="color: #a020f0;">from</span> <span style="color: #8b2252;">"preact"</span>;
+
+<span style="color: #a020f0;">declare</span> global {
+    <span style="color: #a020f0;">namespace</span> <span style="color: #228b22;">JSX</span> {
+        <span style="color: #a020f0;">interface</span> <span style="color: #228b22;">IntrinsicElements</span> {
+            <span style="color: #8b2252;">"gemini-org-hud"</span>: <span style="color: #008b8b;">JSX</span>.<span style="color: #228b22;">HTMLAttributes</span>&lt;<span style="color: #228b22;">HTMLElement</span>&gt; &amp; {
+                <span style="color: #8b2252;">"hud-theme"</span>?: <span style="color: #8b2252;">"dark"</span> | <span style="color: #8b2252;">"light"</span>;
+                <span style="color: #a0522d;">collapsed</span>?: <span style="color: #228b22;">boolean</span> | <span style="color: #228b22;">string</span>;
+            };
+        }
+    }
+}
+</code></pre>
+</div>
+</div>
+</div>
+</div>
+<div id="outline-container-org8431b7e" class="outline-2">
+<h2 id="org8431b7e"><span class="section-number-2">9.</span> Pitfalls, Gotchas &amp; Anti-Patterns</h2>
+<div class="outline-text-2" id="text-9">
+</div>
+<div id="outline-container-org6fa46f9" class="outline-3">
+<h3 id="org6fa46f9"><span class="section-number-3">9.1.</span> 1. Controlled Input Cursor Jumps</h3>
+<div class="outline-text-3" id="text-9-1">
+</div>
+<div id="outline-container-org2855ddb" class="outline-4">
+<h4 id="org2855ddb"><span class="section-number-4">9.1.1.</span> The Problem:</h4>
+<div class="outline-text-4" id="text-9-1-1">
+<p>
+In React, controlled inputs (<code>value={val}</code> with <code>onChange</code>) synchronously hijack keystrokes to maintain selection and cursor coordinates. In Preact, because state updates are debounced and batched via microtasks, updating state asynchronously during typing can cause the text cursor to jump to the end of the input field.
+</p>
+</div>
+</div>
+<div id="outline-container-org1804f5a" class="outline-4">
+<h4 id="org1804f5a"><span class="section-number-4">9.1.2.</span> The Solution:</h4>
+<div class="outline-text-4" id="text-9-1-2">
+<ul class="org-ul">
+<li>Use <code>onInput</code> instead of <code>onChange</code> for real-time text binding.</li>
+<li>For high-velocity inputs, bind directly to a <b><b>Signal</b></b> or use uncontrolled inputs with <code>defaultValue</code> and refs:</li>
+</ul>
+
+<div class="org-src-container">
+<pre class="src src-tsx"><code><span style="color: #b22222;">// ANTI-PATTERN: Can cause cursor jumping under microtask delay</span>
+<span style="color: #a020f0;">function</span> <span style="color: #0000ff;">BadInput</span>() {
+    <span style="color: #a020f0;">const</span> [<span style="color: #a0522d;">val</span>, <span style="color: #a0522d;">setVal</span>] = <span style="color: #0000ff;">useState</span>(<span style="color: #8b2252;">""</span>);
+    <span style="color: #a020f0;">return</span> &lt;<span style="color: #0000ff;">input</span> <span style="color: #008b8b;">value</span>={<span style="color: #a0522d;">val</span>} <span style="color: #008b8b;">onChange</span>={(<span style="color: #a0522d;">e</span>) =&gt; <span style="color: #0000ff;">setVal</span>(<span style="color: #a0522d;">e</span>.currentTarget.value)} /&gt;;
+}
+
+<span style="color: #b22222;">// BEST PRACTICE A: Using Signal Direct Binding (Synchronous &amp; No Cursor Jump)</span>
+<span style="color: #a020f0;">function</span> <span style="color: #0000ff;">GoodSignalInput</span>() {
+    <span style="color: #a020f0;">const</span> <span style="color: #a0522d;">text</span> = <span style="color: #0000ff;">useSignal</span>(<span style="color: #8b2252;">""</span>);
+    <span style="color: #a020f0;">return</span> (
+        &lt;<span style="color: #0000ff;">input</span>
+            <span style="color: #008b8b;">value</span>={<span style="color: #a0522d;">text</span>.value}
+            <span style="color: #008b8b;">onInput</span>={(<span style="color: #a0522d;">e</span>) =&gt; (<span style="color: #a0522d;">text</span>.value = <span style="color: #a0522d;">e</span>.currentTarget.value)}
+        /&gt;
+    );
+}
+
+<span style="color: #b22222;">// BEST PRACTICE B: Uncontrolled Input with Ref for Complex Masking</span>
+<span style="color: #a020f0;">function</span> <span style="color: #0000ff;">GoodUncontrolledInput</span>({ <span style="color: #a0522d;">onCommit</span> }: { <span style="color: #a0522d;">onCommit</span>: (<span style="color: #a0522d;">val</span>: <span style="color: #228b22;">string</span>) =&gt; <span style="color: #a020f0;">void</span> }) {
+    <span style="color: #a020f0;">const</span> <span style="color: #a0522d;">inputRef</span> = <span style="color: #0000ff;">useRef</span>&lt;<span style="color: #228b22;">HTMLInputElement</span>&gt;(<span style="color: #008b8b;">null</span>);
+
+    <span style="color: #a020f0;">return</span> (
+        &lt;<span style="color: #0000ff;">input</span>
+            <span style="color: #008b8b;">ref</span>={<span style="color: #a0522d;">inputRef</span>}
+            <span style="color: #008b8b;">defaultValue</span>=<span style="color: #8b2252;">""</span>
+            <span style="color: #008b8b;">onBlur</span>={() =&gt; <span style="color: #0000ff;">onCommit</span>(<span style="color: #a0522d;">inputRef</span>.current?.value || <span style="color: #8b2252;">""</span>)}
+        /&gt;
+    );
+}
+</code></pre>
+</div>
+</div>
+</div>
+</div>
+<div id="outline-container-org6134309" class="outline-3">
+<h3 id="org6134309"><span class="section-number-3">9.2.</span> 2. The <code>props.children</code> Array Assumption Trap</h3>
+<div class="outline-text-3" id="text-9-2">
+</div>
+<div id="outline-container-org7d6eba7" class="outline-4">
+<h4 id="org7d6eba7"><span class="section-number-4">9.2.1.</span> The Problem:</h4>
+<div class="outline-text-4" id="text-9-2-1">
+<p>
+In React, <code>React.Children.map</code> is used to handle single, multiple, or undefined children. In Preact, to save memory, <code>props.children</code> is:
+</p>
+<ul class="org-ul">
+<li><code>undefined</code> if no children exist.</li>
+<li>An object/VNode if 1 child exists.</li>
+<li>An array of VNodes if 2+ children exist.</li>
+</ul>
+
+<p>
+Calling <code>props.children.map(...)</code> directly will crash at runtime when only 1 child is provided!
+</p>
+</div>
+</div>
+<div id="outline-container-orga15219b" class="outline-4">
+<h4 id="orga15219b"><span class="section-number-4">9.2.2.</span> The Solution:</h4>
+<div class="outline-text-4" id="text-9-2-2">
+<p>
+Always use <code>toChildArray</code> from <code>preact</code>:
+</p>
+
+<div class="org-src-container">
+<pre class="src src-tsx"><code><span style="color: #a020f0;">import</span> { <span style="color: #a0522d;">toChildArray</span> } <span style="color: #a020f0;">from</span> <span style="color: #8b2252;">"preact"</span>;
+<span style="color: #a020f0;">import</span> <span style="color: #a020f0;">type</span> { <span style="color: #a0522d;">ComponentChildren</span> } <span style="color: #a020f0;">from</span> <span style="color: #8b2252;">"preact"</span>;
+
+<span style="color: #a020f0;">export</span> <span style="color: #a020f0;">function</span> <span style="color: #0000ff;">ListWrapper</span>({ <span style="color: #a0522d;">children</span> }: { <span style="color: #a0522d;">children</span>: <span style="color: #228b22;">ComponentChildren</span> }) {
+    <span style="color: #b22222;">// Safely normalizes children into a flat Array&lt;VNode | string | number&gt;</span>
+    <span style="color: #a020f0;">const</span> <span style="color: #a0522d;">childArray</span> = <span style="color: #0000ff;">toChildArray</span>(<span style="color: #a0522d;">children</span>);
+
+    <span style="color: #a020f0;">return</span> (
+        &lt;<span style="color: #0000ff;">ul</span> <span style="color: #008b8b;">class</span>=<span style="color: #8b2252;">"item-list"</span>&gt;
+            {<span style="color: #a0522d;">childArray</span>.<span style="color: #0000ff;">map</span>((<span style="color: #a0522d;">child</span>, <span style="color: #a0522d;">idx</span>) =&gt; (
+                &lt;<span style="color: #0000ff;">li</span> <span style="color: #008b8b;">key</span>={<span style="color: #a0522d;">idx</span>} <span style="color: #008b8b;">class</span>=<span style="color: #8b2252;">"item-entry"</span>&gt;{<span style="color: #a0522d;">child</span>}&lt;/<span style="color: #0000ff;">li</span>&gt;
+            ))}
+        &lt;/<span style="color: #0000ff;">ul</span>&gt;
+    );
+}
+</code></pre>
+</div>
+</div>
+</div>
+</div>
+<div id="outline-container-org8b21990" class="outline-3">
+<h3 id="org8b21990"><span class="section-number-3">9.3.</span> 3. Shallow Equality Breakdown in <code>memo</code></h3>
+<div class="outline-text-3" id="text-9-3">
+</div>
+<div id="outline-container-org213126b" class="outline-4">
+<h4 id="org213126b"><span class="section-number-4">9.3.1.</span> The Problem:</h4>
+<div class="outline-text-4" id="text-9-3-1">
+<p>
+Passing anonymous arrow functions or inline object literals to memoized components breaks shallow equality checks:
+</p>
+
+<div class="org-src-container">
+<pre class="src src-tsx"><code><span style="color: #b22222;">// ANTI-PATTERN: Re-creates object and function references every render</span>
+&lt;<span style="color: #0000ff;">MemoizedChild</span>
+    <span style="color: #008b8b;">style</span>={{ <span style="color: #a0522d;">color</span>: <span style="color: #8b2252;">"red"</span> }}
+    <span style="color: #008b8b;">onClick</span>={() =&gt; <span style="color: #0000ff;">doAction</span>(<span style="color: #a0522d;">id</span>)}
+/&gt;
+</code></pre>
+</div>
+</div>
+</div>
+<div id="outline-container-orge975cdf" class="outline-4">
+<h4 id="orge975cdf"><span class="section-number-4">9.3.2.</span> The Solution:</h4>
+<div class="outline-text-4" id="text-9-3-2">
+<p>
+Use <code>useCallback</code>, <code>useMemo</code>, or pass persistent Signal instances:
+</p>
+
+<div class="org-src-container">
+<pre class="src src-tsx"><code><span style="color: #b22222;">// BEST PRACTICE: Stable references</span>
+<span style="color: #a020f0;">const</span> <span style="color: #a0522d;">handleClick</span> = <span style="color: #0000ff;">useCallback</span>(() =&gt; <span style="color: #0000ff;">doAction</span>(<span style="color: #a0522d;">id</span>), [id]);
+<span style="color: #a020f0;">const</span> <span style="color: #a0522d;">cardStyle</span> = <span style="color: #0000ff;">useMemo</span>(() =&gt; ({ <span style="color: #a0522d;">color</span>: <span style="color: #8b2252;">"red"</span> }), []);
+
+<span style="color: #a020f0;">return</span> &lt;<span style="color: #0000ff;">MemoizedChild</span> <span style="color: #008b8b;">style</span>={<span style="color: #a0522d;">cardStyle</span>} <span style="color: #008b8b;">onClick</span>={<span style="color: #a0522d;">handleClick</span>} /&gt;;
+</code></pre>
+</div>
+</div>
+</div>
+</div>
+</div>
+<div id="outline-container-org4f7e673" class="outline-2">
+<h2 id="org4f7e673"><span class="section-number-2">10.</span> Advanced Tips, Tricks &amp; Hidden Gems</h2>
+<div class="outline-text-2" id="text-10">
+</div>
+<div id="outline-container-org7a1ee7a" class="outline-3">
+<h3 id="org7a1ee7a"><span class="section-number-3">10.1.</span> The Preact <code>options</code> Middleware Pipeline</h3>
+<div class="outline-text-3" id="text-10-1">
+<p>
+Preact exposes an internal diagnostic and middleware hook object named <code>options</code>. This hook system powers <code>preact/hooks</code>, <code>preact/debug</code>, and `@preact/signals`.
+</p>
+
+<table>
+<caption class="t-above"><span class="table-number">Table 4:</span> Preact <code>options</code> Hooks Reference</caption>
+
+<colgroup>
+<col  class="org-left">
+
+<col  class="org-left">
+
+<col  class="org-left">
+</colgroup>
+<thead>
+<tr>
+<th scope="col" class="org-left">Option Hook</th>
+<th scope="col" class="org-left">Invocation Moment</th>
+<th scope="col" class="org-left">Engineering Capability</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td class="org-left"><code>options.vnode</code></td>
+<td class="org-left">When any VNode is instantiated</td>
+<td class="org-left">Transform props, inject automated test IDs, audit JSX.</td>
+</tr>
+
+<tr>
+<td class="org-left"><code>options._render</code></td>
+<td class="org-left">Immediately before a component renders</td>
+<td class="org-left">Initialize hook stores, track signal access.</td>
+</tr>
+
+<tr>
+<td class="org-left"><code>options.diffed</code></td>
+<td class="org-left">After a VNode has diffed and mounted to DOM</td>
+<td class="org-left">Performance timers, DOM layout audits.</td>
+</tr>
+
+<tr>
+<td class="org-left"><code>options._commit</code></td>
+<td class="org-left">After an entire render tree commits</td>
+<td class="org-left">Measure total render frame time.</td>
+</tr>
+
+<tr>
+<td class="org-left"><code>options.unmount</code></td>
+<td class="org-left">When a component is torn down</td>
+<td class="org-left">Garbage collection triggers, cleanup hooks.</td>
+</tr>
+
+<tr>
+<td class="org-left"><code>options._catchError</code></td>
+<td class="org-left">When an uncaught exception occurs during diff</td>
+<td class="org-left">Global telemetry and crash logging.</td>
+</tr>
+
+<tr>
+<td class="org-left"><code>options.debounceRendering</code></td>
+<td class="org-left">When state update is queued</td>
+<td class="org-left">Replace microtask scheduler with custom frame rate scheduler.</td>
+</tr>
+</tbody>
+</table>
+</div>
+<div id="outline-container-org76a0851" class="outline-4">
+<h4 id="org76a0851"><span class="section-number-4">10.1.1.</span> Practical Gem: Custom Frame-Aligned Rendering Scheduler</h4>
+<div class="outline-text-4" id="text-10-1-1">
+<p>
+You can sync Preact rendering directly to <code>requestAnimationFrame</code> for ultra-smooth 60fps animations:
+</p>
+
+<div class="org-src-container">
+<pre class="src src-typescript"><code><span style="color: #a020f0;">import</span> { <span style="color: #a0522d;">options</span> } <span style="color: #a020f0;">from</span> <span style="color: #8b2252;">"preact"</span>;
+
+<span style="color: #b22222;">// Align all asynchronous state updates to the browser's refresh rate</span>
+<span style="color: #a020f0;">let</span> <span style="color: #a0522d;">renderQueue</span>: <span style="color: #228b22;">Array</span>&lt;() =&gt; <span style="color: #a020f0;">void</span>&gt; = [];
+
+<span style="color: #a0522d;">options</span>.<span style="color: #0000ff;">debounceRendering</span> = (<span style="color: #a0522d;">renderCallback</span>) =&gt; {
+    <span style="color: #a020f0;">if</span> (<span style="color: #a0522d;">renderQueue</span>.<span style="color: #0000ff;">push</span>(<span style="color: #a0522d;">renderCallback</span>) === 1) {
+        <span style="color: #0000ff;">requestAnimationFrame</span>(() =&gt; {
+            <span style="color: #a020f0;">const</span> <span style="color: #a0522d;">queue</span> = renderQueue;
+            renderQueue = [];
+            <span style="color: #a0522d;">queue</span>.<span style="color: #0000ff;">forEach</span>((<span style="color: #a0522d;">cb</span>) =&gt; <span style="color: #0000ff;">cb</span>());
+        });
+    }
+};
+</code></pre>
+</div>
+</div>
+</div>
+<div id="outline-container-org15b7fdd" class="outline-4">
+<h4 id="org15b7fdd"><span class="section-number-4">10.1.2.</span> Practical Gem: Automated Test ID Injection Middleware</h4>
+<div class="outline-text-4" id="text-10-1-2">
+<div class="org-src-container">
+<pre class="src src-typescript"><code><span style="color: #a020f0;">import</span> { <span style="color: #a0522d;">options</span> } <span style="color: #a020f0;">from</span> <span style="color: #8b2252;">"preact"</span>;
+
+<span style="color: #b22222;">// Automatically add data-testid to every HTML element during development</span>
+<span style="color: #a020f0;">if</span> (<span style="color: #a0522d;">process</span>.env.NODE_ENV === <span style="color: #8b2252;">"development"</span>) {
+    <span style="color: #a020f0;">const</span> <span style="color: #a0522d;">oldVNode</span> = <span style="color: #a0522d;">options</span>.vnode;
+    <span style="color: #a0522d;">options</span>.<span style="color: #0000ff;">vnode</span> = (<span style="color: #a0522d;">vnode</span>) =&gt; {
+        <span style="color: #a020f0;">if</span> (<span style="color: #a020f0;">typeof</span> <span style="color: #a0522d;">vnode</span>.type === <span style="color: #8b2252;">"string"</span> &amp;&amp; <span style="color: #a020f0;">!</span><span style="color: #a0522d;">vnode</span>.props[<span style="color: #8b2252;">"data-testid"</span>]) {
+            <span style="color: #a0522d;">vnode</span>.props[<span style="color: #8b2252;">"data-testid"</span>] = <span style="color: #8b2252;">`auto-</span>${<span style="color: #a0522d;">vnode</span>.type}<span style="color: #8b2252;">`</span>;
+        }
+        <span style="color: #a020f0;">if</span> (oldVNode) <span style="color: #0000ff;">oldVNode</span>(<span style="color: #a0522d;">vnode</span>);
+    };
+}
+</code></pre>
+</div>
+</div>
+</div>
+</div>
+<div id="outline-container-org8e9b354" class="outline-3">
+<h3 id="org8e9b354"><span class="section-number-3">10.2.</span> Production Diagnostics with <code>preact/debug</code></h3>
+<div class="outline-text-3" id="text-10-2">
+<p>
+In development or during extension debugging, import <code>preact/debug</code> at your entry point:
+</p>
+
+<div class="org-src-container">
+<pre class="src src-typescript"><code><span style="color: #a020f0;">import</span> <span style="color: #8b2252;">"preact/debug"</span>;
+</code></pre>
+</div>
+
+<p>
+This activates:
+</p>
+<ol class="org-ol">
+<li>Console warnings for duplicate <code>key</code> props in lists.</li>
+<li>Warnings for invalid DOM nesting (e.g. <code>&lt;div&gt;</code> inside <code>&lt;p&gt;</code>).</li>
+<li>Infinite loop detection for hooks (<code>useEffect</code> dependencies changing continuously).</li>
+<li>Direct integration with the Chrome Preact / React Developer Tools extension.</li>
+</ol>
+</div>
+</div>
+</div>
+<div id="outline-container-org210402b" class="outline-2">
+<h2 id="org210402b"><span class="section-number-2">11.</span> Practical Refactoring Blueprint: HudController Case Study</h2>
+<div class="outline-text-2" id="text-11">
+<p>
+To demonstrate modern Preact architecture in practice, we examine refactoring the imperative vanilla DOM HUD controller (`src/ui/hud.ts`) into an idiomatic, declarative Preact + Signals + Shadow DOM component.
+</p>
+</div>
+<div id="outline-container-orgde43125" class="outline-3">
+<h3 id="orgde43125"><span class="section-number-3">11.1.</span> Before: Imperative Vanilla DOM (<code>hud.ts</code>)</h3>
+<div class="outline-text-3" id="text-11-1">
+<div class="org-src-container">
+<pre class="src src-typescript"><code><span style="color: #b22222;">// Imperative: 200+ lines of manual createElement, appendChild, classList toggling</span>
+<span style="color: #a020f0;">export</span> <span style="color: #a020f0;">class</span> <span style="color: #228b22;">HudController</span> {
+    <span style="color: #0000ff;">mount</span>(): <span style="color: #a020f0;">void</span> {
+        <span style="color: #a020f0;">const</span> <span style="color: #a0522d;">hud</span> = <span style="color: #008b8b;">document</span>.<span style="color: #0000ff;">createElement</span>(<span style="color: #8b2252;">"div"</span>);
+        <span style="color: #a0522d;">hud</span>.id = <span style="color: #8b2252;">"orgmod-hud"</span>;
+        <span style="color: #a020f0;">const</span> <span style="color: #a0522d;">widthBtn</span> = <span style="color: #008b8b;">document</span>.<span style="color: #0000ff;">createElement</span>(<span style="color: #8b2252;">"button"</span>);
+        <span style="color: #a0522d;">widthBtn</span>.className = <span style="color: #8b2252;">`orgmod-hud-btn </span>${<span style="color: #a0522d;">s</span>.fullWidth ? <span style="color: #8b2252;">"active"</span> : <span style="color: #8b2252;">""</span>}<span style="color: #8b2252;">`</span>;
+        <span style="color: #a0522d;">widthBtn</span>.<span style="color: #0000ff;">addEventListener</span>(<span style="color: #8b2252;">"click"</span>, () =&gt; {
+            <span style="color: #a020f0;">this</span>.store.<span style="color: #0000ff;">update</span>({ <span style="color: #a0522d;">fullWidth</span>: <span style="color: #a020f0;">!this</span>.store.settings.fullWidth });
+            <span style="color: #a020f0;">this</span>.<span style="color: #0000ff;">update</span>(); <span style="color: #b22222;">// Manual imperative update loop</span>
+        });
+        <span style="color: #b22222;">// ... dozens of manual DOM operations ...</span>
+    }
+}
+</code></pre>
+</div>
+</div>
+</div>
+<div id="outline-container-org1c5a308" class="outline-3">
+<h3 id="org1c5a308"><span class="section-number-3">11.2.</span> After: Declarative Preact + Signals (<code>hud.tsx</code>)</h3>
+<div class="outline-text-3" id="text-11-2">
+<div class="org-src-container">
+<pre class="src src-tsx"><code><span style="color: #a020f0;">import</span> { <span style="color: #a0522d;">render</span> } <span style="color: #a020f0;">from</span> <span style="color: #8b2252;">"preact"</span>;
+<span style="color: #a020f0;">import</span> <span style="color: #a020f0;">type</span> { <span style="color: #a0522d;">JSX</span> } <span style="color: #a020f0;">from</span> <span style="color: #8b2252;">"preact"</span>;
+<span style="color: #a020f0;">import</span> { <span style="color: #a0522d;">signal</span>, <span style="color: #a0522d;">computed</span> } <span style="color: #a020f0;">from</span> <span style="color: #8b2252;">"@preact/signals"</span>;
+
+<span style="color: #b22222;">// 1. Reactive Extension State</span>
+<span style="color: #a020f0;">export</span> <span style="color: #a020f0;">interface</span> <span style="color: #228b22;">HudState</span> {
+    <span style="color: #a0522d;">collapsed</span>: <span style="color: #228b22;">boolean</span>;
+    <span style="color: #a0522d;">fullWidth</span>: <span style="color: #228b22;">boolean</span>;
+    <span style="color: #a0522d;">widthPercent</span>: <span style="color: #228b22;">number</span>;
+    <span style="color: #a0522d;">autoRenderOrg</span>: <span style="color: #228b22;">boolean</span>;
+}
+
+<span style="color: #a020f0;">export</span> <span style="color: #a020f0;">const</span> <span style="color: #a0522d;">hudState</span> = <span style="color: #0000ff;">signal</span>&lt;<span style="color: #228b22;">HudState</span>&gt;({
+    <span style="color: #a0522d;">collapsed</span>: <span style="color: #008b8b;">false</span>,
+    <span style="color: #a0522d;">fullWidth</span>: <span style="color: #008b8b;">true</span>,
+    <span style="color: #a0522d;">widthPercent</span>: 94,
+    <span style="color: #a0522d;">autoRenderOrg</span>: <span style="color: #008b8b;">true</span>,
+});
+
+<span style="color: #a020f0;">export</span> <span style="color: #a020f0;">const</span> <span style="color: #a0522d;">PRESET_WIDTHS</span> = [80, 90, 94, 100] <span style="color: #a020f0;">as</span> <span style="color: #a020f0;">const</span>;
+
+<span style="color: #b22222;">// 2. Declarative Preact Component</span>
+<span style="color: #a020f0;">interface</span> <span style="color: #228b22;">HudViewProps</span> {
+    <span style="color: #a0522d;">onRenderAll</span>: () =&gt; <span style="color: #a020f0;">void</span>;
+    <span style="color: #a0522d;">onFoldAll</span>: () =&gt; <span style="color: #a020f0;">void</span>;
+}
+
+<span style="color: #a020f0;">export</span> <span style="color: #a020f0;">function</span> <span style="color: #0000ff;">HudView</span>({ <span style="color: #a0522d;">onRenderAll</span>, <span style="color: #a0522d;">onFoldAll</span> }: <span style="color: #228b22;">HudViewProps</span>): <span style="color: #008b8b;">JSX</span>.<span style="color: #228b22;">Element</span> {
+    <span style="color: #a020f0;">const</span> <span style="color: #a0522d;">s</span> = <span style="color: #a0522d;">hudState</span>.value;
+
+    <span style="color: #a020f0;">const</span> <span style="color: #0000ff;">toggleCollapse</span> = () =&gt; {
+        <span style="color: #a0522d;">hudState</span>.value = { ...s, <span style="color: #a0522d;">collapsed</span>: <span style="color: #a020f0;">!</span><span style="color: #a0522d;">s</span>.collapsed };
+    };
+
+    <span style="color: #a020f0;">const</span> <span style="color: #0000ff;">toggleWidth</span> = () =&gt; {
+        <span style="color: #a0522d;">hudState</span>.value = { ...s, <span style="color: #a0522d;">fullWidth</span>: <span style="color: #a020f0;">!</span><span style="color: #a0522d;">s</span>.fullWidth };
+    };
+
+    <span style="color: #a020f0;">const</span> <span style="color: #0000ff;">setPreset</span> = (<span style="color: #a0522d;">val</span>: <span style="color: #228b22;">number</span>) =&gt; {
+        <span style="color: #a0522d;">hudState</span>.value = { ...s, <span style="color: #a0522d;">widthPercent</span>: <span style="color: #a0522d;">val</span>, <span style="color: #a0522d;">fullWidth</span>: <span style="color: #008b8b;">true</span> };
+    };
+
+    <span style="color: #a020f0;">const</span> <span style="color: #0000ff;">toggleAutoOrg</span> = () =&gt; {
+        <span style="color: #a0522d;">hudState</span>.value = { ...s, <span style="color: #a0522d;">autoRenderOrg</span>: <span style="color: #a020f0;">!</span><span style="color: #a0522d;">s</span>.autoRenderOrg };
+    };
+
+    <span style="color: #a020f0;">return</span> (
+        &lt;<span style="color: #0000ff;">div</span> <span style="color: #008b8b;">class</span>={<span style="color: #8b2252;">`orgmod-hud </span>${<span style="color: #a0522d;">s</span>.collapsed ? <span style="color: #8b2252;">"minimized"</span> : <span style="color: #8b2252;">""</span>}<span style="color: #8b2252;">`</span>} <span style="color: #008b8b;">data-gemini-org</span>=<span style="color: #8b2252;">"hud"</span>&gt;
+            {<span style="color: #b22222;">/* Header */</span>}
+            &lt;<span style="color: #0000ff;">div</span> <span style="color: #008b8b;">class</span>=<span style="color: #8b2252;">"orgmod-hud-header"</span> <span style="color: #008b8b;">onClick</span>={<span style="color: #a0522d;">toggleCollapse</span>} <span style="color: #008b8b;">data-gemini-org</span>=<span style="color: #8b2252;">"hud-header"</span>&gt;
+                &lt;<span style="color: #0000ff;">span</span> <span style="color: #008b8b;">class</span>=<span style="color: #8b2252;">"orgmod-hud-title"</span> <span style="color: #008b8b;">data-gemini-org</span>=<span style="color: #8b2252;">"hud-title"</span>&gt;&#9889; OrgUI&lt;/<span style="color: #0000ff;">span</span>&gt;
+                &lt;<span style="color: #0000ff;">span</span> <span style="color: #008b8b;">class</span>=<span style="color: #8b2252;">"orgmod-hud-collapse-icon"</span> <span style="color: #008b8b;">data-gemini-org</span>=<span style="color: #8b2252;">"hud-collapse-btn"</span>&gt;
+                    {<span style="color: #a0522d;">s</span>.collapsed ? <span style="color: #8b2252;">"+"</span> : <span style="color: #8b2252;">"&#8722;"</span>}
+                &lt;/<span style="color: #0000ff;">span</span>&gt;
+            &lt;/<span style="color: #0000ff;">div</span>&gt;
+
+            {<span style="color: #b22222;">/* Body */</span>}
+            {<span style="color: #a020f0;">!</span><span style="color: #a0522d;">s</span>.collapsed &amp;&amp; (
+                &lt;<span style="color: #0000ff;">div</span> <span style="color: #008b8b;">class</span>=<span style="color: #8b2252;">"orgmod-hud-body"</span> <span style="color: #008b8b;">data-gemini-org</span>=<span style="color: #8b2252;">"hud-body"</span>&gt;
+                    {<span style="color: #b22222;">/* Row 1: Width Controls */</span>}
+                    &lt;<span style="color: #0000ff;">div</span> <span style="color: #008b8b;">class</span>=<span style="color: #8b2252;">"orgmod-hud-row"</span>&gt;
+                        &lt;<span style="color: #0000ff;">button</span>
+                            <span style="color: #008b8b;">class</span>={<span style="color: #8b2252;">`orgmod-hud-btn </span>${<span style="color: #a0522d;">s</span>.fullWidth ? <span style="color: #8b2252;">"active"</span> : <span style="color: #8b2252;">""</span>}<span style="color: #8b2252;">`</span>}
+                            <span style="color: #008b8b;">onClick</span>={<span style="color: #a0522d;">toggleWidth</span>}
+                            <span style="color: #008b8b;">title</span>=<span style="color: #8b2252;">"Toggle Full-Screen Width (Alt+W)"</span>
+                            <span style="color: #008b8b;">data-gemini-org</span>=<span style="color: #8b2252;">"hud-width"</span>
+                        &gt;
+                            Width: {<span style="color: #a0522d;">s</span>.fullWidth ? <span style="color: #8b2252;">`</span>${<span style="color: #a0522d;">s</span>.widthPercent}<span style="color: #8b2252;">%`</span> : <span style="color: #8b2252;">"Off"</span>}
+                        &lt;/<span style="color: #0000ff;">button</span>&gt;
+                        &lt;<span style="color: #0000ff;">div</span> <span style="color: #008b8b;">class</span>=<span style="color: #8b2252;">"orgmod-hud-presets"</span> <span style="color: #008b8b;">data-gemini-org</span>=<span style="color: #8b2252;">"hud-presets"</span>&gt;
+                            {<span style="color: #008b8b;">PRESET_WIDTHS</span>.<span style="color: #0000ff;">map</span>((<span style="color: #a0522d;">val</span>) =&gt; (
+                                &lt;<span style="color: #0000ff;">button</span>
+                                    <span style="color: #008b8b;">key</span>={<span style="color: #a0522d;">val</span>}
+                                    <span style="color: #008b8b;">class</span>={<span style="color: #8b2252;">`orgmod-hud-preset </span>${<span style="color: #a0522d;">s</span>.fullWidth &amp;&amp; <span style="color: #a0522d;">s</span>.widthPercent === val ? <span style="color: #8b2252;">"active"</span> : <span style="color: #8b2252;">""</span>}<span style="color: #8b2252;">`</span>}
+                                    <span style="color: #008b8b;">onClick</span>={() =&gt; <span style="color: #0000ff;">setPreset</span>(<span style="color: #a0522d;">val</span>)}
+                                    <span style="color: #008b8b;">data-gemini-org</span>=<span style="color: #8b2252;">"hud-preset"</span>
+                                &gt;
+                                    {<span style="color: #a0522d;">val</span>}%
+                                &lt;/<span style="color: #0000ff;">button</span>&gt;
+                            ))}
+                        &lt;/<span style="color: #0000ff;">div</span>&gt;
+                    &lt;/<span style="color: #0000ff;">div</span>&gt;
+
+                    {<span style="color: #b22222;">/* Row 2: Org Controls */</span>}
+                    &lt;<span style="color: #0000ff;">div</span> <span style="color: #008b8b;">class</span>=<span style="color: #8b2252;">"orgmod-hud-row"</span>&gt;
+                        &lt;<span style="color: #0000ff;">button</span>
+                            <span style="color: #008b8b;">class</span>={<span style="color: #8b2252;">`orgmod-hud-btn </span>${<span style="color: #a0522d;">s</span>.autoRenderOrg ? <span style="color: #8b2252;">"active"</span> : <span style="color: #8b2252;">""</span>}<span style="color: #8b2252;">`</span>}
+                            <span style="color: #008b8b;">onClick</span>={<span style="color: #a0522d;">toggleAutoOrg</span>}
+                            <span style="color: #008b8b;">title</span>=<span style="color: #8b2252;">"Auto-render Org Mode Blocks"</span>
+                            <span style="color: #008b8b;">data-gemini-org</span>=<span style="color: #8b2252;">"hud-auto"</span>
+                        &gt;
+                            Auto-Org: {<span style="color: #a0522d;">s</span>.autoRenderOrg ? <span style="color: #8b2252;">"ON"</span> : <span style="color: #8b2252;">"OFF"</span>}
+                        &lt;/<span style="color: #0000ff;">button</span>&gt;
+                        &lt;<span style="color: #0000ff;">button</span>
+                            <span style="color: #008b8b;">class</span>=<span style="color: #8b2252;">"orgmod-hud-btn"</span>
+                            <span style="color: #008b8b;">onClick</span>={<span style="color: #a0522d;">onRenderAll</span>}
+                            <span style="color: #008b8b;">title</span>=<span style="color: #8b2252;">"Toggle Render All Blocks (Alt+O)"</span>
+                            <span style="color: #008b8b;">data-gemini-org</span>=<span style="color: #8b2252;">"hud-renderall"</span>
+                        &gt;
+                            Render All
+                        &lt;/<span style="color: #0000ff;">button</span>&gt;
+                        &lt;<span style="color: #0000ff;">button</span>
+                            <span style="color: #008b8b;">class</span>=<span style="color: #8b2252;">"orgmod-hud-btn"</span>
+                            <span style="color: #008b8b;">onClick</span>={<span style="color: #a0522d;">onFoldAll</span>}
+                            <span style="color: #008b8b;">title</span>=<span style="color: #8b2252;">"Toggle Fold/Expand All Blocks (Alt+F)"</span>
+                            <span style="color: #008b8b;">data-gemini-org</span>=<span style="color: #8b2252;">"hud-foldall"</span>
+                        &gt;
+                            Fold All
+                        &lt;/<span style="color: #0000ff;">button</span>&gt;
+                    &lt;/<span style="color: #0000ff;">div</span>&gt;
+                &lt;/<span style="color: #0000ff;">div</span>&gt;
+            )}
+        &lt;/<span style="color: #0000ff;">div</span>&gt;
+    );
+}
+
+<span style="color: #b22222;">// 3. Mount Controller</span>
+<span style="color: #a020f0;">export</span> <span style="color: #a020f0;">class</span> <span style="color: #228b22;">PreactHudController</span> {
+    <span style="color: #a020f0;">private</span> <span style="color: #a0522d;">mountNode</span>: <span style="color: #228b22;">HTMLElement</span> | <span style="color: #008b8b;">null</span> = <span style="color: #008b8b;">null</span>;
+    <span style="color: #a020f0;">private</span> <span style="color: #a0522d;">onRenderAll</span>: () =&gt; <span style="color: #a020f0;">void</span>;
+    <span style="color: #a020f0;">private</span> <span style="color: #a0522d;">onFoldAll</span>: () =&gt; <span style="color: #a020f0;">void</span>;
+
+    <span style="color: #0000ff;">constructor</span>(<span style="color: #a0522d;">onRenderAll</span>: () =&gt; <span style="color: #a020f0;">void</span>, <span style="color: #a0522d;">onFoldAll</span>: () =&gt; <span style="color: #a020f0;">void</span>) {
+        <span style="color: #a020f0;">this</span>.onRenderAll = onRenderAll;
+        <span style="color: #a020f0;">this</span>.onFoldAll = onFoldAll;
+    }
+
+    <span style="color: #0000ff;">mount</span>(): <span style="color: #a020f0;">void</span> {
+        <span style="color: #a020f0;">if</span> (<span style="color: #a020f0;">typeof</span> <span style="color: #008b8b;">document</span> === <span style="color: #8b2252;">"undefined"</span>) <span style="color: #a020f0;">return</span>;
+        <span style="color: #a020f0;">if</span> (<span style="color: #008b8b;">document</span>.<span style="color: #0000ff;">getElementById</span>(<span style="color: #8b2252;">"orgmod-hud-root"</span>)) <span style="color: #a020f0;">return</span>;
+
+        <span style="color: #a020f0;">this</span>.mountNode = <span style="color: #008b8b;">document</span>.<span style="color: #0000ff;">createElement</span>(<span style="color: #8b2252;">"div"</span>);
+        <span style="color: #a020f0;">this</span>.mountNode.id = <span style="color: #8b2252;">"orgmod-hud-root"</span>;
+        <span style="color: #008b8b;">document</span>.body.<span style="color: #0000ff;">appendChild</span>(<span style="color: #a020f0;">this</span>.mountNode);
+
+        <span style="color: #0000ff;">render</span>(
+            &lt;<span style="color: #0000ff;">HudView</span>
+                <span style="color: #008b8b;">onRenderAll</span>={<span style="color: #a020f0;">this</span>.onRenderAll}
+                <span style="color: #008b8b;">onFoldAll</span>={<span style="color: #a020f0;">this</span>.onFoldAll}
+            /&gt;,
+            <span style="color: #a020f0;">this</span>.mountNode
+        );
+    }
+
+    <span style="color: #0000ff;">unmount</span>(): <span style="color: #a020f0;">void</span> {
+        <span style="color: #a020f0;">if</span> (<span style="color: #a020f0;">this</span>.mountNode) {
+            <span style="color: #0000ff;">render</span>(<span style="color: #008b8b;">null</span>, <span style="color: #a020f0;">this</span>.mountNode);
+            <span style="color: #a020f0;">this</span>.mountNode.<span style="color: #0000ff;">remove</span>();
+            <span style="color: #a020f0;">this</span>.mountNode = <span style="color: #008b8b;">null</span>;
+        }
+    }
+}
+</code></pre>
+</div>
+</div>
+</div>
+</div>
+<div id="outline-container-org5045678" class="outline-2">
+<h2 id="org5045678"><span class="section-number-2">12.</span> References &amp; Primary Citations</h2>
+<div class="outline-text-2" id="text-12">
+<ol class="org-ol">
+<li><b><b>Preact Official Documentation:</b></b>
+<ul class="org-ul">
+<li>Preact Guide &amp; Architecture: <a href="https://preactjs.com/guide/v10/getting-started">https://preactjs.com/guide/v10/getting-started</a></li>
+<li>Differences to React: <a href="https://preactjs.com/guide/v10/differences-to-react">https://preactjs.com/guide/v10/differences-to-react</a></li>
+<li>Preact Hooks Guide: <a href="https://preactjs.com/guide/v10/hooks">https://preactjs.com/guide/v10/hooks</a></li>
+<li>Preact Signals Guide: <a href="https://preactjs.com/guide/v10/signals">https://preactjs.com/guide/v10/signals</a></li>
+<li>Options Hooks API: <a href="https://preactjs.com/guide/v10/options">https://preactjs.com/guide/v10/options</a></li>
+</ul></li>
+
+<li><b><b>Primary Source Repositories &amp; Specifications:</b></b>
+<ul class="org-ul">
+<li>Preact Core Repository: <a href="https://github.com/preactjs/preact">https://github.com/preactjs/preact</a></li>
+<li>Preact Signals Repository: <a href="https://github.com/preactjs/signals">https://github.com/preactjs/signals</a></li>
+<li>Preact Custom Element: <a href="https://github.com/preactjs/preact-custom-element">https://github.com/preactjs/preact-custom-element</a></li>
+<li>HTM (Hyperscript Tagged Markup): <a href="https://github.com/developit/htm">https://github.com/developit/htm</a></li>
+</ul></li>
+
+<li><b><b>W3C &amp; ECMAScript Standards:</b></b>
+<ul class="org-ul">
+<li>DOM Standard Event Dispatch: <a href="https://dom.spec.whatwg.org/#interface-event">https://dom.spec.whatwg.org/#interface-event</a></li>
+<li>Shadow DOM Encapsulation: <a href="https://dom.spec.whatwg.org/#shadow-trees">https://dom.spec.whatwg.org/#shadow-trees</a></li>
+<li>MutationObserver Specification: <a href="https://dom.spec.whatwg.org/#mutationobserver">https://dom.spec.whatwg.org/#mutationobserver</a></li>
+</ul></li>
+</ol>
+</div>
+</div>
+</div>
+<div id="postamble" class="status">
+<p class="date">Date: 2026-09-03</p>
+<p class="date">Created: 2026-09-06 Sun 00:43</p>
+</div>
+</body>
+</html>

@@ -1,0 +1,83 @@
+* Bash Generation Script: Extension Source Scaffold <2026-09-06 Sun 00:11>
+
+The script below uses `mkdir -p` and `touch` to instantiate the entire provider-agnostic hierarchy under `./src/`. It is idempotent and safe to run in an existing repository root.
+
+** `scaffold_src.sh`
+#+begin_src bash
+#!/usr/bin/env bash
+
+set -euo pipefail
+
+BASE_DIR="./src"
+
+echo "Initializing source hierarchy under ${BASE_DIR}..."
+
+# 1. Manifest & Styles
+mkdir -p "${BASE_DIR}/styles"
+touch "${BASE_DIR}/manifest.json"
+touch "${BASE_DIR}/styles/globals.css"
+
+# 2. Core (Engine, Contracts, AST, Store, Utils)
+mkdir -p "${BASE_DIR}/core/ast"
+mkdir -p "${BASE_DIR}/core/contracts"
+mkdir -p "${BASE_DIR}/core/store"
+mkdir -p "${BASE_DIR}/core/utils"
+
+touch "${BASE_DIR}/core/ast/orgParser.ts"
+touch "${BASE_DIR}/core/ast/types.ts"
+touch "${BASE_DIR}/core/contracts/adapter.ts"
+touch "${BASE_DIR}/core/contracts/models.ts"
+touch "${BASE_DIR}/core/contracts/observer.ts"
+touch "${BASE_DIR}/core/store/storage.ts"
+touch "${BASE_DIR}/core/store/settings.ts"
+touch "${BASE_DIR}/core/utils/dom.ts"
+touch "${BASE_DIR}/core/utils/async.ts"
+
+# 3. Views (Preact Components & DocumentViews)
+mkdir -p "${BASE_DIR}/views/DocumentViews/OrgDocumentView"
+mkdir -p "${BASE_DIR}/views/DocumentViews/RawDocumentView"
+mkdir -p "${BASE_DIR}/views/Common"
+mkdir -p "${BASE_DIR}/views/Options"
+
+touch "${BASE_DIR}/views/DocumentViews/OrgDocumentView/index.tsx"
+touch "${BASE_DIR}/views/DocumentViews/OrgDocumentView/OrgHeadline.tsx"
+touch "${BASE_DIR}/views/DocumentViews/OrgDocumentView/OrgTable.tsx"
+touch "${BASE_DIR}/views/DocumentViews/OrgDocumentView/styles.module.css"
+touch "${BASE_DIR}/views/Common/ActionButton.tsx"
+touch "${BASE_DIR}/views/Common/ContextMenu.tsx"
+touch "${BASE_DIR}/views/Options/App.tsx"
+touch "${BASE_DIR}/views/Options/main.tsx"
+
+# 4. Chat Adapters
+mkdir -p "${BASE_DIR}/chat/gemini/model"
+mkdir -p "${BASE_DIR}/chat/gemini/controller"
+mkdir -p "${BASE_DIR}/chat/gemini/views"
+mkdir -p "${BASE_DIR}/chat/claude"
+mkdir -p "${BASE_DIR}/chat/chatgpt"
+
+touch "${BASE_DIR}/chat/registry.ts"
+touch "${BASE_DIR}/chat/gemini/index.ts"
+touch "${BASE_DIR}/chat/gemini/selectors.ts"
+touch "${BASE_DIR}/chat/gemini/types.ts"
+touch "${BASE_DIR}/chat/gemini/model/codeBlock.ts"
+touch "${BASE_DIR}/chat/gemini/controller/domObserver.ts"
+touch "${BASE_DIR}/chat/gemini/controller/injector.ts"
+touch "${BASE_DIR}/chat/gemini/controller/scraper.ts"
+touch "${BASE_DIR}/chat/gemini/views/MessageActions.tsx"
+
+# 5. Build Entrypoints
+mkdir -p "${BASE_DIR}/entrypoints"
+touch "${BASE_DIR}/entrypoints/content.ts"
+touch "${BASE_DIR}/entrypoints/background.ts"
+touch "${BASE_DIR}/entrypoints/popup.html"
+touch "${BASE_DIR}/entrypoints/options.html"
+
+echo "Directory structure created successfully."
+#+end_src
+
+** Usage
+#+begin_src bash
+chmod +x scaffold_src.sh
+./scaffold_src.sh
+#+end_src
+

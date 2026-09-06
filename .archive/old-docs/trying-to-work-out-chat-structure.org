@@ -1,0 +1,421 @@
+
+* thoughts
+// Only fixed width blocks have toolbars, and its one to one. Hide toolbar when plain text, or inject one?
+// A turn can have more than one response-element (so more than one StructuredMessageContainer per turn)
+// But each StructuredMessageContainer should only have one content block i think. 
+
+- So, lets:
+  - Inject a toolbar at every message?
+  - Or do we acquire all contiguous of like kind and create one larger container? I think that makes a bit more sense.
+    - Every turn we get exactly two containers, with both portalling a [interface Toolbar] and a MessageContentContainer
+    - Toolbar has a content-aware set of tools
+    - MessageContentContainer has at least one portalled [interface DocumentView]/[interface FoldingBade], but may have more
+    - 
+
+Too much polymorphism?
+ 
+<VirtualTurnContainer> // logical, not actually an element or one of my components
+
+- UserMessageContainer ::
+  - MessageToolbar :: 
+  - MessageContentContainer ::
+
+- ModelResponseContainer :: model-response response-container response-content > container
+  [ // has one or more content blocks, with 
+  - MessageToolBar ::
+  - MessageContentContainer :: [interface DocumentView]
+]*
+
+</ VirtualTurnContainer>
+* Exploration
+** DOM Simplification and Angular Extension Strategy [2026-09-05 Sat 12:29]
+*** Python BeautifulSoup Cleaning Pipeline
+Angular's production output leaves behind several structural artifacts:
+- Comment nodes used for structural directives (~*ngIf~, ~*ngFor~) and component boundaries.
+- Emulated encapsulation attributes (e.g., ~_ngcontent-c123~, ~_nghost-c123~).
+- Transparent wrappers like ~<ng-container>~.
+- SVG clutter, inline scripts, styles, and empty formatting nodes.
+
+The following Python script uses ~BeautifulSoup~ (with the fast ~lxml~ engine)
+to strip this noise, recursively unwrap non-semantic wrapper tags, and output an
+indented, legible DOM tree.
+
+#+BEGIN_SRC python :tangle "dom-extraction/extractor.py"
+  import re
+  import sys
+
+  from bs4 import BeautifulSoup, Comment
+
+  def clean_angular_dom(raw_html_path: str, output_path: str):
+      with open(raw_html_path, "r", encoding="utf-8") as f:
+          soup = BeautifulSoup(f, "lxml")
+
+      # 1. Strip comments
+      for comment in soup.find_all(text=lambda text: isinstance(text, Comment)):
+          comment.extract()
+
+      # 2. Drop heavy non-structural elements
+      for tag in soup.find_all(["script", "style", "noscript", "svg"]):
+          tag.decompose()
+
+      # 3. Strip Angular emulated encapsulation attributes and dynamic state classes
+      ng_attr_pattern = re.compile(r"^_ng(content|host)-.*")
+      for element in soup.find_all(True):
+          attrs = dict(element.attrs)
+          for attr in attrs:
+              if ng_attr_pattern.match(attr):
+                  del element.attrs[attr]
+
+      # 4. Unwrap structural/wrapper elements that dilute hierarchy
+      #    <ng-container> and generic <div>/<span> with zero semantic attributes
+      for wrapper in soup.find_all(["ng-container", "ng-template"]):
+          wrapper.unwrap()
+
+      # 5. Iteratively unwrap redundant container tags (divs with no class/id/attributes)
+      flattened = True
+      while flattened:
+          flattened = False
+          for div in soup.find_all(["div", "span"]):
+              if not div.attrs and len(div.contents) > 0:
+                  div.unwrap()
+                  flattened = True
+
+      # 6. Pretty print output
+      with open(output_path, "w", encoding="utf-8") as f:
+          f.write(soup.prettify())
+
+      print(f"Cleaned DOM written to: {output_path}")
+
+  if __name__ == "__main__":
+      print(sys.argv)
+      input_file = sys.argv[1] if len(sys.argv) > 1 else "raw_dom.html"
+      output_file = sys.argv[2] if len(sys.argv) > 2 else "clean_dom.html"
+      print(input_file)
+      print(output_file)
+      clean_angular_dom(input_file, output_file)
+#+END_SRC
+
+*** Understanding Angular Production DOM Architecture
+To target elements reliably in an Angular application without access to internal
+models:
+**** 1. Component Boundaries and Custom Tags
+- Unlike generic React builds that compile mostly to ~<div>~soup, Angular
+  components compile into their custom tag names by default (e.g.,
+  ~<app-chat-message>~, ~<chat-list>~, ~<message-item>~).
+- These custom element tags are the most stable CSS selectors available. Always
+  prioritize custom tag names over classes.
+
+**** 2. Scoped Encapsulation (~_ngcontent~ / ~_nghost~)
+- Angular uses attribute selectors (like ~_ngcontent-ng-c123456789~) to scope
+  CSS to specific components.
+- *Never target these attributes directly in your selectors.* The hash suffix
+  can and will change on every deployment or build artifact refresh.
+
+**** 3. CDKs and Material Layouts
+- If the application uses the Angular Component Dev Kit (CDK), the chat
+  container likely uses virtual scrolling (~<cdk-virtual-scroll-viewport>~).
+- *Virtual Scrolling Implication:* Only messages currently in the viewport exist
+  in the DOM. As the user scrolls or new messages arrive, DOM nodes are
+  destroyed and recycled. Your extension cannot rely on selecting elements once
+  and caching them indefinitely.
+*** Dynamic Streaming Chat Interception Strategy
+To interact with streaming messages in an extension, polling is inefficient and
+fragile. You need a reactive pipeline using native browser APIs within your
+Content Script.
+**** Strategy A: ~MutationObserver~ on the Chat Stream Container
+Observe child additions directly on the scroll container.
+
+#+BEGIN_SRC javascript
+function processMessageNode(node) {
+  if (node.nodeType !== Node.ELEMENT_NODE) return;
+
+  // Match your target component/class
+  const messageElement = node.matches('app-chat-message') 
+    ? node 
+    : node.querySelector('app-chat-message');
+
+  if (!messageElement || messageElement.dataset.extProcessed) return;
+  messageElement.dataset.extProcessed = 'true';
+
+  // Extract payload or inject UI
+  const textContent = messageElement.querySelector('.message-body')?.textContent;
+  
+  // Custom extension UI injection
+  const actionButton = document.createElement('button');
+  actionButton.className = 'ext-action-btn';
+  actionButton.textContent = 'Action';
+  actionButton.addEventListener('click', (e) => {
+    e.stopPropagation();
+    console.log('Interacting with message:', textContent);
+  });
+  
+  messageElement.appendChild(actionButton);
+}
+
+function initChatObserver(containerSelector) {
+  const container = document.querySelector(containerSelector);
+  if (!container) {
+    console.error(`Container ${containerSelector} not found.`);
+    return;
+  }
+
+  // Process existing messages first
+  container.querySelectorAll('app-chat-message').forEach(processMessageNode);
+
+  const observer = new MutationObserver((mutations) => {
+    for (const mutation of mutations) {
+      for (const addedNode of mutation.addedNodes) {
+        processMessageNode(addedNode);
+      }
+    }
+  });
+
+  observer.observe(container, {
+    childList: true,
+    subtree: true
+  });
+}
+#+END_SRC
+**** Strategy B: Shadow DOM and Component Instance Access (Advanced)
+If the Angular site uses native Shadow DOM (~ViewEncapsulation.ShadowDom~):
+- Standard ~document.querySelector~ will not pierce through shadow roots.
+- You must traverse ~.shadowRoot~ boundaries explicitly.
+
+If the Angular app is in development or exposes global context:
+- In production, Angular disables ~ng.probe~. However, you can inspect custom
+  properties bound to DOM elements via the console using
+  ~getEventListeners(element)~ to reverse-engineer event payloads if you need to
+  dispatch native events that Angular's event zone (~zone.js~) will detect.
+
+- When dispatching input to Angular input elements (e.g., simulating typing in the chat box), trigger an ~input~ or ~change~ event with ~bubbles: true~, otherwise Angular's two-way data binding (~[(ngModel)]~ or Reactive Forms) will not capture the changed value.
+#+BEGIN_SRC javascript
+function setAngularInputValue(inputElement, value) {
+  inputElement.value = value;
+  inputElement.dispatchEvent(new Event('input', { bubbles: true }));
+  inputElement.dispatchEvent(new Event('change', { bubbles: true }));
+}
+#+END_SRC
+** Modular DOM Analysis Workspace and Tree Visualizer [2026-09-05 Sat 14:29]
+:PROPERTIES:
+:header-args:python: :dir ./dom-extraction :python "uv run -" :session
+:END:
+#+BEGIN_SRC python  :tangle "dom-extraction/extractor-workspace.py"
+"""
+DOM Workspace: Utilities for sanitizing, unwrapping, and visualizing
+obfuscated or deeply nested Angular/modern web application DOM trees.
+"""
+
+import re
+import sys
+from pathlib import Path
+from typing import Iterable, List, Optional, Set
+from bs4 import BeautifulSoup, Comment, NavigableString, Tag
+
+
+def load_soup(source: str, is_file: bool = True) -> BeautifulSoup:
+    """Load and parse HTML from a file path or raw string using lxml."""
+    if is_file:
+        with open(source, "r", encoding="utf-8") as f:
+            return BeautifulSoup(f, "lxml")
+    return BeautifulSoup(source, "lxml")
+
+
+def strip_comments(soup: BeautifulSoup) -> BeautifulSoup:
+    """Remove all HTML comments (*ngIf, *ngFor, dynamic templates)."""
+    for comment in soup.find_all(text=lambda t: isinstance(t, Comment)):
+        comment.extract()
+    return soup
+
+
+def strip_tags(
+    soup: BeautifulSoup,
+    tags_to_drop: Iterable[str] = ("script", "style", "noscript", "svg", "link", "meta"),
+) -> BeautifulSoup:
+    """Decompose non-structural or visually heavy elements completely."""
+    for tag in soup.find_all(list(tags_to_drop)):
+        tag.decompose()
+    return soup
+
+
+def strip_ng_attributes(
+    soup: BeautifulSoup,
+    pattern: str = r"^_ng(content|host)-.*",
+) -> BeautifulSoup:
+    """Remove transient Angular build/scoping hash attributes."""
+    compiled_pattern = re.compile(pattern)
+    for element in soup.find_all(True):
+        for attr in list(element.attrs.keys()):
+            if compiled_pattern.match(attr):
+                del element.attrs[attr]
+    return soup
+
+
+def unwrap_named_tags(
+    soup: BeautifulSoup,
+    tags_to_unwrap: Iterable[str] = ("ng-container", "ng-template"),
+) -> BeautifulSoup:
+    """Unwrap specific container tags while retaining their child nodes."""
+    for tag in soup.find_all(list(tags_to_unwrap)):
+        tag.unwrap()
+    return soup
+
+
+def unwrap_empty_containers(
+    soup: BeautifulSoup,
+    container_tags: Iterable[str] = ("div", "span"),
+    preserve_classes: bool = False,
+) -> BeautifulSoup:
+    """
+    Iteratively hoist child elements out of non-semantic wrapper tags
+    that have no attributes (or no classes if preserve_classes=False).
+    """
+    flattened = True
+    tags = list(container_tags)
+    while flattened:
+        flattened = False
+        for node in soup.find_all(tags):
+            # Check if container is bare
+            if not node.attrs or (not preserve_classes and not node.get("id") and not node.get("class")):
+                if len(node.contents) > 0:
+                    node.unwrap()
+                    flattened = True
+    return soup
+
+
+def sanitize_angular_dom(
+    soup: BeautifulSoup,
+    drop_tags: Iterable[str] = ("script", "style", "noscript", "svg"),
+    unwrap_tags: Iterable[str] = ("ng-container", "ng-template"),
+    flatten_bare_divs: bool = True,
+) -> BeautifulSoup:
+    """Convenience pipeline running standard cleanup passes in order."""
+    strip_comments(soup)
+    strip_tags(soup, drop_tags)
+    strip_ng_attributes(soup)
+    unwrap_named_tags(soup, unwrap_tags)
+    if flatten_bare_divs:
+        unwrap_empty_containers(soup)
+    return soup
+
+
+def render_dom_tree(
+    node: Tag,
+    prefix: str = "",
+    is_last: bool = True,
+    max_depth: int = 15,
+    current_depth: int = 0,
+    show_attrs: bool = True,
+    max_text_len: int = 40,
+) -> List[str]:
+    """
+    Recursively renders a node into standard Unix `tree` styled output.
+    Displays tag names, IDs, classes, and truncated text content.
+    """
+    if current_depth > max_depth or not isinstance(node, Tag):
+        return []
+
+    lines = []
+    
+    # Format current node summary
+    connector = "└── " if is_last else "├── "
+    label = [f"<{node.name}>"]
+
+    if show_attrs:
+        if node.get("id"):
+            label.append(f"#{node['id']}")
+        if node.get("class"):
+            classes = ".".join(node["class"]) if isinstance(node["class"], list) else node["class"]
+            label.append(f".{classes}")
+
+    # Extract non-empty immediate inline text summary if present
+    direct_texts = [
+        c.strip() for c in node.children
+        if isinstance(c, NavigableString) and not isinstance(c, Comment) and c.strip()
+    ]
+    if direct_texts:
+        text_preview = " ".join(direct_texts)
+        if len(text_preview) > max_text_len:
+            text_preview = text_preview[:max_text_len] + "..."
+        label.append(f'"{text_preview}"')
+
+    current_line = f"{prefix}{connector}{' '.join(label)}"
+    lines.append(current_line)
+
+    # Filter direct child element tags
+    child_tags = [c for c in node.children if isinstance(c, Tag)]
+    total_children = len(child_tags)
+
+    next_prefix = prefix + ("    " if is_last else "│   ")
+
+    for idx, child in enumerate(child_tags):
+        child_is_last = (idx == total_children - 1)
+        child_lines = render_dom_tree(
+            node=child,
+            prefix=next_prefix,
+            is_last=child_is_last,
+            max_depth=max_depth,
+            current_depth=current_depth + 1,
+            show_attrs=show_attrs,
+            max_text_len=max_text_len,
+        )
+        lines.extend(child_lines)
+
+    return lines
+
+
+def print_tree(
+    soup_or_tag: Tag,
+    max_depth: int = 10,
+    show_attrs: bool = True,
+    output_path: Optional[str] = None,
+):
+    """Entry point to print or save the tree rendering."""
+    target = soup_or_tag.body if hasattr(soup_or_tag, "body") and soup_or_tag.body else soup_or_tag
+    tree_lines = render_dom_tree(
+        node=target,
+        prefix="",
+        is_last=True,
+        max_depth=max_depth,
+        show_attrs=show_attrs,
+    )
+    output_text = "\n".join(tree_lines)
+    
+    if output_path:
+        Path(output_path).write_text(output_text, encoding="utf-8")
+        print(f"Tree output saved to: {output_path}")
+    else:
+        print(output_text)
+
+
+if __name__ == "__main__":
+    if len(sys.argv) < 2:
+        print("Usage: python dom_workspace.py <raw_dom.html> [output_tree.txt]")
+        sys.exit(1)
+
+    input_file = sys.argv[1]
+    tree_out = sys.argv[2] if len(sys.argv) > 2 else None
+
+    # Execute full pipeline
+    soup = load_soup(input_file)
+    sanitize_angular_dom(soup)
+    print_tree(soup, max_depth=12, output_path=tree_out)
+#+END_SRC
+
+#+RESULTS:
+
+#+BEGIN_SRC python :results output
+#from dom_workspace import load_soup, sanitize_angular_dom, print_tree
+
+# 1. Load and sanitize
+soup = load_soup("example_dom.html")
+sanitize_angular_dom(soup)
+
+# 2. Isolate a suspected chat subcontainer
+chat_root = soup.find(lambda tag: "chat" in tag.name or "message" in tag.name or "scroll" in str(tag.get("class", [])))
+
+if chat_root:
+    # Print clean tree structure just for the chat component
+    print_tree(chat_root, max_depth=6)
+#+END_SRC
+
+#+RESULTS:

@@ -1,0 +1,2588 @@
+#+INCLUDE: ~/.emacs.d/org/includes/org-include.org
+
+* Task
+** Gemini Task Prompt
+I need to implement that scraper api in typescript for a webextension that
+modifies chat AI sites to add UI improvements. It adds scoped content scripts
+for each supported site. Each site has separate DOM structures in their chat
+view, so each site must be targeted separately. This task is about the gemini
+targeting component, which will reside in the existing source tree at
+`src/chat/gemini/`.
+
+The webextension uses preact 11 for components and rendering. 
+
+The webextension will call from this API when gemini is the detected site. Among
+other features, webextension has existing DocumentViews for overriding the way
+sites display code-blocks, such as OrgDocumentView. The gemini component must be
+able to work with these components. 
+
+Please help me create a plan, with some example code and a suggested source
+tree. We need proper, idiomatic typescript that efficiently and idiomatically
+uses the browser javascript API. The source tree suggested should properly
+follow MVC separation of concerns.
+
+* Pre-Planning                                                     :noexport:
+:properties:
+:header-args: :eval no
+:end:
+
+** Gemini
+*** Recommended Gemini Source Tree
+#+begin_example
+src/chat/gemini/
+├── index.ts                 # Main entrypoint / lifecycle bootstrap
+├── types.ts                 # Type definitions & AST/DOM contract
+├── selectors.ts             # Strict selector definitions & constants
+├── model/
+│   ├── conversation.ts      # Parsed conversation state aggregator
+│   ├── message.ts           # User and model message domain models
+│   └── codeBlock.ts         # Code block entity & language parser
+├── controller/
+│   ├── scraper.ts           # DOM extraction & parsing engine
+│   ├── domObserver.ts       # MutationObserver lifecycle manager
+│   └── injector.ts          # Mount manager for Preact DocumentViews
+└── views/
+    ├── OrgViewWrapper.tsx   # Preact mount adapter for existing OrgDocumentView
+    └── MessageActions.tsx   # Custom message footer actions (Fold, Copy-as-Org)
+#+end_example
+*** Gemini Planning stage 1                                        :noexport:
+Stage 1 because I went through a few cycles to figure out the misunderstanding
+points in order to cover them in a new initial prompt.
+**** Gemini SPA Scraper & UI Injector Architecture <2026-09-05 Sat 23:15>
+Your assessment of deep CSS selector fragility is accurate. Relying on strict
+hierarchical combinators in a modern framework-driven SPA guarantees breakage on
+the next deployment. Scoping queries to stable boundary containers
+(`chat-window`, `response-container`, `code-block`) is the correct architectural
+decision.
+
+However, your hypothesis regarding intercepting the "copy buffer event handler"
+to extract raw text is flawed. Web extensions execute content scripts in an
+isolated world. You cannot easily hook into the page's React/Angular synthetic
+event system or fiber nodes without injecting a script tag into the main page
+context, which introduces significant security and synchronization overhead. The
+rigorous approach is to extract `.textContent` directly from the `<code>` node,
+computationally stripping any formatting elements (like `<span>` tags used for
+syntax highlighting) via standard DOM APIs.
+
+***** Source Tree (MVC)
+To maintain separation of concerns and ensure the content script remains
+performant, the architecture isolates DOM observation (Controller),
+state/parsing (Model), and DOM manipulation (View).
+
+#+BEGIN_SRC text
+src/
+├── background/
+│   └── service_worker.ts       # Orchestrates extension lifecycle and API proxies
+├── content/
+│   ├── index.ts                # Entry point, initializes Controller
+│   ├── controllers/
+│   │   └── DomObserver.ts      # MutationObserver managing SPA rendering lifecycles
+│   ├── models/
+│   │   ├── Conversation.ts     # Data structures for parsed threads
+│   │   └── CodeBlockParser.ts  # Logic for extracting language and raw text
+│   └── views/
+│       ├── DocumentView.ts     # UI component injected over/beside code blocks
+│       └── FooterActions.ts    # UI components injected into message-actions
+├── shared/
+│   ├── types.ts                # Cross-boundary interfaces
+│   └── utils.ts                # Generic DOM utilities
+├── manifest.json
+└── package.json
+#+END_SRC
+
+***** Implementation Blueprint
+
+****** 1. Controller: MutationObserver Lifecycle
+Since Gemini generates DOM nodes asynchronously, static querying fails. You must
+use a `MutationObserver` targeting the `chat-window-content` or `body`.
+Performance is critical here; filtering mutation records efficiently prevents
+main-thread lockups.
+
+#+BEGIN_SRC typescript
+// src/content/controllers/DomObserver.ts
+import { processCodeBlock } from '../models/CodeBlockParser';
+import { injectFooterActions } from '../views/FooterActions';
+
+export class DomObserver {
+    private observer: MutationObserver;
+
+    constructor() {
+        this.observer = new MutationObserver(this.handleMutations.bind(this));
+    }
+
+    public observe(target: HTMLElement): void {
+        this.observer.observe(target, { childList: true, subtree: true });
+    }
+
+    private handleMutations(mutations: MutationRecord[]): void {
+        for (const mutation of mutations) {
+            if (mutation.type !== 'childList') continue;
+
+            mutation.addedNodes.forEach((node) => {
+                if (node.nodeType !== Node.ELEMENT_NODE) return;
+                const el = node as HTMLElement;
+
+                // 1. Intercept newly rendered code blocks
+                if (el.tagName.toLowerCase() === 'code-block') {
+                    processCodeBlock(el);
+                } else {
+                    const codeBlocks = el.querySelectorAll('code-block');
+                    codeBlocks.forEach(processCodeBlock);
+                }
+
+                // 2. Intercept response footers for action injection
+                if (el.matches('message-actions[footer]')) {
+                    injectFooterActions(el);
+                } else {
+                    const footers = el.querySelectorAll('message-actions[footer]');
+                    footers.forEach(injectFooterActions);
+                }
+            });
+        }
+    }
+}
+#+END_SRC
+
+****** 2. Model: Code Block Parsing
+This module handles your specific invariant for identifying the language from the first `TEXT_NODE` and isolating the raw code payload.
+
+#+BEGIN_SRC typescript
+// src/content/models/CodeBlockParser.ts
+import { renderDocumentView } from '../views/DocumentView';
+
+export interface ParsedCodeBlock {
+    language: string;
+    rawContent: string;
+    node: HTMLElement;
+}
+
+export function processCodeBlock(node: HTMLElement): void {
+    // Prevent double-processing
+    if (node.dataset.scraperProcessed === 'true') return;
+    
+    const parsed = parseCodeBlockData(node);
+    if (parsed) {
+        node.dataset.scraperProcessed = 'true';
+        if (parsed.language === 'org' || parsed.language === 'text') {
+             renderDocumentView(parsed);
+        }
+    }
+}
+
+function parseCodeBlockData(node: HTMLElement): ParsedCodeBlock | null {
+    const firstChild = node.firstChild;
+    let language = 'unknown';
+
+    // Verify first child is a text node to extract language metadata
+    if (firstChild && firstChild.nodeType === Node.TEXT_NODE) {
+        const text = firstChild.textContent?.trim() || '';
+        if (text === 'Plain text' || text === 'Code snippet') {
+            language = 'text';
+        } else if (text) {
+            language = text.toLowerCase();
+        }
+    }
+
+    const codeElement = node.querySelector('code');
+    if (!codeElement) return null;
+
+    // Extracting raw text. Using textContent safely ignores HTML tags 
+    // injected by server-side or client-side syntax highlighters.
+    const rawContent = codeElement.textContent || '';
+
+    return { language, rawContent, node };
+}
+#+END_SRC
+
+****** 3. View: UI Injection Interfaces
+The View layer safely manipulates the DOM to inject your custom tools without breaking the SPA's event listeners.
+
+#+BEGIN_SRC typescript
+// src/content/views/FooterActions.ts
+export function injectFooterActions(footerNode: Element): void {
+    if (footerNode.hasAttribute('data-custom-actions-injected')) return;
+
+    const copyOrgBtn = document.createElement('button');
+    copyOrgBtn.className = 'custom-action-btn copy-as-org';
+    copyOrgBtn.textContent = 'Copy as Org';
+    copyOrgBtn.onclick = (e) => handleCopyAsOrg(e, footerNode);
+
+    // Append to the existing flex/grid container of the footer
+    footerNode.appendChild(copyOrgBtn);
+    footerNode.setAttribute('data-custom-actions-injected', 'true');
+}
+
+function handleCopyAsOrg(event: MouseEvent, footerNode: Element): void {
+    event.preventDefault();
+    event.stopPropagation();
+    
+    // Traverse up to the response container to grab the full message content
+    const responseContainer = footerNode.closest('model-response');
+    if (!responseContainer) return;
+    
+    const contentContainer = responseContainer.querySelector('.markdown-main-panel');
+    if (!contentContainer) return;
+
+    // Execution of formatting logic...
+    console.log("Extracting and formatting to Org:", contentContainer.textContent);
+}
+#+END_SRC
+
+**** Gemini Sub-Component Architecture (~src/sites/gemini/~) <2026-09-05 Sat 23:12>
+Refining scope strictly to ~src/sites/gemini/~. The MVC boundaries remain
+intact, functioning as a self-contained domain module that can be instantiated
+by an external site orchestrator.
+***** Focused Source Tree
+#+BEGIN_SRC text
+src/sites/gemini/
+├── index.ts                # Module entry/teardown (implements site adapter interface)
+├── types.ts                # Domain-specific AST and node interfaces
+├── controller/
+│   └── GeminiObserver.ts   # Targeted MutationObserver and lifecycle dispatcher
+├── model/
+│   ├── CodeBlockParser.ts  # Extraction logic (first TEXT_NODE inspection, raw payload)
+│   └── MessageParser.ts    # Model/User container traversal & structural extraction
+└── view/
+    ├── DocumentView.ts     # Mounts UI over/replaces code-block nodes
+    └── FooterActions.ts    # Injects custom action buttons into message-actions[footer]
+#+END_SRC
+***** Module Implementation
+
+****** 1. Types (~src/sites/gemini/types.ts~)
+
+Define the domain models for parsed DOM artifacts.
+
+#+BEGIN_SRC typescript
+export type SupportedLanguage = 'org' | 'text' | string;
+
+export interface ExtractedCodeBlock {
+  readonly language: SupportedLanguage;
+  readonly rawContent: string;
+  readonly container: HTMLElement;
+  readonly codeElement: HTMLElement;
+  readonly hasNativeHeader: boolean;
+}
+
+export interface ExtractedResponse {
+  readonly id?: string;
+  readonly rootElement: HTMLElement;
+  readonly contentElement: HTMLElement;
+  readonly footerElement?: HTMLElement;
+}
+#+END_SRC
+
+****** 2. Model: Code Block Extraction (~src/sites/gemini/model/CodeBlockParser.ts~)
+
+Handles the first-child ~TEXT_NODE~ invariant and isolates the raw payload from ~<code>~ elements without interacting with page context event emitters.
+
+#+BEGIN_SRC typescript
+import { ExtractedCodeBlock, SupportedLanguage } from '../types';
+
+export class CodeBlockParser {
+  public static parse(node: HTMLElement): ExtractedCodeBlock | null {
+    const codeElement = node.querySelector<HTMLElement>('code');
+    if (!codeElement) return null;
+
+    let language: SupportedLanguage = 'unknown';
+    let hasNativeHeader = false;
+
+    // Inspect firstChild for TEXT_NODE containing language label
+    const firstChild = node.firstChild;
+    if (firstChild && firstChild.nodeType === Node.TEXT_NODE) {
+      hasNativeHeader = true;
+      const label = (firstChild.textContent ?? '').trim();
+      
+      if (label === 'Plain text' || label === 'Code snippet') {
+        language = 'text';
+      } else if (label.length > 0) {
+        language = label.toLowerCase();
+      }
+    }
+
+    // Direct textContent extraction cleanly disregards syntax highlighting spans
+    const rawContent = codeElement.textContent ?? '';
+
+    return {
+      language,
+      rawContent,
+      container: node,
+      codeElement,
+      hasNativeHeader
+    };
+  }
+}
+#+END_SRC
+
+****** 3. View: Render/Injection Handlers (~src/sites/gemini/view/~)
+
+Defines decoupled UI handlers responsible for DOM mutations and cleanup.
+
+#+BEGIN_SRC typescript
+// src/sites/gemini/view/DocumentView.ts
+import { ExtractedCodeBlock } from '../types';
+
+export class DocumentView {
+  public static mount(block: ExtractedCodeBlock): void {
+    if (block.container.dataset.documentViewMounted === 'true') return;
+
+    // Build replacement or overlay container
+    const docContainer = document.createElement('div');
+    docContainer.className = 'gemini-org-document-view';
+    docContainer.setAttribute('data-lang', block.language);
+
+    // If block lacked a native header, mount a custom one
+    if (!block.hasNativeHeader) {
+      const customHeader = document.createElement('div');
+      customHeader.className = 'gemini-custom-code-header';
+      customHeader.textContent = `Language: ${block.language}`;
+      docContainer.appendChild(customHeader);
+    }
+
+    // Mount logic (e.g., rendering an Org mode interactive AST or custom view)
+    const contentPre = document.createElement('pre');
+    contentPre.textContent = block.rawContent;
+    docContainer.appendChild(contentPre);
+
+    // Insert while preserving or replacing original node
+    block.container.replaceChildren(docContainer);
+    block.container.dataset.documentViewMounted = 'true';
+  }
+}
+#+END_SRC
+
+#+BEGIN_SRC typescript
+// src/sites/gemini/view/FooterActions.ts
+export class FooterActions {
+  public static inject(footer: HTMLElement, onCopyOrg: () => void): void {
+    if (footer.dataset.customActionsInjected === 'true') return;
+
+    const actionButton = document.createElement('button');
+    actionButton.type = 'button';
+    actionButton.className = 'gemini-custom-footer-btn copy-org-btn';
+    actionButton.title = 'Copy as Org Mode';
+    actionButton.textContent = 'Copy as Org';
+
+    actionButton.addEventListener('click', (event) => {
+      event.preventDefault();
+      event.stopPropagation();
+      onCopyOrg();
+    });
+
+    footer.appendChild(actionButton);
+    footer.dataset.customActionsInjected = 'true';
+  }
+}
+#+END_SRC
+
+****** 4. Controller: Lifecycle Orchestrator (~src/sites/gemini/controller/GeminiObserver.ts~)
+
+Connects the mutation stream directly to parsing models and dispatchers.
+
+#+BEGIN_SRC typescript
+import { CodeBlockParser } from '../model/CodeBlockParser';
+import { DocumentView } from '../view/DocumentView';
+import { FooterActions } from '../view/FooterActions';
+
+export class GeminiObserver {
+  private observer: MutationObserver | null = null;
+
+  public start(root: HTMLElement = document.body): void {
+    this.stop();
+    this.observer = new MutationObserver(this.handleMutations.bind(this));
+    this.observer.observe(root, {
+      childList: true,
+      subtree: true
+    });
+
+    // Run an initial sweep for pre-existing nodes
+    this.scanSubtree(root);
+  }
+
+  public stop(): void {
+    if (this.observer) {
+      this.observer.disconnect();
+      this.observer = null;
+    }
+  }
+
+  private handleMutations(mutations: MutationRecord[]): void {
+    for (let i = 0; i < mutations.length; i++) {
+      const mutation = mutations[i];
+      if (mutation.type !== 'childList') continue;
+
+      mutation.addedNodes.forEach((node) => {
+        if (node.nodeType === Node.ELEMENT_NODE) {
+          this.scanSubtree(node as HTMLElement);
+        }
+      });
+    }
+  }
+
+  private scanSubtree(element: HTMLElement): void {
+    // 1. Process code-block elements
+    if (element.tagName.toLowerCase() === 'code-block') {
+      this.handleCodeBlock(element);
+    } else {
+      const codeBlocks = element.querySelectorAll<HTMLElement>('code-block');
+      codeBlocks.forEach((cb) => this.handleCodeBlock(cb));
+    }
+
+    // 2. Process footer elements
+    if (element.matches('message-actions[footer]')) {
+      this.handleFooter(element);
+    } else {
+      const footers = element.querySelectorAll<HTMLElement>('message-actions[footer]');
+      footers.forEach((f) => this.handleFooter(f));
+    }
+  }
+
+  private handleCodeBlock(codeBlockNode: HTMLElement): void {
+    const parsed = CodeBlockParser.parse(codeBlockNode);
+    if (!parsed) return;
+
+    // Filter by relevant languages before triggering view transformation
+    if (parsed.language === 'org' || parsed.language === 'text') {
+      DocumentView.mount(parsed);
+    }
+  }
+
+  private handleFooter(footerNode: HTMLElement): void {
+    FooterActions.inject(footerNode, () => {
+      const responseRoot = footerNode.closest<HTMLElement>('model-response');
+      if (!responseRoot) return;
+
+      const markdownPanel = responseRoot.querySelector<HTMLElement>('.markdown-main-panel');
+      if (!markdownPanel) return;
+
+      // Extract payload and write to clipboard
+      const content = markdownPanel.innerText;
+      navigator.clipboard.writeText(content).catch((err) => {
+        console.error('Failed to copy org content:', err);
+      });
+    });
+  }
+}
+#+END_SRC
+
+****** 5. Adapter Entry (~src/sites/gemini/index.ts~)
+
+Exposes a clean lifecycle hook (~init~ / ~destroy~) for external orchestrators.
+
+#+BEGIN_SRC typescript
+import { GeminiObserver } from './controller/GeminiObserver';
+
+export class GeminiSiteAdapter {
+  private controller: GeminiObserver | null = null;
+
+  public init(): void {
+    this.controller = new GeminiObserver();
+    
+    // Target the primary scroller container if present, falling back to body
+    const target = document.querySelector<HTMLElement>('infinite-scroller') ?? document.body;
+    this.controller.start(target);
+  }
+
+  public destroy(): void {
+    if (this.controller) {
+      this.controller.stop();
+      this.controller = null;
+    }
+  }
+}
+#+END_SRC
+
+**** Preact 11 Integration & MutationObserver Topology <2026-09-05 Sat 23:16>
+
+***** 1. Architectural Decision: Single Central Observer vs. Multiple Targeted Observers
+
+A *single central ~MutationObserver~* is superior to multiple targeted observers for SPA content scripts.
+
+****** Mechanical Rationale:
+1. **Observer Heap & Microtask Queue Overhead:** Each active ~MutationObserver~
+   allocates its own callback dispatch queue. In dynamic single-page
+   applications undergoing frequent token-streaming DOM mutations, multiple
+   observers generate redundant queue flushes and overlapping subtree scans.
+2. **Dynamic Subtree Desynchronization:** Targeted observers bound to ephemeral
+   DOM nodes (e.g., ~infinite-scroller~ or specific conversation threads) are
+   prone to detachment during client-side route changes or internal SPA
+   re-renders. A single global observer attached to an invariant root (e.g.,
+   ~document.documentElement~ or ~document.body~) survives all internal client
+   router cycles.
+3. **Batching & Unified Traversal:** A central observer receives an aggregated
+   batch of mutations, allowing for an efficient batch pass over added/removed
+   nodes and feeding site-specific registry listeners.
+
+The idiomatic architecture uses a **Central Observer Bus** that routes added/removed nodes to site-specific adapter callbacks.
+
+---
+
+***** 2. Preact 11 Component Injection & Portal Lifecycle
+
+In Preact 11, mounting components into foreign DOM elements requires proper lifecycle bookkeeping. Calling ~render(h(Component, props), containerNode)~ attaches a Virtual DOM tree. When the SPA destroys or recycles that DOM node, or when the extension unmounts, you must explicitly call ~render(null, containerNode)~ to trigger cleanup effects and prevent memory leaks.
+
+****** Adjusted Directory Tree (~src/sites/gemini/~)
+
+#+BEGIN_SRC text
+src/sites/gemini/
+├── index.ts                # Implements SiteAdapter interface
+├── types.ts                # Domain contracts
+├── model/
+│   ├── CodeBlockParser.ts  # Extracts language and raw payload
+│   └── ResponseParser.ts   # Locates contextual response roots
+└── view/
+    ├── MountRegistry.ts    # Tracks mounted Preact root containers for cleanup
+    ├── DocumentViewHost.ts # Mounts OrgDocumentView / Custom DocumentViews
+    └── FooterActionsHost.ts# Mounts Preact footer action components
+#+END_SRC
+
+---
+
+***** 3. Concrete Implementation
+
+****** Type Contracts (~src/sites/gemini/types.ts~)
+
+#+BEGIN_SRC typescript
+import { ComponentType } from 'preact';
+
+export interface SiteAdapter {
+  init(): void;
+  destroy(): void;
+  handleAddedNode(node: Node): void;
+  handleRemovedNode(node: Node): void;
+}
+
+export interface ExtractedCodeBlock {
+  readonly language: string;
+  readonly rawContent: string;
+  readonly container: HTMLElement;
+  readonly codeElement: HTMLElement;
+  readonly hasNativeHeader: boolean;
+}
+
+export interface DocumentViewProps {
+  content: string;
+  language: string;
+  hasNativeHeader: boolean;
+  rawContainer: HTMLElement;
+}
+#+END_SRC
+
+****** Mount Registry & Teardown (~src/sites/gemini/view/MountRegistry.ts~)
+
+#+BEGIN_SRC typescript
+import { render } from 'preact';
+
+/**
+ * Manages mounted Preact roots to guarantee clean teardown and avoid detached VNode leaks.
+ */
+export class MountRegistry {
+  private static mountedContainers = new Set<HTMLElement>();
+
+  public static register(container: HTMLElement): void {
+    this.mountedContainers.add(container);
+  }
+
+  public static unmount(container: HTMLElement): void {
+    if (this.mountedContainers.has(container)) {
+      render(null, container);
+      this.mountedContainers.delete(container);
+    }
+  }
+
+  public static unmountAll(): void {
+    for (const container of this.mountedContainers) {
+      render(null, container);
+    }
+    this.mountedContainers.clear();
+  }
+}
+#+END_SRC
+
+****** Preact View Host (~src/sites/gemini/view/DocumentViewHost.ts~)
+
+Mounts the existing ~OrgDocumentView~ into the Gemini DOM node via Preact 11's ~render~ API.
+
+#+BEGIN_SRC typescript
+import { h, render, ComponentType } from 'preact';
+import { ExtractedCodeBlock, DocumentViewProps } from '../types';
+import { MountRegistry } from './MountRegistry';
+
+export class DocumentViewHost {
+  public static mount(
+    block: ExtractedCodeBlock,
+    Component: ComponentType<DocumentViewProps>
+  ): void {
+    const { container } = block;
+
+    // Prevent duplicate mounting
+    if (container.dataset.preactMounted === 'true') {
+      return;
+    }
+
+    // Isolate native code rendering without breaking Gemini's layout tree
+    const hostMountPoint = document.createElement('div');
+    hostMountPoint.className = 'gemini-extension-document-view-host';
+
+    // Hide original children while preserving them in the DOM if needed for fallback
+    Array.from(container.children).forEach((child) => {
+      (child as HTMLElement).style.display = 'none';
+    });
+
+    container.appendChild(hostMountPoint);
+    container.dataset.preactMounted = 'true';
+
+    const props: DocumentViewProps = {
+      content: block.rawContent,
+      language: block.language,
+      hasNativeHeader: block.hasNativeHeader,
+      rawContainer: container
+    };
+
+    // Preact 11 render call
+    render(h(Component, props), hostMountPoint);
+    MountRegistry.register(hostMountPoint);
+  }
+
+  public static cleanup(container: HTMLElement): void {
+    const host = container.querySelector<HTMLElement>('.gemini-extension-document-view-host');
+    if (host) {
+      MountRegistry.unmount(host);
+      host.remove();
+    }
+    delete container.dataset.preactMounted;
+  }
+}
+#+END_SRC
+
+****** Code Block Model Parser (~src/sites/gemini/model/CodeBlockParser.ts~)
+
+#+BEGIN_SRC typescript
+import { ExtractedCodeBlock } from '../types';
+
+export class CodeBlockParser {
+  public static parse(node: HTMLElement): ExtractedCodeBlock | null {
+    const codeElement = node.querySelector<HTMLElement>('code');
+    if (!codeElement) return null;
+
+    let language = 'unknown';
+    let hasNativeHeader = false;
+
+    // First child text node check for language metadata
+    const firstChild = node.firstChild;
+    if (firstChild && firstChild.nodeType === Node.TEXT_NODE) {
+      hasNativeHeader = true;
+      const text = (firstChild.textContent ?? '').trim();
+      if (text === 'Plain text' || text === 'Code snippet') {
+        language = 'text';
+      } else if (text.length > 0) {
+        language = text.toLowerCase();
+      }
+    }
+
+    // Direct textContent safely bypasses any syntax highlighted spans
+    const rawContent = codeElement.textContent ?? '';
+
+    return {
+      language,
+      rawContent,
+      container: node,
+      codeElement,
+      hasNativeHeader
+    };
+  }
+}
+#+END_SRC
+
+****** Site Adapter Implementation (~src/sites/gemini/index.ts~)
+
+Hooks directly into the centralized ~MutationObserver~ consumer lifecycle.
+
+#+BEGIN_SRC typescript
+import { ComponentType } from 'preact';
+import { SiteAdapter, DocumentViewProps } from './types';
+import { CodeBlockParser } from './model/CodeBlockParser';
+import { DocumentViewHost } from './view/DocumentViewHost';
+import { MountRegistry } from './view/MountRegistry';
+
+export class GeminiSiteAdapter implements SiteAdapter {
+  private orgDocumentViewComponent: ComponentType<DocumentViewProps>;
+
+  constructor(orgDocumentViewComponent: ComponentType<DocumentViewProps>) {
+    this.orgDocumentViewComponent = orgDocumentViewComponent;
+  }
+
+  public init(): void {
+    // Initial traversal of existing DOM nodes
+    const root = document.querySelector('chat-window-content') ?? document.body;
+    this.scanSubtree(root);
+  }
+
+  public destroy(): void {
+    MountRegistry.unmountAll();
+  }
+
+  public handleAddedNode(node: Node): void {
+    if (node.nodeType !== Node.ELEMENT_NODE) return;
+    this.scanSubtree(node as HTMLElement);
+  }
+
+  public handleRemovedNode(node: Node): void {
+    if (node.nodeType !== Node.ELEMENT_NODE) return;
+    const el = node as HTMLElement;
+    
+    // Clean up unmounted Preact root boundaries
+    if (el.matches?.('[data-preact-mounted="true"]')) {
+      DocumentViewHost.cleanup(el);
+    } else {
+      const mountedElements = el.querySelectorAll?.<HTMLElement>('[data-preact-mounted="true"]');
+      mountedElements?.forEach((child) => DocumentViewHost.cleanup(child));
+    }
+  }
+
+  private scanSubtree(element: HTMLElement): void {
+    if (element.tagName.toLowerCase() === 'code-block') {
+      this.processCodeBlock(element);
+      return;
+    }
+
+    const codeBlocks = element.querySelectorAll<HTMLElement>('code-block');
+    for (let i = 0; i < codeBlocks.length; i++) {
+      this.processCodeBlock(codeBlocks[i]);
+    }
+  }
+
+  private processCodeBlock(node: HTMLElement): void {
+    const parsed = CodeBlockParser.parse(node);
+    if (!parsed) return;
+
+    // Selectively mount OrgDocumentView for org blocks
+    if (parsed.language === 'org' || parsed.language === 'text') {
+      DocumentViewHost.mount(parsed, this.orgDocumentViewComponent);
+    }
+  }
+}
+#+END_SRC
+
+**** Preact 11 Integration & Observer Topology Architecture <2026-09-05 Sat 23:25>
+
+***** Observer Topology: Centralized Pipeline vs. Isolated Site Observers
+
+Using separate, uncoordinated `MutationObserver` instances per site within the
+same runtime environment is an anti-pattern. However, hardcoding site-specific
+selector logic inside a single monolithic observer violates open-closed
+architecture.
+
+The optimal pattern is a **Single Central Engine with a Strategy-Based Site
+Adapter Pipeline**:
+
+#+BEGIN_SRC text
+                          [ Single MutationObserver ]
+                                       │ (batched records)
+                                       ▼
+                       [ Mutation Dispatcher / Core ]
+                                       │
+                      ┌────────────────┴────────────────┐
+                      ▼                                 ▼
+          [ Active Site Strategy ]           [ (Inactive Strategies) ]
+             (e.g., GeminiAdapter)              (Claude, ChatGPT, etc.)
+                      │
+           ┌──────────┴──────────┐
+           ▼                     ▼
+     [ Model Parsing ]     [ Preact 11 Mount ]
+#+END_SRC
+
+1. **Performance & Batching:** Multiple `MutationObserver` instances attached to
+   overlapping subtrees trigger duplicate microtask sweeps. A single observer
+   listening at the content-script root (or top-level dynamic viewport)
+   minimizes overhead.
+2. **Dynamic Route Awareness:** Chat SPAs continuously mutate their subtrees. A centralized orchestrator activates only the site strategy matching `window.location.hostname`.
+3. **Decoupled Lifecycle:** The strategy interface accepts raw added nodes and decides whether to ignore, inspect, or process them.
+
+***** Preact 11 Mounting Semantics in Web Extension Content Scripts
+
+Preact 11 modernizes its rendering pipeline (notably removing legacy signatures like the 3-parameter `replaceNode` variant from `render()`). When injecting Preact components into an external host DOM:
+
+1. **Shadow DOM Encapsulation:** Injecting directly into the host DOM risks CSS collisions from the host app's styling sheets. Creating an open or closed `ShadowRoot` provides style containment.
+2. **Controlled Unmounting / Teardown:** Host SPAs frequently recycle DOM elements during virtual scrolling (e.g., `infinite-scroller`). When a parent container is removed, you must call `render(null, mountPoint)` to prevent memory leaks and unbind Preact event listeners.
+
+***** Component Integration Architecture (~src/sites/gemini/~)
+
+****** 1. Updated Source Tree
+
+#+BEGIN_SRC text
+src/sites/gemini/
+├── index.ts                # Implements SiteAdapter interface
+├── types.ts                # Domain models
+├── controller/
+│   └── GeminiController.ts # Target node routing & Preact mount coordination
+├── model/
+│   ├── CodeBlockParser.ts  # DOM extraction (first TEXT_NODE inspection)
+│   └── MessageParser.ts    # Response/container query boundary extraction
+└── view/
+    ├── DocumentMount.ts    # Preact 11 VNode mounting & unmounting lifecycle
+    └── components/         # Local UI components (if not using shared DocumentViews)
+        └── CustomCodeHeader.tsx
+#+END_SRC
+
+****** 2. Preact Mounting Bridge (~src/sites/gemini/view/DocumentMount.ts~)
+
+This module acts as the boundary between the host DOM node and the external `OrgDocumentView` component.
+
+#+BEGIN_SRC typescript
+import { h, render } from 'preact';
+// Assuming OrgDocumentView is imported from your shared UI layer
+import { OrgDocumentView } from '../../../shared/components/OrgDocumentView';
+import { ExtractedCodeBlock } from '../types';
+
+export class DocumentMount {
+  private static activeMounts = new WeakMap<HTMLElement, HTMLElement>();
+
+  /**
+   * Mounts the Preact OrgDocumentView into the given extracted code block.
+   */
+  public static mount(block: ExtractedCodeBlock): void {
+    const container = block.container;
+    
+    // Guard against duplicate mounting
+    if (container.dataset.preactMounted === 'true') return;
+    container.dataset.preactMounted = 'true';
+
+    // Create mount host (preserving original elements if needed, or isolating via Shadow DOM)
+    const mountPoint = document.createElement('div');
+    mountPoint.className = 'gemini-preact-mount-root';
+    
+    // Optional: Isolate styles using Shadow DOM
+    const shadow = mountPoint.attachShadow({ mode: 'open' });
+    const shadowHost = document.createElement('div');
+    shadow.appendChild(shadowHost);
+
+    // Render the Preact 11 VNode
+    const vnode = h(OrgDocumentView, {
+      rawContent: block.rawContent,
+      language: block.language,
+      hasHeader: block.hasNativeHeader,
+      onCopy: () => navigator.clipboard.writeText(block.rawContent)
+    });
+
+    render(vnode, shadowHost);
+    this.activeMounts.set(container, shadowHost);
+
+    // Replace or append into the target code-block container
+    container.replaceChildren(mountPoint);
+  }
+
+  /**
+   * Cleans up Preact VNodes and internal event handlers.
+   */
+  public static unmount(container: HTMLElement): void {
+    const mountHost = this.activeMounts.get(container);
+    if (mountHost) {
+      render(null, mountHost); // Triggers Preact 11 unmount hooks
+      this.activeMounts.delete(container);
+      delete container.dataset.preactMounted;
+    }
+  }
+}
+#+END_SRC
+
+****** 3. Adapter Strategy Implementation (~src/sites/gemini/index.ts~)
+
+Implements a standard contract consumable by the web extension's central mutation orchestrator.
+
+#+BEGIN_SRC typescript
+import { CodeBlockParser } from './model/CodeBlockParser';
+import { DocumentMount } from './view/DocumentMount';
+
+export interface SiteAdapter {
+  id: string;
+  matches(url: URL): boolean;
+  onNodeAdded(node: HTMLElement): void;
+  onNodeRemoved?(node: HTMLElement): void;
+  destroy(): void;
+}
+
+export class GeminiAdapter implements SiteAdapter {
+  public readonly id = 'gemini-ai';
+
+  public matches(url: URL): boolean {
+    return url.hostname.includes('gemini.google.com');
+  }
+
+  public onNodeAdded(node: HTMLElement): void {
+    if (node.tagName?.toLowerCase() === 'code-block') {
+      this.processCodeBlock(node);
+      return;
+    }
+
+    const codeBlocks = node.querySelectorAll<HTMLElement>('code-block');
+    for (let i = 0; i < codeBlocks.length; i++) {
+      this.processCodeBlock(codeBlocks[i]);
+    }
+  }
+
+  public onNodeRemoved(node: HTMLElement): void {
+    if (node.tagName?.toLowerCase() === 'code-block') {
+      DocumentMount.unmount(node);
+      return;
+    }
+
+    const codeBlocks = node.querySelectorAll<HTMLElement>('code-block');
+    for (let i = 0; i < codeBlocks.length; i++) {
+      DocumentMount.unmount(codeBlocks[i]);
+    }
+  }
+
+  private processCodeBlock(codeBlockNode: HTMLElement): void {
+    const parsed = CodeBlockParser.parse(codeBlockNode);
+    if (!parsed) return;
+
+    // Filter strictly for Org or plain-text targets
+    if (parsed.language === 'org' || parsed.language === 'text') {
+      DocumentMount.mount(parsed);
+    }
+  }
+
+  public destroy(): void {
+    // Teardown logic if extension is disabled or switches context
+  }
+}
+#+END_SRC
+
+**** Isolated Site-Specific Content Script Architecture <2026-09-05 Sat 23:22>
+
+If the extension architecture relies on discrete content scripts scoped per-site
+via ~manifest.json~ matches or isolated programmatic injection, a targeted site
+observer inside ~src/sites/gemini/~ is objectively better.
+
+***** Why Targeted Site Observers Win in Isolated Contexts
+
+1. **Elimination of Dispatch Indirection:** You avoid runtime URL regex checking, strategy registries, and generalized dispatch overhead on every mutation frame.
+2. **Precision Root Attachment:** Instead of observing ~document.body~, the Gemini script can lazily wait for ~chat-window~ or ~infinite-scroller~ and attach the observer directly to that subtree. This drastically reduces the number of discarded mutation records compared to observing the entire document tree.
+3. **No Cross-Site Abstraction Leakage:** Gemini-specific quirks (e.g., first ~TEXT_NODE~ language tags, ~message-actions[footer]~) remain completely encapsulated within this directory.
+
+***** Streamlined Architecture (~src/sites/gemini/~)
+
+****** 1. Source Layout
+
+#+BEGIN_SRC text
+src/sites/gemini/
+├── index.ts                # Content script entry point (mounts observer on load)
+├── types.ts                # AST and extraction contracts
+├── controller/
+│   └── GeminiObserver.ts   # Targeted MutationObserver scoped to conversation root
+├── model/
+│   ├── CodeBlockParser.ts  # TEXT_NODE inspection & raw code extraction
+│   └── MessageParser.ts    # Container boundaries & response parsing
+└── view/
+    └── DocumentMount.ts    # Preact 11 render / unmount bridge for OrgDocumentView
+#+END_SRC
+
+****** 2. Model: Code Block Parser (~src/sites/gemini/model/CodeBlockParser.ts~)
+
+#+BEGIN_SRC typescript
+import { ExtractedCodeBlock, SupportedLanguage } from '../types';
+
+export class CodeBlockParser {
+  public static parse(node: HTMLElement): ExtractedCodeBlock | null {
+    const codeElement = node.querySelector<HTMLElement>('code');
+    if (!codeElement) return null;
+
+    let language: SupportedLanguage = 'unknown';
+    let hasNativeHeader = false;
+
+    const firstChild = node.firstChild;
+    if (firstChild && firstChild.nodeType === Node.TEXT_NODE) {
+      hasNativeHeader = true;
+      const rawLabel = (firstChild.textContent ?? '').trim();
+      
+      if (rawLabel === 'Plain text' || rawLabel === 'Code snippet') {
+        language = 'text';
+      } else if (rawLabel.length > 0) {
+        language = rawLabel.toLowerCase();
+      }
+    }
+
+    // Direct textContent extraction cleanly bypasses client-side syntax highlight spans
+    const rawContent = codeElement.textContent ?? '';
+
+    return {
+      language,
+      rawContent,
+      container: node,
+      codeElement,
+      hasNativeHeader
+    };
+  }
+}
+#+END_SRC
+
+****** 3. View: Preact 11 DocumentMount (~src/sites/gemini/view/DocumentMount.ts~)
+
+#+BEGIN_SRC typescript
+import { h, render } from 'preact';
+import { OrgDocumentView } from '../../shared/components/OrgDocumentView';
+import { ExtractedCodeBlock } from '../types';
+
+export class DocumentMount {
+  private static readonly mounts = new WeakMap<HTMLElement, HTMLElement>();
+
+  public static mount(block: ExtractedCodeBlock): void {
+    const { container, rawContent, language, hasNativeHeader } = block;
+
+    if (container.dataset.preactMounted === 'true') return;
+    container.dataset.preactMounted = 'true';
+
+    // Shadow DOM wrapper prevents Gemini styling leaks into OrgDocumentView
+    const wrapper = document.createElement('div');
+    wrapper.className = 'org-document-mount-root';
+    
+    const shadowRoot = wrapper.attachShadow({ mode: 'open' });
+    const renderTarget = document.createElement('div');
+    shadowRoot.appendChild(renderTarget);
+
+    const vnode = h(OrgDocumentView, {
+      rawContent,
+      language,
+      hasHeader: hasNativeHeader,
+      onCopy: () => navigator.clipboard.writeText(rawContent)
+    });
+
+    render(vnode, renderTarget);
+    this.mounts.set(container, renderTarget);
+
+    // Replace the raw code-block contents with the rendered Preact root
+    container.replaceChildren(wrapper);
+  }
+
+  public static unmount(container: HTMLElement): void {
+    const target = this.mounts.get(container);
+    if (target) {
+      // Preact 11: passing null unmounts the VNode tree and cleans up effects/listeners
+      render(null, target);
+      this.mounts.delete(container);
+      delete container.dataset.preactMounted;
+    }
+  }
+}
+#+END_SRC
+
+****** 4. Controller: Targeted DOM Observer (~src/sites/gemini/controller/GeminiObserver.ts~)
+
+#+BEGIN_SRC typescript
+import { CodeBlockParser } from '../model/CodeBlockParser';
+import { DocumentMount } from '../view/DocumentMount';
+
+export class GeminiObserver {
+  private observer: MutationObserver | null = null;
+
+  public attach(root: HTMLElement): void {
+    this.detach();
+
+    this.observer = new MutationObserver(this.handleMutations.bind(this));
+    this.observer.observe(root, {
+      childList: true,
+      subtree: true
+    });
+
+    // Initial pass over any server-rendered or already-loaded messages
+    this.scanSubtree(root);
+  }
+
+  public detach(): void {
+    if (this.observer) {
+      this.observer.disconnect();
+      this.observer = null;
+    }
+  }
+
+  private handleMutations(mutations: MutationRecord[]): void {
+    for (let i = 0; i < mutations.length; i++) {
+      const mutation = mutations[i];
+      
+      // Handle additions
+      if (mutation.addedNodes.length > 0) {
+        mutation.addedNodes.forEach((node) => {
+          if (node.nodeType === Node.ELEMENT_NODE) {
+            this.scanSubtree(node as HTMLElement);
+          }
+        });
+      }
+
+      // Handle removals to prevent memory leaks from virtualized scrolling
+      if (mutation.removedNodes.length > 0) {
+        mutation.removedNodes.forEach((node) => {
+          if (node.nodeType === Node.ELEMENT_NODE) {
+            this.handleRemovals(node as HTMLElement);
+          }
+        });
+      }
+    }
+  }
+
+  private scanSubtree(element: HTMLElement): void {
+    if (element.tagName.toLowerCase() === 'code-block') {
+      this.processCodeBlock(element);
+      return;
+    }
+
+    const codeBlocks = element.querySelectorAll<HTMLElement>('code-block');
+    for (let i = 0; i < codeBlocks.length; i++) {
+      this.processCodeBlock(codeBlocks[i]);
+    }
+  }
+
+  private handleRemovals(element: HTMLElement): void {
+    if (element.tagName.toLowerCase() === 'code-block') {
+      DocumentMount.unmount(element);
+      return;
+    }
+
+    const codeBlocks = element.querySelectorAll<HTMLElement>('code-block');
+    for (let i = 0; i < codeBlocks.length; i++) {
+      DocumentMount.unmount(codeBlocks[i]);
+    }
+  }
+
+  private processCodeBlock(node: HTMLElement): void {
+    const parsed = CodeBlockParser.parse(node);
+    if (!parsed) return;
+
+    if (parsed.language === 'org' || parsed.language === 'text') {
+      DocumentMount.mount(parsed);
+    }
+  }
+}
+#+END_SRC
+
+****** 5. Content Script Entry Point (~src/sites/gemini/index.ts~)
+
+#+BEGIN_SRC typescript
+import { GeminiObserver } from './controller/GeminiObserver';
+
+(function initGeminiScraper(): void {
+  const controller = new GeminiObserver();
+
+  function waitForContainer(): void {
+    const scroller = document.querySelector<HTMLElement>('chat-window-content') ?? 
+                     document.querySelector<HTMLElement>('infinite-scroller');
+
+    if (scroller) {
+      controller.attach(scroller);
+    } else {
+      // Polling fallback until SPA shell completes initial hydration
+      const initObserver = new MutationObserver((_, obs) => {
+        const target = document.querySelector<HTMLElement>('chat-window-content') ?? 
+                       document.querySelector<HTMLElement>('infinite-scroller');
+        if (target) {
+          obs.disconnect();
+          controller.attach(target);
+        }
+      });
+
+      initObserver.observe(document.body, { childList: true, subtree: true });
+    }
+  }
+
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', waitForContainer);
+  } else {
+    waitForContainer();
+  }
+})();
+#+END_SRC
+
+*** Initial notes from gemini                                      :noexport:
+Some initial exploration before planning.
+**** Exploration
+***** DOM Simplification and Angular Extension Strategy [2026-09-05 Sat 12:29]
+****** Python BeautifulSoup Cleaning Pipeline
+Angular's production output leaves behind several structural artifacts:
+- Comment nodes used for structural directives (~*ngIf~, ~*ngFor~) and component boundaries.
+- Emulated encapsulation attributes (e.g., ~_ngcontent-c123~, ~_nghost-c123~).
+- Transparent wrappers like ~<ng-container>~.
+- SVG clutter, inline scripts, styles, and empty formatting nodes.
+
+The following Python script uses ~BeautifulSoup~ (with the fast ~lxml~ engine)
+to strip this noise, recursively unwrap non-semantic wrapper tags, and output an
+indented, legible DOM tree.
+
+#+BEGIN_SRC python :tangle "dom-extraction/extractor.py"
+  import re
+  import sys
+
+  from bs4 import BeautifulSoup, Comment
+
+  def clean_angular_dom(raw_html_path: str, output_path: str):
+      with open(raw_html_path, "r", encoding="utf-8") as f:
+          soup = BeautifulSoup(f, "lxml")
+
+      # 1. Strip comments
+      for comment in soup.find_all(text=lambda text: isinstance(text, Comment)):
+          comment.extract()
+
+      # 2. Drop heavy non-structural elements
+      for tag in soup.find_all(["script", "style", "noscript", "svg"]):
+          tag.decompose()
+
+      # 3. Strip Angular emulated encapsulation attributes and dynamic state classes
+      ng_attr_pattern = re.compile(r"^_ng(content|host)-.*")
+      for element in soup.find_all(True):
+          attrs = dict(element.attrs)
+          for attr in attrs:
+              if ng_attr_pattern.match(attr):
+                  del element.attrs[attr]
+
+      # 4. Unwrap structural/wrapper elements that dilute hierarchy
+      #    <ng-container> and generic <div>/<span> with zero semantic attributes
+      for wrapper in soup.find_all(["ng-container", "ng-template"]):
+          wrapper.unwrap()
+
+      # 5. Iteratively unwrap redundant container tags (divs with no class/id/attributes)
+      flattened = True
+      while flattened:
+          flattened = False
+          for div in soup.find_all(["div", "span"]):
+              if not div.attrs and len(div.contents) > 0:
+                  div.unwrap()
+                  flattened = True
+
+      # 6. Pretty print output
+      with open(output_path, "w", encoding="utf-8") as f:
+          f.write(soup.prettify())
+
+      print(f"Cleaned DOM written to: {output_path}")
+
+  if __name__ == "__main__":
+      print(sys.argv)
+      input_file = sys.argv[1] if len(sys.argv) > 1 else "raw_dom.html"
+      output_file = sys.argv[2] if len(sys.argv) > 2 else "clean_dom.html"
+      print(input_file)
+      print(output_file)
+      clean_angular_dom(input_file, output_file)
+#+END_SRC
+
+****** Understanding Angular Production DOM Architecture
+To target elements reliably in an Angular application without access to internal
+models:
+******* 1. Component Boundaries and Custom Tags
+- Unlike generic React builds that compile mostly to ~<div>~soup, Angular
+  components compile into their custom tag names by default (e.g.,
+  ~<app-chat-message>~, ~<chat-list>~, ~<message-item>~).
+- These custom element tags are the most stable CSS selectors available. Always
+  prioritize custom tag names over classes.
+
+******* 2. Scoped Encapsulation (~_ngcontent~ / ~_nghost~)
+- Angular uses attribute selectors (like ~_ngcontent-ng-c123456789~) to scope
+  CSS to specific components.
+- *Never target these attributes directly in your selectors.* The hash suffix
+  can and will change on every deployment or build artifact refresh.
+
+******* 3. CDKs and Material Layouts
+- If the application uses the Angular Component Dev Kit (CDK), the chat
+  container likely uses virtual scrolling (~<cdk-virtual-scroll-viewport>~).
+- *Virtual Scrolling Implication:* Only messages currently in the viewport exist
+  in the DOM. As the user scrolls or new messages arrive, DOM nodes are
+  destroyed and recycled. Your extension cannot rely on selecting elements once
+  and caching them indefinitely.
+****** Dynamic Streaming Chat Interception Strategy
+To interact with streaming messages in an extension, polling is inefficient and
+fragile. You need a reactive pipeline using native browser APIs within your
+Content Script.
+******* Strategy A: ~MutationObserver~ on the Chat Stream Container
+Observe child additions directly on the scroll container.
+
+#+BEGIN_SRC javascript
+function processMessageNode(node) {
+  if (node.nodeType !== Node.ELEMENT_NODE) return;
+
+  // Match your target component/class
+  const messageElement = node.matches('app-chat-message') 
+    ? node 
+    : node.querySelector('app-chat-message');
+
+  if (!messageElement || messageElement.dataset.extProcessed) return;
+  messageElement.dataset.extProcessed = 'true';
+
+  // Extract payload or inject UI
+  const textContent = messageElement.querySelector('.message-body')?.textContent;
+  
+  // Custom extension UI injection
+  const actionButton = document.createElement('button');
+  actionButton.className = 'ext-action-btn';
+  actionButton.textContent = 'Action';
+  actionButton.addEventListener('click', (e) => {
+    e.stopPropagation();
+    console.log('Interacting with message:', textContent);
+  });
+  
+  messageElement.appendChild(actionButton);
+}
+
+function initChatObserver(containerSelector) {
+  const container = document.querySelector(containerSelector);
+  if (!container) {
+    console.error(`Container ${containerSelector} not found.`);
+    return;
+  }
+
+  // Process existing messages first
+  container.querySelectorAll('app-chat-message').forEach(processMessageNode);
+
+  const observer = new MutationObserver((mutations) => {
+    for (const mutation of mutations) {
+      for (const addedNode of mutation.addedNodes) {
+        processMessageNode(addedNode);
+      }
+    }
+  });
+
+  observer.observe(container, {
+    childList: true,
+    subtree: true
+  });
+}
+#+END_SRC
+******* Strategy B: Shadow DOM and Component Instance Access (Advanced)
+If the Angular site uses native Shadow DOM (~ViewEncapsulation.ShadowDom~):
+- Standard ~document.querySelector~ will not pierce through shadow roots.
+- You must traverse ~.shadowRoot~ boundaries explicitly.
+
+If the Angular app is in development or exposes global context:
+- In production, Angular disables ~ng.probe~. However, you can inspect custom
+  properties bound to DOM elements via the console using
+  ~getEventListeners(element)~ to reverse-engineer event payloads if you need to
+  dispatch native events that Angular's event zone (~zone.js~) will detect.
+
+- When dispatching input to Angular input elements (e.g., simulating typing in the chat box), trigger an ~input~ or ~change~ event with ~bubbles: true~, otherwise Angular's two-way data binding (~[(ngModel)]~ or Reactive Forms) will not capture the changed value.
+#+BEGIN_SRC javascript
+function setAngularInputValue(inputElement, value) {
+  inputElement.value = value;
+  inputElement.dispatchEvent(new Event('input', { bubbles: true }));
+  inputElement.dispatchEvent(new Event('change', { bubbles: true }));
+}
+#+END_SRC
+***** Modular DOM Analysis Workspace and Tree Visualizer [2026-09-05 Sat 14:29]
+:PROPERTIES:
+:header-args:python: :dir ./dom-extraction :python "uv run -" :session
+:END:
+#+BEGIN_SRC python  :tangle "dom-extraction/extractor-workspace.py"
+"""
+DOM Workspace: Utilities for sanitizing, unwrapping, and visualizing
+obfuscated or deeply nested Angular/modern web application DOM trees.
+"""
+
+import re
+import sys
+from pathlib import Path
+from typing import Iterable, List, Optional, Set
+from bs4 import BeautifulSoup, Comment, NavigableString, Tag
+
+
+def load_soup(source: str, is_file: bool = True) -> BeautifulSoup:
+    """Load and parse HTML from a file path or raw string using lxml."""
+    if is_file:
+        with open(source, "r", encoding="utf-8") as f:
+            return BeautifulSoup(f, "lxml")
+    return BeautifulSoup(source, "lxml")
+
+
+def strip_comments(soup: BeautifulSoup) -> BeautifulSoup:
+    """Remove all HTML comments (*ngIf, *ngFor, dynamic templates)."""
+    for comment in soup.find_all(text=lambda t: isinstance(t, Comment)):
+        comment.extract()
+    return soup
+
+
+def strip_tags(
+    soup: BeautifulSoup,
+    tags_to_drop: Iterable[str] = ("script", "style", "noscript", "svg", "link", "meta"),
+) -> BeautifulSoup:
+    """Decompose non-structural or visually heavy elements completely."""
+    for tag in soup.find_all(list(tags_to_drop)):
+        tag.decompose()
+    return soup
+
+
+def strip_ng_attributes(
+    soup: BeautifulSoup,
+    pattern: str = r"^_ng(content|host)-.*",
+) -> BeautifulSoup:
+    """Remove transient Angular build/scoping hash attributes."""
+    compiled_pattern = re.compile(pattern)
+    for element in soup.find_all(True):
+        for attr in list(element.attrs.keys()):
+            if compiled_pattern.match(attr):
+                del element.attrs[attr]
+    return soup
+
+
+def unwrap_named_tags(
+    soup: BeautifulSoup,
+    tags_to_unwrap: Iterable[str] = ("ng-container", "ng-template"),
+) -> BeautifulSoup:
+    """Unwrap specific container tags while retaining their child nodes."""
+    for tag in soup.find_all(list(tags_to_unwrap)):
+        tag.unwrap()
+    return soup
+
+
+def unwrap_empty_containers(
+    soup: BeautifulSoup,
+    container_tags: Iterable[str] = ("div", "span"),
+    preserve_classes: bool = False,
+) -> BeautifulSoup:
+    """
+    Iteratively hoist child elements out of non-semantic wrapper tags
+    that have no attributes (or no classes if preserve_classes=False).
+    """
+    flattened = True
+    tags = list(container_tags)
+    while flattened:
+        flattened = False
+        for node in soup.find_all(tags):
+            # Check if container is bare
+            if not node.attrs or (not preserve_classes and not node.get("id") and not node.get("class")):
+                if len(node.contents) > 0:
+                    node.unwrap()
+                    flattened = True
+    return soup
+
+
+def sanitize_angular_dom(
+    soup: BeautifulSoup,
+    drop_tags: Iterable[str] = ("script", "style", "noscript", "svg"),
+    unwrap_tags: Iterable[str] = ("ng-container", "ng-template"),
+    flatten_bare_divs: bool = True,
+) -> BeautifulSoup:
+    """Convenience pipeline running standard cleanup passes in order."""
+    strip_comments(soup)
+    strip_tags(soup, drop_tags)
+    strip_ng_attributes(soup)
+    unwrap_named_tags(soup, unwrap_tags)
+    if flatten_bare_divs:
+        unwrap_empty_containers(soup)
+    return soup
+
+
+def render_dom_tree(
+    node: Tag,
+    prefix: str = "",
+    is_last: bool = True,
+    max_depth: int = 15,
+    current_depth: int = 0,
+    show_attrs: bool = True,
+    max_text_len: int = 40,
+) -> List[str]:
+    """
+    Recursively renders a node into standard Unix `tree` styled output.
+    Displays tag names, IDs, classes, and truncated text content.
+    """
+    if current_depth > max_depth or not isinstance(node, Tag):
+        return []
+
+    lines = []
+    
+    # Format current node summary
+    connector = "└── " if is_last else "├── "
+    label = [f"<{node.name}>"]
+
+    if show_attrs:
+        if node.get("id"):
+            label.append(f"#{node['id']}")
+        if node.get("class"):
+            classes = ".".join(node["class"]) if isinstance(node["class"], list) else node["class"]
+            label.append(f".{classes}")
+
+    # Extract non-empty immediate inline text summary if present
+    direct_texts = [
+        c.strip() for c in node.children
+        if isinstance(c, NavigableString) and not isinstance(c, Comment) and c.strip()
+    ]
+    if direct_texts:
+        text_preview = " ".join(direct_texts)
+        if len(text_preview) > max_text_len:
+            text_preview = text_preview[:max_text_len] + "..."
+        label.append(f'"{text_preview}"')
+
+    current_line = f"{prefix}{connector}{' '.join(label)}"
+    lines.append(current_line)
+
+    # Filter direct child element tags
+    child_tags = [c for c in node.children if isinstance(c, Tag)]
+    total_children = len(child_tags)
+
+    next_prefix = prefix + ("    " if is_last else "│   ")
+
+    for idx, child in enumerate(child_tags):
+        child_is_last = (idx == total_children - 1)
+        child_lines = render_dom_tree(
+            node=child,
+            prefix=next_prefix,
+            is_last=child_is_last,
+            max_depth=max_depth,
+            current_depth=current_depth + 1,
+            show_attrs=show_attrs,
+            max_text_len=max_text_len,
+        )
+        lines.extend(child_lines)
+
+    return lines
+
+
+def print_tree(
+    soup_or_tag: Tag,
+    max_depth: int = 10,
+    show_attrs: bool = True,
+    output_path: Optional[str] = None,
+):
+    """Entry point to print or save the tree rendering."""
+    target = soup_or_tag.body if hasattr(soup_or_tag, "body") and soup_or_tag.body else soup_or_tag
+    tree_lines = render_dom_tree(
+        node=target,
+        prefix="",
+        is_last=True,
+        max_depth=max_depth,
+        show_attrs=show_attrs,
+    )
+    output_text = "\n".join(tree_lines)
+    
+    if output_path:
+        Path(output_path).write_text(output_text, encoding="utf-8")
+        print(f"Tree output saved to: {output_path}")
+    else:
+        print(output_text)
+
+
+if __name__ == "__main__":
+    if len(sys.argv) < 2:
+        print("Usage: python dom_workspace.py <raw_dom.html> [output_tree.txt]")
+        sys.exit(1)
+
+    input_file = sys.argv[1]
+    tree_out = sys.argv[2] if len(sys.argv) > 2 else None
+
+    # Execute full pipeline
+    soup = load_soup(input_file)
+    sanitize_angular_dom(soup)
+    print_tree(soup, max_depth=12, output_path=tree_out)
+#+END_SRC
+
+#+RESULTS:
+
+#+BEGIN_SRC python :results output
+#from dom_workspace import load_soup, sanitize_angular_dom, print_tree
+
+# 1. Load and sanitize
+soup = load_soup("example_dom.html")
+sanitize_angular_dom(soup)
+
+# 2. Isolate a suspected chat subcontainer
+chat_root = soup.find(lambda tag: "chat" in tag.name or "message" in tag.name or "scroll" in str(tag.get("class", [])))
+
+if chat_root:
+    # Print clean tree structure just for the chat component
+    print_tree(chat_root, max_depth=6)
+#+END_SRC
+
+#+RESULTS:
+**** TypeScript DOM Traversal & Code-Block Extraction Module [2026-09-05 Sat 22:50]
+  :PROPERTIES:
+  :MODULE:    gemini-dom-bridge
+  :TARGET:    ES2022+ / Browser DOM
+  :END:
+***** Architectural Overview & Structural Invariants
+The DOM tree exposed by the client interface relies on a combination of custom elements
+   and utility classes. Direct deep CSS combinators (e.g. =a > b > c=) are brittle across
+   incremental framework rendering cycles. Instead, we structure the abstraction around:
+   1. Scope query boundaries (=ConversationContainer=, =ModelResponse=).
+   2. Contextual extraction of language identifiers via strict first-child text node inspection.
+   3. Fallback extraction of raw code payload (checking both =textContent= and native copy-buffer hooks).
+   4. Slot injection interfaces for =DocumentView= on =code-block= nodes and message action controls on =message-actions[footer]=.
+***** Implementation                                               :noexport:
+#+BEGIN_SRC typescript :exports none
+/**
+ * Interfaces and extraction utilities for client DOM components.
+ */
+
+export interface CodeBlockDescriptor {
+  element: HTMLElement;
+  codeElement: HTMLElement | null;
+  language: string | null;
+  isSnippetOrPlain: boolean;
+  hasStandardHeader: boolean;
+  rawContent: string;
+}
+
+export interface ModelResponseEntry {
+  root: HTMLElement;
+  responseContainer: HTMLElement | null;
+  jslog: string | null;
+  messageContent: HTMLElement | null;
+  codeBlocks: CodeBlockDescriptor[];
+  footerActions: HTMLElement | null;
+}
+
+export interface UserQueryEntry {
+  root: HTMLElement;
+  lines: string[];
+}
+
+export class GeminiDomParser {
+  private static readonly SELECTORS = {
+    CONVERSATION: 'chat-window > chat-window-content > infinite-scroller > .conversation-container',
+    USER_QUERY: 'user-query > .user-query-container',
+    QUERY_LINE: 'user-query-content.user-query-container .query-text p.query-text-line',
+    MODEL_RESPONSE: 'model-response > response-container',
+    MESSAGE_CONTENT: '.container > message-content',
+    CODE_BLOCK: 'response-element > code-block',
+    FOOTER_ACTIONS: '.response-container-footer message-actions[footer]',
+  } as const;
+
+  constructor(private readonly rootContext: Document | HTMLElement = document) {}
+
+  /**
+   * Scrapes all user query containers in the target conversation scope.
+   */
+  public parseUserQueries(): UserQueryEntry[] {
+    const nodes = this.rootContext.querySelectorAll<HTMLElement>(GeminiDomParser.SELECTORS.USER_QUERY);
+    return Array.from(nodes).map((root) => {
+      const lineElements = root.querySelectorAll<HTMLElement>(GeminiDomParser.SELECTORS.QUERY_LINE);
+      const lines = Array.from(lineElements).map((el) => el.textContent ?? '');
+      return { root, lines };
+    });
+  }
+
+  /**
+   * Evaluates all model response nodes and extracts structured payload pointers.
+   */
+  public parseModelResponses(): ModelResponseEntry[] {
+    const nodes = this.rootContext.querySelectorAll<HTMLElement>(GeminiDomParser.SELECTORS.MODEL_RESPONSE);
+    return Array.from(nodes).map((root) => this.analyzeResponseNode(root));
+  }
+
+  /**
+   * Analyzes an isolated response-container element.
+   */
+  public analyzeResponseNode(responseContainer: HTMLElement): ModelResponseEntry {
+    const jslog = responseContainer.getAttribute('jslog');
+    const messageContent = responseContainer.querySelector<HTMLElement>(GeminiDomParser.SELECTORS.MESSAGE_CONTENT);
+    const footerActions = responseContainer.querySelector<HTMLElement>(GeminiDomParser.SELECTORS.FOOTER_ACTIONS);
+
+    const codeBlocks: CodeBlockDescriptor[] = [];
+    if (messageContent) {
+      const codeBlockElements = messageContent.querySelectorAll<HTMLElement>(GeminiDomParser.SELECTORS.CODE_BLOCK);
+      codeBlockElements.forEach((cbEl) => {
+        codeBlocks.push(this.parseCodeBlock(cbEl));
+      });
+    }
+
+    return {
+      root: responseContainer,
+      responseContainer,
+      jslog,
+      messageContent,
+      codeBlocks,
+      footerActions,
+    };
+  }
+
+  /**
+   * Inspects a code-block element to determine its language, raw content, and header state.
+   */
+  public parseCodeBlock(codeBlock: HTMLElement): CodeBlockDescriptor {
+    const codeElement = codeBlock.querySelector<HTMLElement>('code');
+    let language: string | null = null;
+    let hasStandardHeader = false;
+
+    // Scan immediate child nodes to find leading TEXT_NODE before the <code> or container element
+    for (let i = 0; i < codeBlock.childNodes.length; i++) {
+      const child = codeBlock.childNodes[i];
+      if (child.nodeType === Node.TEXT_NODE) {
+        const textVal = child.textContent?.trim();
+        if (textVal && textVal.length > 0) {
+          language = textVal;
+          hasStandardHeader = true;
+          break;
+        }
+      } else if (child.nodeType === Node.ELEMENT_NODE && (child as HTMLElement).tagName.toLowerCase() === 'code') {
+        // Encountered code block before any non-empty text node
+        break;
+      }
+    }
+
+    const normalizedLang = language?.toLowerCase() ?? '';
+    const isSnippetOrPlain =
+      normalizedLang === 'code snippet' ||
+      normalizedLang === 'plain text' ||
+      normalizedLang === 'org' ||
+      normalizedLang === 'org-mode';
+
+    const rawContent = this.extractRawCode(codeBlock, codeElement);
+
+    return {
+      element: codeBlock,
+      codeElement,
+      language,
+      isSnippetOrPlain,
+      hasStandardHeader,
+      rawContent,
+    };
+  }
+
+  /**
+   * Extracts text payload. If DOM contains styled inner HTML (syntax highlighting tokens),
+   * falls back to innerText or copy-buffer interception if available.
+   */
+  private extractRawCode(codeBlock: HTMLElement, codeElement: HTMLElement | null): string {
+    if (!codeElement) {
+      return '';
+    }
+
+    // Direct content extraction
+    // innerText preserves explicit whitespace and line breaks without token span tags
+    return codeElement.innerText ?? codeElement.textContent ?? '';
+  }
+
+  /**
+   * Mounts a custom view replacing or wrapping the target code block.
+   */
+  public mountDocumentView(
+    descriptor: CodeBlockDescriptor,
+    viewFactory: (descriptor: CodeBlockDescriptor) => HTMLElement
+  ): void {
+    const customView = viewFactory(descriptor);
+    descriptor.element.style.display = 'none';
+    descriptor.element.parentElement?.insertBefore(customView, descriptor.element.nextSibling);
+  }
+
+  /**
+   * Appends an action node (fold button, copy-as-org) to the response footer actions panel.
+   */
+  public attachFooterAction(footerElement: HTMLElement, actionButton: HTMLElement): void {
+    footerElement.appendChild(actionButton);
+  }
+}
+#+END_SRC
+***** Copy-Buffer Interception Strategy for Tokenized Elements     :noexport:
+When =code= elements contain nested highlighting trees (e.g. =<span class="token">...</span>=), calling =codeElement.innerText= handles basic newline extraction. However, to extract the exact untokenized buffer dispatched by the native copy button:
+#+BEGIN_SRC typescript :exports none
+/**
+ * Intercepts the native copy button behavior to retrieve the pure pre-formatted payload.
+ */
+export async function extractViaCopyButton(codeBlock: HTMLElement): Promise<string | null> {
+  const copyBtn = codeBlock.querySelector<HTMLElement>('button[aria-label*="Copy"], .copy-button');
+  if (!copyBtn) {
+    return null;
+  }
+
+  return new Promise((resolve) => {
+    const handleCopy = (e: ClipboardEvent) => {
+      e.preventDefault();
+      e.stopImmediatePropagation();
+      const text = e.clipboardData?.getData('text/plain') ?? null;
+      document.removeEventListener('copy', handleCopy, true);
+      resolve(text);
+    };
+
+    document.addEventListener('copy', handleCopy, true);
+    copyBtn.click();
+
+    // Fallback timeout to prevent hanging if the click handler does not trigger standard copy event
+    setTimeout(() => {
+      document.removeEventListener('copy', handleCopy, true);
+      resolve(null);
+    }, 150);
+  });
+}
+#+END_SRC
+**** Gemini DOM Scraper & Component Binding Engine                 :noexport:
+#+BEGIN_SRC typescript :exports none
+/**
+ * Core type declarations and selectors for interacting with the Gemini Web UI DOM.
+ */
+
+export const SELECTORS = {
+  CONVERSATION_CONTAINER: 'chat-window > chat-window-content > infinite-scroller > .conversation-container',
+  USER_QUERY: 'user-query',
+  USER_QUERY_LINES: 'user-query-content.user-query-container .query-text p.query-text-line',
+  MODEL_RESPONSE: 'model-response',
+  RESPONSE_CONTAINER: 'response-container',
+  STRUCTURED_CONTENT: 'structured-content-container.model-response-content',
+  MESSAGE_CONTENT: '.container > message-content',
+  MARKDOWN_PANEL: '.markdown.markdown-main-panel.md-content',
+  RESPONSE_ELEMENT: '.container > message-content > response-element',
+  CODE_BLOCK: 'code-block',
+  CODE: 'code',
+  FOOTER_ACTIONS: '.response-container-footer message-actions[footer]',
+} as const;
+
+export interface ExtractedCodeBlock {
+  element: HTMLElement;
+  codeElement: HTMLElement | null;
+  language: string | null;
+  isFormattedHtml: boolean;
+  hasHeader: boolean;
+  rawText: string;
+}
+
+export interface UserTurn {
+  element: HTMLElement;
+  queryLines: string[];
+  fullQuery: string;
+}
+
+export interface ModelTurn {
+  element: HTMLElement;
+  responseContainer: HTMLElement | null;
+  jslog: string | null;
+  footerActions: HTMLElement | null;
+  codeBlocks: ExtractedCodeBlock[];
+}
+
+/**
+ * Extracts raw text and language identity from a <code-block> element.
+ */
+export function inspectCodeBlock(codeBlockEl: HTMLElement): ExtractedCodeBlock {
+  const codeEl = codeBlockEl.querySelector<HTMLElement>(SELECTORS.CODE);
+  
+  let language: string | null = null;
+  let hasHeader = false;
+
+  // Inspect the first TEXT_NODE child of code-block for language declaration
+  const firstChild = codeBlockEl.firstChild;
+  if (firstChild && firstChild.nodeType === Node.TEXT_NODE) {
+    const text = firstChild.textContent?.trim() || '';
+    if (text.length > 0) {
+      language = text;
+      hasHeader = true;
+    }
+  }
+
+  // Fallback check if language container is distinct or missing text node
+  if (!language && codeEl) {
+    // Some variations place language in a data attribute or class
+    const langClass = Array.from(codeEl.classList).find(c => c.startsWith('language-'));
+    if (langClass) {
+      language = langClass.replace('language-', '');
+    }
+  }
+
+  // Determine if code block contains syntax-highlighted HTML or plain/snippet text
+  const isFormattedHtml = codeEl ? codeEl.children.length > 0 : false;
+
+  // Extract raw text content directly
+  const rawText = codeEl?.textContent || '';
+
+  return {
+    element: codeBlockEl,
+    codeElement: codeEl,
+    language,
+    isFormattedHtml,
+    hasHeader,
+    rawText,
+  };
+}
+
+/**
+ * Parses user input nodes into individual newline strings.
+ */
+export function parseUserQuery(userQueryEl: HTMLElement): UserTurn {
+  const lineEls = userQueryEl.querySelectorAll<HTMLElement>(SELECTORS.USER_QUERY_LINES);
+  const queryLines = Array.from(lineEls).map(el => el.textContent || '');
+
+  return {
+    element: userQueryEl,
+    queryLines,
+    fullQuery: queryLines.join('\n'),
+  };
+}
+
+/**
+ * Inspects a model response element, resolving internal containers, actions, and code blocks.
+ */
+export function parseModelResponse(modelResponseEl: HTMLElement): ModelTurn {
+  const responseContainer = modelResponseEl.querySelector<HTMLElement>(SELECTORS.RESPONSE_CONTAINER);
+  const jslog = responseContainer?.getAttribute('jslog') || null;
+  const footerActions = modelResponseEl.querySelector<HTMLElement>(SELECTORS.FOOTER_ACTIONS);
+
+  const codeBlockEls = modelResponseEl.querySelectorAll<HTMLElement>(SELECTORS.CODE_BLOCK);
+  const codeBlocks = Array.from(codeBlockEls).map(inspectCodeBlock);
+
+  return {
+    element: modelResponseEl,
+    responseContainer,
+    jslog,
+    footerActions,
+    codeBlocks,
+  };
+}
+
+/**
+ * High-level manager to attach observers, mount DocumentViews, and inject custom footer actions.
+ */
+export class GeminiDOMAdapter {
+  private root: HTMLElement;
+  private observer: MutationObserver | null = null;
+
+  constructor(rootElement?: HTMLElement) {
+    this.root = rootElement || document.querySelector(SELECTORS.CONVERSATION_CONTAINER) || document.body;
+  }
+
+  public getConversationContainer(): HTMLElement | null {
+    return document.querySelector<HTMLElement>(SELECTORS.CONVERSATION_CONTAINER);
+  }
+
+  /**
+   * Scans the DOM and mounts custom DocumentViews over target code blocks.
+   */
+  public mountViews(
+    viewRenderer: (block: ExtractedCodeBlock) => HTMLElement | null
+  ): void {
+    const codeBlocks = this.root.querySelectorAll<HTMLElement>(SELECTORS.CODE_BLOCK);
+    
+    codeBlocks.forEach(el => {
+      // Avoid double-mounting
+      if (el.dataset.documentViewMounted === 'true') return;
+
+      const inspected = inspectCodeBlock(el);
+      const replacementView = viewRenderer(inspected);
+
+      if (replacementView) {
+        el.dataset.documentViewMounted = 'true';
+        // Hide original or swap safely
+        el.style.display = 'none';
+        el.parentNode?.insertBefore(replacementView, el.nextSibling);
+      }
+    });
+  }
+
+  /**
+   * Injects actions (such as Copy-As-Org or Fold) into model-response footers.
+   */
+  public injectFooterAction(
+    actionBuilder: (footer: HTMLElement, turn: ModelTurn) => HTMLElement | null
+  ): void {
+    const modelResponses = this.root.querySelectorAll<HTMLElement>(SELECTORS.MODEL_RESPONSE);
+
+    modelResponses.forEach(el => {
+      const turn = parseModelResponse(el);
+      if (!turn.footerActions || turn.footerActions.dataset.customActionsMounted === 'true') {
+        return;
+      }
+
+      const actionButton = actionBuilder(turn.footerActions, turn);
+      if (actionButton) {
+        turn.footerActions.dataset.customActionsMounted = 'true';
+        turn.footerActions.appendChild(actionButton);
+      }
+    });
+  }
+
+  /**
+   * Sets up a MutationObserver to react to dynamically streamed turns and code blocks.
+   */
+  public observe(onNewContent: () => void): void {
+    if (this.observer) this.observer.disconnect();
+
+    this.observer = new MutationObserver((mutations) => {
+      let shouldTrigger = false;
+      for (const mutation of mutations) {
+        if (mutation.addedNodes.length > 0) {
+          shouldTrigger = true;
+          break;
+        }
+      }
+      if (shouldTrigger) {
+        onNewContent();
+      }
+    });
+
+    this.observer.observe(this.root, {
+      childList: true,
+      subtree: true,
+    });
+  }
+
+  public disconnect(): void {
+    if (this.observer) {
+      this.observer.disconnect();
+      this.observer = null;
+    }
+  }
+}
+#+END_SRC
+***** Note on Code Block Extraction & Copy Buffer
+1. **Extraction without HTML pollution**: The standard `.textContent` property
+   on the `<code>` sub-element already resolves HTML entities, strips `<span
+   class="...">` tokens, and returns clean plain text. There is rarely a need to
+   hook into the copy button's event handler unless custom transforms (like
+   stripping Gemini-injected prefixes) are bound via custom clipboard events.
+2. **Text Node Language Detection**: Because text nodes can shift across layout
+   mutations during streaming, matching `TEXT_NODE` on `code-block` should be
+   evaluated once streaming completes or re-evaluated dynamically on each DOM
+   mutation.
+3. **DocumentView Replacement Strategy**: Replacing in-place can break
+   Angular/Polymer/Lit event listeners or cause re-render loops if Gemini
+   re-evaluates the virtual node. The safest pattern is to set
+   `codeBlockEl.style.display = 'none'` and insert the custom `DocumentView`
+   adjacent to it (`insertBefore(customView, codeBlockEl.nextSibling)`).
+*** Classes to know                                                :noexport:
+- ng-star-inserted :: Appended to any element conditionally rendered by a structural directive like @if or *ngIf. The "star" directly references the asterisk syntax used by structural directives.
+  - These can likely be used somehow to figure out loading/unloading in the infinite scroll?
+
+* Planning
+** General
+** Gemini Adapter
+*** Gemini Scraper Details
+**** Important Hierarchy
+The headings are CSS selectors based on their parent, so querying the parent for children with them should work.
+
+Not all of these need to be dealt with specifically, but they seemed like important structure to know.
+***** chat-window > chat-window-content > infinite-scroller > .conversation-container
+****** user-query > .user-query-container
+******* user-query-content.user-query-container .query-text p.query-text-line
+Actual user query content. There will be a n+1 p.query-text-line elements for every newline in the query.
+****** model-response > response-container
+The response-container attribute jslog might be interesting to look at.
+******* .response-container-header
+******* .presented-response-container
+******** .response-container-content
+********* .response-content
+********** structured-content-container.model-response-content
+*********** .container > message-content
+This is the overall message content container.
+************  .markdown.markdown-main-panel.md-content 
+The plaintext output comes out as html elements, <b>, <h1-6>, <p>, etc.
+
+I think we can safely just pull out code blocks to replace with documentviews for now. 
+************* .container > message-content > response-element
+************** code-block 
+Direct child of response element. This is where be where we put the DocumentView for an org block, but we need to check that it is one, and in general it will be best if we know what the language is.
+
+To parse the language we need the first child TEXT_NODE, which will contain the
+language.
+- A language known to html will have html inside it, because of the formatting! We can (at first) safely ignore those.
+  - I wonder if there's a way to employ the copy butter event handler on these to get the raw text without it, for when we add a document view for some of them.
+- If it says Code snippet, then it's some other pre-formatted text, but seemingly without any internal formatting. At least org-modes seems to come out as straight-up plain text.
+- If it says Plain text then thats what it is.
+- If there is no TEXT_NODE before the <code> element then it doesnt have the header with the buttons. This is rare. These ones we should probably target for a custom header.
+*************** code
+Descendent of code-block, contains either raw plain text or html (if the language is known, and thus has highlighting/formatting)
+******* .response-container-footer message-actions[footer]
+This is where we put whole-message related actions (fold, copy-as-org)
+
+#+BEGIN_SRC text
+  message-actions[footer] Elements are:
+  ├── <thumb-up-button>
+  ├── <thumb-down-button>
+  ├── <regenerate-button>
+  ├── <copy-button>
+  ├── <gem-icon-button> -- This is the overflow "..." menu
+#+END_SRC
+*** Gemini Adapter Plan
+**** Architectural Overview (MVC Separation)
+To keep clean boundaries within the webextension content script context:
+- *Model*: Domain entities representing parsed conversational structures (`Conversation`, `Message`, `UserQuery`, `ModelResponse`, `CodeBlockTarget`).
+- *View*: Preact 11 root mounts (`DocumentView` wrappers, message action bar extensions).
+- *Controller / Observer*: MutationObserver orchestration, dynamic DOM scanning, event dispatching, and view-mounting lifecycle management.
+**** Implementation Strategy & Edge Case Mitigations
+***** 1. Plaintext Extraction vs Highlighted Syntax
+- Instead of dealing with formatted syntax HTML or clipboard events directly, grab `element.textContent` on the `<code>` node, or leverage `navigator.clipboard` interception if raw carriage returns are sanitized by Gemini's internal renderer
+.- For language parsing, inspect the header node's `childNodes` for the leading text node before the button container. Move on to language detection if it reports ~Code snippet~ or ~Plain text~ to identify languages we support that the chat does not.
+***** 2. Streaming DOM & Debounced Injection
+- Model responses stream incrementally. Do not attempt full AST parses on every tiny text mutation.
+- Use a `MutationObserver` targeting `infinite-scroller` / `.conversation-container` with `childList: true, subtree: true`.
+- Check `dataset` flags (e.g. `data-ext-processed="true"`) to prevent re-parsing completed blocks and avoid layout thrashing.
+**** TypeScript Reference Implementation
+***** `src/chat/gemini/`
+****** `model/`
+******* File: `conversation.ts`
+******* File: `message.ts`
+******* File: `codeBlock.ts`
+#+begin_src typescript
+import { ParsedCodeBlock } from '../types';
+import { SELECTORS } from '../selectors';
+
+export function parseCodeBlock(codeBlockEl: HTMLElement): ParsedCodeBlock | null {
+  const codeEl = codeBlockEl.querySelector<HTMLElement>(SELECTORS.CODE_ELEMENT);
+  if (!codeEl) return null;
+
+  // Language resolution
+  let language = 'text';
+  let hasCustomHeader = false;
+
+  // Find first non-empty text node in code-block (outside the code tag)
+  const walker = document.createTreeWalker(
+    codeBlockEl,
+    NodeFilter.SHOW_TEXT,
+    {
+      acceptNode: (node) => {
+        if (codeEl.contains(node)) return NodeFilter.FILTER_REJECT;
+        return node.textContent?.trim() ? NodeFilter.FILTER_ACCEPT : NodeFilter.FILTER_SKIP;
+      }
+    }
+  );
+
+  const headerTextNode = walker.nextNode();
+  if (headerTextNode && headerTextNode.textContent) {
+    const rawLang = headerTextNode.textContent.trim().toLowerCase();
+    hasCustomHeader = true;
+    if (rawLang === 'code snippet' || rawLang === 'plain text') {
+      language = 'text';
+    } else {
+      language = rawLang;
+    }
+  }
+
+  // Generate or read stable identifier
+  if (!codeBlockEl.dataset.extBlockId) {
+    codeBlockEl.dataset.extBlockId = `cb-${crypto.randomUUID()}`;
+  }
+
+  return {
+    id: codeBlockEl.dataset.extBlockId,
+    element: codeBlockEl,
+    codeElement: codeEl,
+    language,
+    rawText: codeEl.textContent ?? '',
+    hasCustomHeader
+  };
+}
+#+end_src
+****** `controller/`
+******* File: `scraper.ts`
+#+begin_src typescript
+import { SELECTORS } from '../selectors';
+import { ParsedUserMessage, ParsedModelMessage, ParsedMessage } from '../types';
+import { parseCodeBlock } from '../model/codeBlock';
+
+export class GeminiScraper {
+  public parseUserQuery(el: HTMLElement): ParsedUserMessage {
+    const lines = Array.from(
+      el.querySelectorAll<HTMLParagraphElement>(SELECTORS.USER_QUERY_LINES)
+    ).map(p => p.textContent ?? '');
+
+    return {
+      id: el.dataset.extMsgId ||= `msg-user-${crypto.randomUUID()}`,
+      role: 'user',
+      container: el,
+      queryLines: lines,
+      fullText: lines.join('\n')
+    };
+  }
+
+  public parseModelResponse(el: HTMLElement): ParsedModelMessage {
+    const contentContainer = el.querySelector<HTMLElement>(SELECTORS.MESSAGE_CONTENT) || el;
+    const footerElement = el.querySelector<HTMLElement>(SELECTORS.FOOTER_ACTIONS);
+    
+    const codeBlockElements = Array.from(
+      el.querySelectorAll<HTMLElement>(SELECTORS.CODE_BLOCK)
+    );
+
+    const codeBlocks = codeBlockElements
+      .map(parseCodeBlock)
+      .filter((cb): cb is NonNullable<typeof cb> => cb !== null);
+
+    return {
+      id: el.dataset.extMsgId ||= `msg-model-${crypto.randomUUID()}`,
+      role: 'model',
+      container: el,
+      contentContainer,
+      codeBlocks,
+      footerElement
+    };
+  }
+
+  public scan(root: ParentNode = document): ParsedMessage[] {
+    const messages: ParsedMessage[] = [];
+
+    const userNodes = root.querySelectorAll<HTMLElement>(SELECTORS.USER_QUERY);
+    userNodes.forEach(node => messages.push(this.parseUserQuery(node)));
+
+    const modelNodes = root.querySelectorAll<HTMLElement>(SELECTORS.MODEL_RESPONSE);
+    modelNodes.forEach(node => messages.push(this.parseModelResponse(node)));
+
+    return messages;
+  }
+}
+#+end_src
+******* File: `injector.ts`
+#+begin_src typescript
+import { render, h } from 'preact';
+import { ParsedCodeBlock, ParsedModelMessage } from '../types';
+
+// Assuming OrgDocumentView is imported from existing core views
+// import { OrgDocumentView } from '../../views/OrgDocumentView';
+
+export class PreactMountManager {
+  private mountedRoots = new Map<string, HTMLElement>();
+
+  public mountDocumentView(block: ParsedCodeBlock, viewComponent: preact.ComponentType<{ content: string; language: string }>): void {
+    if (block.element.dataset.extMounted === 'true') return;
+
+    // Check if this matches org-mode format (starts with Org headline / stamp or declared as org)
+    const isOrg = block.language === 'org' || block.rawText.trimStart().startsWith('* ');
+    if (!isOrg) return;
+
+    const mountContainer = document.createElement('div');
+    mountContainer.className = 'ext-document-view-container';
+
+    // Replace or overlay code block DOM
+    block.element.style.display = 'none';
+    block.element.parentNode?.insertBefore(mountContainer, block.element.nextSibling);
+
+    render(h(viewComponent, { content: block.rawText, language: block.language }), mountContainer);
+
+    block.element.dataset.extMounted = 'true';
+    this.mountedRoots.set(block.id, mountContainer);
+  }
+
+  public mountFooterActions(msg: ParsedModelMessage, actionsComponent: preact.ComponentType<{ message: ParsedModelMessage }>): void {
+    if (!msg.footerElement || msg.footerElement.dataset.extActionsMounted === 'true') return;
+
+    const container = document.createElement('div');
+    container.className = 'ext-message-actions-slot';
+    msg.footerElement.appendChild(container);
+
+    render(h(actionsComponent, { message: msg }), container);
+    msg.footerElement.dataset.extActionsMounted = 'true';
+  }
+
+  public unmount(id: string): void {
+    const el = this.mountedRoots.get(id);
+    if (el) {
+      render(null, el);
+      el.remove();
+      this.mountedRoots.delete(id);
+    }
+  }
+}
+#+end_src
+******* File: `domObserver.ts`
+`domObserver.ts` (Controller): Owns the raw DOM mutation lifecycle, debouncing, and event emission. It should have no knowledge of specific views or Preact injection.
+#+begin_src typescript
+import { SELECTORS } from '../selectors';
+
+export interface MutationEvents {
+  onNodesAdded?: () => void;
+}
+
+export class GeminiDomObserver {
+  private observer: MutationObserver | null = null;
+  private debounceTimer: number | null = null;
+
+  constructor(private callbacks: MutationEvents, private debounceMs = 50) {}
+
+  public observe(targetRoot: ParentNode = document): void {
+    const target = targetRoot.querySelector(SELECTORS.CONVERSATION_CONTAINER) || document.body;
+
+    this.observer = new MutationObserver((mutations) => {
+      let hasAdditions = false;
+      for (const mutation of mutations) {
+        if (mutation.addedNodes.length > 0) {
+          hasAdditions = true;
+          break;
+        }
+      }
+
+      if (hasAdditions) {
+        this.scheduleNotification();
+      }
+    });
+
+    this.observer.observe(target, {
+      childList: true,
+      subtree: true,
+    });
+  }
+
+  private scheduleNotification(): void {
+    if (this.debounceTimer !== null) {
+      window.clearTimeout(this.debounceTimer);
+    }
+    this.debounceTimer = window.setTimeout(() => {
+      this.callbacks.onNodesAdded?.();
+      this.debounceTimer = null;
+    }, this.debounceMs);
+  }
+
+  public disconnect(): void {
+    if (this.debounceTimer !== null) {
+      window.clearTimeout(this.debounceTimer);
+      this.debounceTimer = null;
+    }
+    this.observer?.disconnect();
+    this.observer = null;
+  }
+}
+#+end_src
+****** `views/`
+Gemini specific views, preact wrappers for general views and some buttons
+******* File: `MessageActions.tsx`
+******* File: `OrgViewWrapper.tsx`
+****** File: `index.ts`
+`index.ts` (Entrypoint): Glues the observer, scraper, and injector together, acting as the public-facing facade for the extension's site loader.
+#+begin_src typescript
+import { GeminiScraper } from './controller/scraper';
+import { PreactMountManager } from './controller/injector';
+import { GeminiDomObserver } from './controller/domObserver';
+
+// Import DocumentViews from existing shared extension modules
+// import { OrgDocumentView } from '../../views/OrgDocumentView';
+
+export class GeminiSiteAdapter {
+  private scraper = new GeminiScraper();
+  private injector = new PreactMountManager();
+  private observer: GeminiDomObserver;
+
+  constructor() {
+    this.observer = new GeminiDomObserver({
+      onNodesAdded: () => this.sync(),
+    });
+  }
+
+  public init(): void {
+    this.sync();
+    this.observer.observe();
+  }
+
+  public sync(): void {
+    const messages = this.scraper.scan();
+    for (const msg of messages) {
+      if (msg.role === 'model') {
+        for (const block of msg.codeBlocks) {
+          // Mount custom DocumentView if matching block criteria
+          // this.injector.mountDocumentView(block, OrgDocumentView);
+        }
+      }
+    }
+  }
+
+  public destroy(): void {
+    this.observer.disconnect();
+    this.injector.unmountAll();
+  }
+}
+
+// Export default initialization instance
+export default new GeminiSiteAdapter();
+#+end_src
+
+****** File: `selectors.ts`
+#+begin_src typescript
+export const SELECTORS = {
+  CONVERSATION_CONTAINER: 'chat-window > chat-window-content > infinite-scroller > .conversation-container',
+  USER_QUERY: 'user-query > .user-query-container',
+  USER_QUERY_LINES: 'user-query-content.user-query-container .query-text p.query-text-line',
+  MODEL_RESPONSE: 'model-response > response-container',
+  RESPONSE_CONTENT: '.presented-response-container .response-container-content .response-content',
+  MESSAGE_CONTENT: 'structured-content-container.model-response-content .container > message-content',
+  CODE_BLOCK: 'response-element code-block',
+  CODE_ELEMENT: 'pre code, code',
+  FOOTER_ACTIONS: '.response-container-footer message-actions[footer]',
+} as const;
+#+end_src
+****** File: `types.ts`
+#+begin_src typescript
+export type MessageRole = 'user' | 'model';
+
+export interface ParsedCodeBlock {
+  id: string;
+  element: HTMLElement;
+  codeElement: HTMLElement;
+  language: string;
+  rawText: string;
+  hasCustomHeader: boolean;
+}
+
+export interface ParsedModelMessage {
+  id: string;
+  role: 'model';
+  container: HTMLElement;
+  contentContainer: HTMLElement;
+  codeBlocks: ParsedCodeBlock[];
+  footerElement: HTMLElement | null;
+}
+
+export interface ParsedUserMessage {
+  id: string;
+  role: 'user';
+  container: HTMLElement;
+  queryLines: string[];
+  fullText: string;
+}
+
+export type ParsedMessage = ParsedUserMessage | ParsedModelMessage;
+#+end_src
+
+
+* Extension-Wide Architecture & System Topology <2026-09-06 Sun 00:04>
+To support multiple AI providers (Gemini, Claude, ChatGPT, etc.) while sharing
+common logic (Org-mode parsing, DocumentViews, state synchronization, storage),
+the extension should use a modular adapter architecture built around a common
+contract.
+** Full Source Tree Structure
+#+begin_example
+src/
+├── manifest.json              # Extension manifest (MV3)
+├── core/                      # Engine-level logic (Provider-agnostic)
+│   ├── ast/                   # Org-mode / Markdown tokenizers and AST structures
+│   │   ├── orgParser.ts
+│   │   └── types.ts
+│   ├── contracts/             # Provider-agnostic interfaces
+│   │   ├── adapter.ts         # IChatAdapter interface
+│   │   ├── models.ts          # Generic Message, CodeBlock, Conversation contracts
+│   │   └── observer.ts        # DOM observation primitives
+│   ├── store/                 # Global preferences, settings, sync state
+│   │   ├── storage.ts         # chrome.storage API wrappers
+│   │   └── settings.ts
+│   └── utils/                 # DOM utils, crypto/UUID helpers, debounce
+│       ├── dom.ts
+│       └── async.ts
+│
+├── views/                     # Shared Preact 11 UI components
+│   ├── DocumentViews/         # Visual document view renderers
+│   │   ├── OrgDocumentView/
+│   │   │   ├── index.tsx
+│   │   │   ├── OrgHeadline.tsx
+│   │   │   ├── OrgTable.tsx
+│   │   │   └── styles.module.css
+│   │   └── RawDocumentView/
+│   ├── Common/                # Buttons, Menus, Modals, Toolbars
+│   │   ├── ActionButton.tsx
+│   │   └── ContextMenu.tsx
+│   └── Options/               # Extension popup / options page UI
+│       ├── App.tsx
+│       └── main.tsx
+│
+├── chat/                      # Site-specific adapters (Content Script layer)
+│   ├── registry.ts            # Site detector and adapter factory
+│   ├── gemini/                # Gemini-specific implementation
+│   │   ├── index.ts
+│   │   ├── selectors.ts
+│   │   ├── types.ts
+│   │   ├── model/
+│   │   │   └── codeBlock.ts
+│   │   ├── controller/
+│   │   │   ├── domObserver.ts
+│   │   │   ├── injector.ts
+│   │   │   └── scraper.ts
+│   │   └── views/
+│   │       └── MessageActions.tsx
+│   ├── claude/                # Claude-specific implementation
+│   │   └── ...
+│   └── chatgpt/               # ChatGPT-specific implementation
+│       └── ...
+│
+├── entrypoints/               # Vite/Webpack build targets
+│   ├── content.ts             # Content script root injected into matched URLs
+│   ├── background.ts          # Service worker (lifecycle, hotkeys, context menus)
+│   ├── popup.html
+│   └── options.html
+└── styles/                    # Global resets & shared design tokens
+    └── globals.css
+#+end_example
+** Manifest Configuration (`src/manifest.json`)
+#+begin_src json
+{
+  "manifest_version": 3,
+  "name": "Chat AST & DocumentView Enhancer",
+  "version": "1.0.0",
+  "permissions": ["storage"],
+  "content_scripts": [
+    {
+      "matches": [
+        "https://gemini.google.com/*",
+        "https://claude.ai/*",
+        "https://chatgpt.com/*"
+      ],
+      "js": ["src/entrypoints/content.ts"],
+      "run_at": "document_idle"
+    }
+  ],
+  "background": {
+    "service_worker": "src/entrypoints/background.ts"
+  }
+}
+#+end_src
+** Core Provider Contract (`src/core/contracts/adapter.ts`)
+
+Each chat site adapter implements a unified interface. This ensures `content.ts` remains completely agnostic of individual DOM quirks.
+
+#+begin_src typescript
+import { GenericMessage, GenericCodeBlock } from './models';
+
+export interface IChatAdapter {
+  readonly id: string;
+  readonly name: string;
+  
+  /** Evaluates if the current window matches this adapter */
+  matches(url: URL): boolean;
+  
+  /** Starts observers and syncs existing DOM nodes */
+  init(): void;
+  
+  /** Scrapes and normalizes current thread to provider-agnostic models */
+  scrapeMessages(): GenericMessage[];
+  
+  /** Tears down Preact roots, mutation observers, and injected styles */
+  destroy(): void;
+}
+#+end_src
+
+** Site Registry & Dispatcher (`src/chat/registry.ts`)
+
+#+begin_src typescript
+import { IChatAdapter } from '../core/contracts/adapter';
+import geminiAdapter from './gemini';
+// import claudeAdapter from './claude';
+// import chatgptAdapter from './chatgpt';
+
+export class AdapterRegistry {
+  private static adapters: IChatAdapter[] = [
+    geminiAdapter,
+    // claudeAdapter,
+    // chatgptAdapter,
+  ];
+
+  public static resolve(url: URL = new URL(window.location.href)): IChatAdapter | null {
+    return this.adapters.find((adapter) => adapter.matches(url)) ?? null;
+  }
+}
+#+end_src
+
+** Unified Content Script Entrypoint (`src/entrypoints/content.ts`)
+#+begin_src typescript
+import { AdapterRegistry } from '../chat/registry';
+
+function bootstrap(): void {
+  const adapter = AdapterRegistry.resolve();
+  if (!adapter) {
+    return;
+  }
+
+  // Handle SPA transitions / pushState navigation
+  adapter.init();
+
+  window.addEventListener('beforeunload', () => {
+    adapter.destroy();
+  });
+}
+
+if (document.readyState === 'loading') {
+  document.addEventListener('DOMContentLoaded', bootstrap);
+} else {
+  bootstrap();
+}
+#+end_src
+** Design Tradeoffs & Benefits
+1. *Zero Site Leaks in Core Views*: `OrgDocumentView` only expects an AST or raw
+   string content; it has no dependencies on `HTMLElement` nodes from Google or
+   Anthropic.
+2. *Isolated Blast Radius*: When Gemini changes its DOM class names or custom
+   elements, only `src/chat/gemini/` requires updates. The rest of the pipeline
+   remains untouched.
+3. *Fast Hot-Reloading & Testing*: Parsing logic in `src/core/ast/` and
+   rendering logic in `src/views/` can be tested via standard headless unit
+   tests (e.g. Vitest/Jest) without mocking the Gemini DOM.
+
