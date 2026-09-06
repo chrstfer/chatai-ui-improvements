@@ -1,46 +1,56 @@
 {
-  "manifest_version": 3,
-  "name": "AI Chat UI Improvements",
-  "version": "0.1.3",
-  "description": "UI Improvements for AI Chats. Currently supports Gemini.",
-  "homepage_url": "https://www.github.com/chrstfer/gemini-org-ui",
-  "browser_specific_settings": {
-    "gecko": {
-      "id": "gemini-org-ui@dev",
-      "strict_min_version": "109.0",
-      "data_collection_permissions": {
-        "required": ["none"]
-      }
-    }
-  },
-  "permissions": [
-    "storage"
-  ],
-  "host_permissions": [
-    "https://gemini.google.com/*",
-    "https://duck.ai/*"
-  ],
-  "content_scripts": [
-    {
-      "matches": [
+    "manifest_version": 3,
+    "name": "AI Chat UI Improvements",
+    "version": "0.1.3",
+    "description": "UI Improvements for AI Chats. Currently supports Gemini.",
+    "homepage_url": "https://www.github.com/chrstfer/gemini-org-ui",
+    "browser_specific_settings": {
+        "gecko": {
+            "id": "gemini-org-ui@dev",
+            "strict_min_version": "109.0",
+            "data_collection_permissions": {
+                "required": ["none"]
+            }
+        }
+    },
+    "permissions": [
+        "storage"
+    ],
+    "host_permissions": [
         "https://gemini.google.com/*",
         "https://duck.ai/*"
-      ],
-      "css": [
-        "vendor/katex.min.css",
-        "styles/general.css"
-      ],
-      "run_at": "document_start"
-    },
-    {
-      "matches": [
-        "https://gemini.google.com/*"
-      ],
-      "css": [
-        "styles/gemini.css"
-      ],
-      "js": ["src/entrypoints/content.ts"],
-      "run_at": "document_start"
-    }
-  ]
+    ],
+    "content_scripts": [
+        {
+            "matches": [
+                "https://gemini.google.com/*",
+                "https://duck.ai/*"
+            ],
+            "css": [
+                "vendor/katex.min.css",
+                "src/styles/globals.css"
+            ],
+            "run_at": "document_start"
+        },
+        {
+            "matches": [
+                "https://gemini.google.com/*"
+            ],
+            "css": [
+                "src/chat/gemini/styles/gemini.css"
+            ],
+            "js": ["src/entrypoints/content.ts"],
+            "run_at": "document_start"
+        }
+    ],
+    "web_accessible_resources": [
+        {
+            "resources": [
+                "src/chat/gemini/styles/gemini.css"
+            ],
+            "matches": [
+                "https://gemini.google.com/*"
+            ]
+        }
+    ]
 }

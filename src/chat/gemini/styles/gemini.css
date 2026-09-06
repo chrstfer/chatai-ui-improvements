@@ -1,0 +1,71 @@
+/* Container holding the custom open Shadow Root */
+.orgmod-rendered-container {
+    display: block;
+    margin: 1em 0;
+    width: 100%;
+}
+
+/* Diagnostic Placeholder Block Base */
+.diagnostic-placeholder-block {
+    border-radius: 8px;
+    padding: 12px 16px;
+    font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+    font-size: 13px;
+    line-height: 1.5;
+    box-sizing: border-box;
+    transition: background-color 0.2s ease, border-color 0.2s ease, color 0.2s ease;
+}
+
+/* Dark Theme Variant */
+.orgmod-rendered-container[data-theme="dark"] .diagnostic-placeholder-block,
+:host([data-theme="dark"]) .diagnostic-placeholder-block {
+    background: #1e1f20;
+    color: #e3e3e3;
+    border: 1px solid #444746;
+}
+
+/* Light Theme Variant */
+.orgmod-rendered-container[data-theme="light"] .diagnostic-placeholder-block,
+:host([data-theme="light"]) .diagnostic-placeholder-block {
+    background: #f0f4f9;
+    color: #1f1f1f;
+    border: 1px solid #c4c7c5;
+}
+
+/* Header & Badges */
+.diagnostic-placeholder-header {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 8px;
+}
+
+.diagnostic-badge {
+    display: inline-block;
+    font-weight: 600;
+    font-size: 11px;
+    padding: 2px 8px;
+    border-radius: 4px;
+    background: #004a77;
+    color: #c2e7ff;
+}
+
+.diagnostic-metrics {
+    color: #8e918f;
+    font-size: 12px;
+}
+
+.diagnostic-preview {
+    margin: 0;
+    white-space: pre-wrap;
+    word-break: break-word;
+    font-size: 12px;
+    opacity: 0.85;
+    background: rgba(0, 0, 0, 0.05);
+    padding: 8px;
+    border-radius: 4px;
+}
+
+:host([data-theme="dark"]) .diagnostic-preview {
+    background: rgba(255, 255, 255, 0.05);
+}
