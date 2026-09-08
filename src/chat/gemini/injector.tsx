@@ -1,7 +1,7 @@
 import { render } from "preact";
 import { EXTENSION_INJECTED } from "./selectors.ts";
 import type { GeminiCodeBlockRef } from "./types.ts";
-import { DiagnosticPlaceholderBlock } from "../../views/common/DiagnosticPlaceholderBlock.tsx";
+import { InSituCodeBlockContainer } from "../../views/codeblock/index.ts";
 import { createLogger } from "../../core/logging/index.ts";
 
 declare const chrome: {
@@ -19,7 +19,7 @@ export class GeminiInjector {
 
     /**
      * Injects sibling container beside <code-block>, hides native block non-destructively,
-     * attaches open Shadow Root, links the external stylesheet, and mounts DiagnosticPlaceholderBlock.
+     * attaches open Shadow Root, links the external stylesheet, and mounts InSituCodeBlockContainer.
      */
     public inject(
         block: GeminiCodeBlockRef,
@@ -62,12 +62,18 @@ export class GeminiInjector {
         link.href = runtimeUrl;
         shadowRoot.appendChild(link);
 
-        // Mount general diagnostic placeholder component
+        // Determine whether this language block supports rich rendered view
+        const normalizedLang = languageHint.toLowerCase().trim();
+        const hasRenderedView = normalizedLang === "org" || normalizedLang === "org-mode" ||
+            normalizedLang === "orgmode";
+
+        // Mount production InSituCodeBlockContainer component
         render(
-            <DiagnosticPlaceholderBlock
-                adapterName="Gemini"
-                language={languageHint}
+            <InSituCodeBlockContainer
                 rawText={rawText}
+                language={languageHint}
+                hasRenderedView={hasRenderedView}
+                hostElement={hostElement}
             />,
             shadowRoot,
         );
