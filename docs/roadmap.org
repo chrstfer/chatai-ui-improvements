@@ -1,31 +1,36 @@
 #+TITLE: AI Chat UI Improvements — Planned Features & Roadmap
-#+DATE: 2026-09-06
+#+DATE: 2026-09-08
 #+OPTIONS: toc:2 num:nil
 
-* Architecture & Core Foundation [0/4]
-- [ ] Pluggable Extensibility Contracts :: Standardize ~LanguageDefinition~ and ~SiteAdapter~ contracts in ~src/core/contracts/~.
-- [ ] Tree-Shaking & Dynamic Loading Loader :: Implement dynamic import loading for heavy parsers (e.g. full Org grammar, Prism/Shiki tokenizers, KaTeX for math blocks) to keep initial content script bundle lightweight.
-- [ ] Stream Settlement State Machine :: Formalize Phase A (in-flight streaming buffer) vs. Phase B (settled >300ms macro-settle) transitions with idempotent mount guards (~data-ext-processed~, ~data-ext-mounted~).
-- [ ] Decoupled LRU Cache :: In-memory content-hash indexed LRU cache surviving virtual scroller recycling.
+* Architecture & Core Foundation [5/5]
+- [X] Pluggable Extensibility Contracts :: Standardized ~LanguageDefinition~, ~SiteAdapter~, and ~DocumentViewComponent~ contracts in ~src/core/contracts/~.
+- [X] Dynamic Loading & View Dispatching :: Dynamic import loading for language document views via ~DocumentViewDispatcher~ and code splitting in build toolchain.
+- [X] Stream Settlement State Machine :: Formalized Phase A (in-flight streaming buffer) vs. Phase B (settled >300ms macro-settle) transitions with idempotent mount guards (~data-ext-processed~, ~data-ext-mounted~).
+- [X] Decoupled In-Memory Caching :: 32-bit FNV-1a content-hash indexed LRU caches (~ViewStateCache~ and ~AstCache~) surviving virtual scroller recycling with 0ms instant hydration.
+- [X] Scoped Logging & Telemetry Submodule :: Hierarchical scoped logging (~CoreLogger~), dynamic runlevels (~prod~, ~debug~, ~trace~), in-memory ring buffer, Preact lifecycle profiling hooks, and global console API (~window.__AI_CHAT_UI__~).
 
-* Testing and Toolchain Improvements [0/3]
-- [ ] Create bundle script :: Create a ~build.ts~ that bundles appropriately at the language and chat boundaries, ensuring tree-shaking/lazy loading of features is possible.
-- [ ] Chat Independent Testing :: A static example mock-chat fixture for testing features outside of any particular chat AI interface.
-- [ ] Headless Domain Unit Testing :: Test pure AST parsing and model contracts deterministically with zero DOM dependencies via ~deno test~.
+* Testing and Toolchain Improvements [3/3]
+- [X] Multi-Target Bundle Script :: Modular ~build.ts~ supporting dev builds (~dist/dev/~ via ~deno task build:dev~) and production releases, manifest generation, dynamic bootloader, and code splitting.
+- [X] Chat-Independent Mock Testing :: Static HTML chat fixtures and DOM-independent tests using ~@b-fuze/deno-dom~ for testing adapters and views without browser runtime overhead.
+- [X] Headless Domain Unit Testing :: Deterministic unit test suite testing pure AST parsing, inline tokenizing, content hashing, view state, and AST caching with zero DOM dependencies (~deno task test~).
+- [ ] Consider Updating Tests to a Dedicated Preact Unit Test Library :: There are dedicated preact libraries facilitating unit tests, and we should consider updating our tests to use one. (https://github.com/developit/preact-jsx-chai, https://github.com/bruderstein/unexpected-preact)
 
-* Host Interface Extensions [0/5]
-- [ ] Gemini Adapter :: Implement full Gemini scraper, controller, and shadow root injector matching the documented DOM tree.
-- [ ] Host Theme Authority :: Establish ~theme~ and ~onThemeChange~ contracts on ~src/chat/<host>~ to detect host light/dark mode and synchronize Shadow Root themes.
-- [ ] Host Auto-Discovery Registry :: Automatically detect and mount appropriate host-specific adapter (~ChatAdapterRegistry~) based on URL hostname and DOM fingerprints.
+* Host Interface Extensions [4/5]
+- [X] Gemini Adapter :: Full Gemini scraper (~GeminiScraper~), DOM observer (~GeminiDOMObserver~), and shadow root injector (~GeminiInjector~) matching Gemini's custom element tree.
+- [X] Host Theme Authority :: Implemented ~theme~ and ~onThemeChange~ contracts on ~src/chat/gemini/theme.ts~ to observe host light/dark mode and synchronize Shadow Root themes.
+- [X] Host Auto-Discovery Registry :: Centralized ~ChatAdapterRegistry~ with eager and lazy resolution based on URL hostname and DOM fingerprints.
+- [X] Non-Destructive Host Isolation :: CSS hiding (~display: none~) and open Shadow Roots isolating extension styles while preserving native ~code[data-test-id='code-content']~ for host copy parity.
 - [ ] Multi-Platform Chat Adapters :: Extend adapters to support ChatGPT, Claude, and DuckDuckGo AI.
-- [ ] Non-Destructive Host Isolation :: Ensure all adapters strictly use CSS hiding (~display: none~) and open Shadow Roots to eliminate host style collisions.
 
-* Rendering Capabilities & Languages [0/5]
-- [ ] Org-Mode Language Module :: Complete in-situ Preact renderer (~OrgDocumentView~), collapsible sections, property drawers, and cookie progress counters.
-- [ ] LaTeX / KaTeX Module :: Dynamic KaTeX rendering for math blocks and ASCII LaTeX Greek symbols.
+* Rendering Capabilities & Languages [3/8]
+- [X] Universal In-Situ Code Block Container :: Universal ~InSituCodeBlockContainer~ with custom toolbar, language badge, folding toggle, view toggling, and copy parity button.
+- [X] Headless Org-Mode AST Engine :: Canonical Emacs ~org-element.el~ specification AST, O(N) streaming block parser with headline stack hierarchy, delimiter disambiguation, affiliated keywords (~#+NAME:~, ~#+CAPTION:~), tables with rules/alignment, and rich inline objects.
+- [X] Language Registry & AST Settlement Pipeline :: Centralized ~LanguageRegistry~ with language-agnostic ~settleContent~ coordinating pre-parsing and AST caching during turn settlement.
+- [ ] In-Situ Preact Org Document View :: Rich declarative Preact view component (~OrgDocumentView~) rendering collapsible headline sections, TODO state badges, priority chips, tags, property drawers, and description lists.
+- [ ] LaTeX / KaTeX Math Pipeline :: Dynamic KaTeX math fragment rendering ($...$, \(...\)) and ASCII LaTeX Greek entity replacement per ADR 0001.
 - [ ] Custom Org Themes & Syntax Presets :: User-selectable color schemes (Org Modern, Doom One, Solarized, Gruvbox) for rendered headlines and code blocks.
 - [ ] Inline Image and Dynamic Attachment Previews :: In-situ rendering of embedded ~[[file:...]]~ and ~[[https://...]]~ image links with zoom overlay.
-- [ ] Non-Org DocumentViews :: Pluggable DocumentViews for JSON, Mermaid, and Markdown.
+- [ ] Additional DocumentViews :: Pluggable DocumentViews for JSON, Mermaid diagrams, and Markdown.
 
 * HUD & User Controls [0/4]
 - [ ] Moveable HUD :: Click and drag the HUD box around the chat column.
@@ -39,4 +44,3 @@
 - [ ] Multi-Format & Scoped Subtree Copying :: Provide copy actions for specific headlines, functions, or subtrees, alongside multi-format copy ("Copy as Raw Org", "Copy as Markdown").
 - [ ] Subtree & Turn Selection Export :: Allow selective downloading of individual turn subtrees or marked sections into ~.org~ files.
 - [ ] Complete Conversation Exporter :: Markdown-to-Org AST converter generating clean, annotated Org documents with metadata drawers.
-
