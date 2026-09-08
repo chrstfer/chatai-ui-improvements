@@ -36,9 +36,6 @@
             "matches": [
                 "https://gemini.google.com/*"
             ],
-            "css": [
-                "src/chat/gemini/styles/gemini.css"
-            ],
             "js": ["src/entrypoints/content.ts"],
             "run_at": "document_start"
         }
@@ -46,7 +43,7 @@
     "web_accessible_resources": [
         {
             "resources": [
-                "src/chat/gemini/styles/gemini.css"
+                "app.js"
             ],
             "matches": [
                 "https://gemini.google.com/*"

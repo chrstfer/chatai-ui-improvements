@@ -1,11 +1,15 @@
 {
+  "nodeModulesDir": "auto",
   "exclude": ["dist/", "build/", "docs", "dist-amo/", "dist-archive/","vendor/", "web-ext-artifacts"],
   "imports": {    
     "@b-fuze/deno-dom": "jsr:@b-fuze/deno-dom@^0.1.56", // Dev dependency for tests
+    "@kuboon/tailwindcss-deno": "jsr:@kuboon/tailwindcss-deno@^0.1.6",
     "@std/assert": "jsr:@std/assert@^1.0.19",
     "@std/cli": "jsr:@std/cli@^1.0.14",
+    "@tailwindcss/oxide": "npm:@tailwindcss/oxide@^4.3.3",
     "katex": "https://esm.sh/katex@0.16.21",
-    "preact": "npm:preact@11.0.0-rc.1"
+    "preact": "npm:preact@11.0.0-rc.1",
+    "tailwindcss": "npm:tailwindcss@^4.3.3"
   },
   "tasks": {
     "clean": "deno run -A build.ts --clean",

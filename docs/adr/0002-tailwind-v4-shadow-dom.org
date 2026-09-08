@@ -1,0 +1,43 @@
+#+TITLE: ADR 0002: Tailwind CSS v4 in Isolated Shadow DOM Boundaries
+#+DATE: 2026-09-08
+
+:PROPERTIES:
+:STATUS: Accepted
+:END:
+
+* Status
+Accepted
+
+* Context
+Extension UI components (such as ~InSituCodeBlockContainer~ and the upcoming ~OrgDocumentView~ suite) are mounted inside open Shadow Roots attached to sibling injection containers beside host AI chat code blocks. Global host styles and ~document.head~ stylesheets do not penetrate open Shadow Roots. Previously, components relied on bespoke CSS files (~src/chat/gemini/styles/gemini.css~), which would lead to maintaining hundreds of lines of custom styling rules for complex Org document elements (headlines, tags, tables, badges, drawers, lists).
+
+Furthermore, as a Firefox-first WebExtension, our architecture strictly requires zero unnecessary runtime network requests (~browser.runtime.getURL~ / ~fetch~), 0ms instant hydration on virtual scroller recycling, and immediate reactivity to host dark/light theme switching.
+
+* Decision
+We adopt *Tailwind CSS v4* compiled at build time and delivered via an inlined ~adoptedStyleSheets~ singleton:
+1. *Deno 2 Build Pipeline*:
+   - ~build.ts~ compiles Tailwind CSS v4 in-process via ~@kuboon/tailwindcss-deno~ and ~@tailwindcss/oxide~ (~Scanner~) with zero child subprocesses, compiling ~src/styles/tailwind.css~.
+   - The compiled CSS output is inlined directly into the extension JavaScript bundle as a string constant (~TAILWIND_CSS~ in ~src/styles/tailwind.generated.ts~), eliminating all runtime network requests.
+2. *AdoptedStyleSheet Singleton*:
+   - Content script initializes a shared ~CSSStyleSheet~ singleton once in memory via ~sheet.replaceSync(TAILWIND_CSS)~.
+   - Every injected Shadow Root adopts the shared stylesheet synchronously via ~shadowRoot.adoptedStyleSheets = [sheet]~, guaranteeing 0ms hydration and zero duplicate memory allocations.
+3. *Shadow DOM Host Theme Variant*:
+   - Dark mode is configured in Tailwind via ~@variant dark (:where(:host([data-theme="dark"]) &, [data-theme="dark"] &));~.
+   - Injected host containers and inner Preact wrapper elements reflect ~data-theme="light" | "dark"~ synchronously from the ~HostThemeAuthority~, allowing ~dark:...~ utility classes to react instantaneously across shadow boundaries.
+4. *Host-Specific Styling Split*:
+   - Universal Tailwind utility rules are decoupled from host quirks. An ~AdoptedStyleSheets~ factory (~getAdoptedStyleSheets(host?: string)~) composes the shared inlined Tailwind stylesheet with optional host-specific theme tokens/rules defined by the active site adapter.
+5. *Decoupled ViewState Caching*:
+   - Document-specific view state (e.g. Org headline fold sets) is decoupled from ~ViewStateCache~ via an opaque ~documentViewState?: unknown~ field, passed through ~DocumentViewProps~ and restored without leaking document-specific concepts into core caching layers.
+6. *Component Refactor*:
+   - Supercede legacy bespoke CSS (~gemini.css~) by refactoring components to declarative Tailwind utility classes with unstyled semantic hooks (~org-headline~, ~org-table~), while tracking host-specific theme customization requirements in a dedicated issue ticket.
+
+* Consequences
+** Positive
+- High-velocity Preact component development with concise, standardized utility classes.
+- Zero network requests for styling across the entire extension lifecycle.
+- Instantaneous (0ms) visual hydration without style recalculation or flash of unstyled content during virtual scroller recycling.
+- Dynamic, seamless light/dark theme adaptation matching host AI interfaces.
+
+** Negative
+- Generated JavaScript bundle size increases by the size of the compiled Tailwind utility string.
+- Requires build-time code generation (~tailwind.generated.ts~) before bundling.

@@ -9,7 +9,7 @@ export interface WindowTarget {
     removeEventListener?(event: string, handler: (event: unknown) => void, options?: unknown): void;
 }
 
-declare const chrome: {
+declare const browser: {
     runtime?: {
         getURL?: (path: string) => string;
     };
@@ -18,7 +18,7 @@ declare const chrome: {
 export function isExtensionError(event: unknown): boolean {
     if (!event || typeof event !== "object") return false;
 
-    const extBase = (typeof chrome !== "undefined" && chrome?.runtime?.getURL) ? chrome.runtime.getURL("") : "";
+    const extBase = (typeof browser !== "undefined" && browser?.runtime?.getURL) ? browser.runtime.getURL("") : "";
 
     const ev = event as { filename?: string; error?: unknown; reason?: unknown };
 

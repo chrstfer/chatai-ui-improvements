@@ -14,6 +14,10 @@ export interface DocumentViewDispatcherProps {
     metadata?: Readonly<Record<string, unknown>>;
     /** Optional registry override for dependency injection or testing */
     registry?: LanguageRegistry;
+    /** Opaque view state for the document view */
+    documentViewState?: unknown;
+    /** Callback to persist updated document view state */
+    onSaveViewState?: (state: unknown) => void;
 }
 
 /** In-memory cache of resolved view components keyed by language ID */
@@ -33,6 +37,8 @@ export function DocumentViewDispatcher({
     isStreaming = false,
     metadata,
     registry = defaultLanguageRegistry,
+    documentViewState,
+    onSaveViewState,
 }: DocumentViewDispatcherProps): JSX.Element {
     const firstLines = useMemo(
         () => rawText.split("\n").slice(0, 10),
@@ -118,6 +124,8 @@ export function DocumentViewDispatcher({
             language={langDef.id}
             isStreaming={isStreaming}
             metadata={metadata}
+            documentViewState={documentViewState}
+            onSaveViewState={onSaveViewState}
         />
     );
 }

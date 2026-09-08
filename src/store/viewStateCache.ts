@@ -3,6 +3,7 @@ export type ViewMode = "rendered" | "raw";
 export interface CodeBlockViewState {
     isFolded: boolean;
     viewMode: ViewMode;
+    documentViewState?: unknown;
 }
 
 /**

@@ -57,6 +57,10 @@
 - *Version Overlay* :: Top-center Preact-rendered overlay badge mounted exclusively during development (~__DEV__ === true~) displaying dynamic dev build identifiers.
 - *View Mode* :: The active presentation state (~"rendered"~ vs ~"raw"~) of a supported code block within the In-Situ Sibling Container.
 - *Block Folding* :: The collapsible presentation state hiding the code block body while preserving the header toolbar, language badge, and copy actions in an operable state.
+- *Tailwind Inlined Stylesheet* :: Pre-compiled Tailwind CSS v4 utility suite inlined directly into the extension bundle as a generated module string constant, completely bypassing network requests (~browser.runtime.getURL~ / ~fetch~) and enabling 100% offline, CSP-compliant styling.
+- *AdoptedStyleSheet Singleton* :: A single ~CSSStyleSheet~ constructed and cached once in memory (~new CSSStyleSheet()~, ~sheet.replaceSync(TAILWIND_CSS)~), adopted across all injected open Shadow Roots (~shadowRoot.adoptedStyleSheets = [sharedSheet]~), guaranteeing 0ms hydration and zero duplicate memory allocations across virtual scroller lifecycles.
+- *Shadow DOM Host Theme Variant* :: Tailwind selector mapping (~@variant dark (:where(:host([data-theme="dark"]) &, [data-theme="dark"] &));~) coupled with inner container ~data-theme~ attribute projection, ensuring ~dark:...~ utility classes respond dynamically to host dark mode across shadow boundaries.
+- *Host-Specific Theme Contract* :: The structural interface allowing site adapters to define custom theme tokens, overrides, or color mappings without polluting universal Preact presentation components.
 
 ** 6. Observability & Telemetry
 - *Runlevel* :: The operational execution mode of the extension (~dev~, ~test~, ~prod~) establishing baseline operational presets, dev tooling availability, and default log verbosity thresholds.
@@ -79,6 +83,7 @@ Domain (Pure)  <-  Store / Platform Adapters  <-  Controllers / Scrapers (DOM)  
 - Invariant: Must execute deterministically across headless targets (MV3 ~background.ts~ worker, Web Workers, Node/Deno unit tests).
 
 *** 1.2 Platform & Storage Adapters (~src/core/storage/~, ~src/core/rpc/~)
+- *Firefox-First & Unified Browser API Invariant*: The extension is built primarily for Firefox WebExtensions and targets the unified ~browser.*~ namespace. Chrome compatibility is secondary and by coincidence. Code must never invoke or assume ~chrome.*~ directly; all platform operations must prioritize standard ~browser.*~ APIs.
 - Encapsulates WebExtension APIs exclusively via the standard ~browser.*~ namespace.
 - Direct invocation of ~browser.storage.local~ across arbitrary UI or scraper modules is forbidden; all persistent operations route through typed storage abstractions.
 - RPC message contracts use native Promise resolution over ~browser.runtime.sendMessage~ and ~browser.runtime.onMessage~.
@@ -129,7 +134,7 @@ Domain (Pure)  <-  Store / Platform Adapters  <-  Controllers / Scrapers (DOM)  
 
 *** 3.1 Shadow DOM Boundary
 - Mount interactive views inside open Shadow Roots: ~mountContainer.attachShadow({ mode: 'open' })~.
-- Inject component stylesheets via ~shadowRoot.adoptedStyleSheets = [sheet]~ using ~new CSSStyleSheet()~.
+- Inject component stylesheets via ~shadowRoot.adoptedStyleSheets = [sheet]~ using an in-memory ~CSSStyleSheet~ singleton populated from the inlined Tailwind bundle (~sheet.replaceSync(TAILWIND_CSS)~), ensuring zero network fetches and 0ms paint.
 - For non-shadow injection wrappers, prefix all selectors with ~.ext-*~ and explicitly reset host typography inheritance.
 
 *** 3.2 Decoupled In-Memory Cache (Virtual Scroller Defense)
@@ -247,4 +252,5 @@ See [[file:docs/roadmap.org][docs/roadmap.org]] for the backlog and planned feat
 
 * Architectural Decision Records (ADRs)
 - [[file:docs/adr/0001-katex-math-pipeline.org][ADR 0001: KaTeX Math and LaTeX Greek Rendering Pipeline]] — Accepted (2026-09-03)
+- [[file:docs/adr/0002-tailwind-v4-shadow-dom.org][ADR 0002: Tailwind CSS v4 in Isolated Shadow DOM Boundaries]] — Accepted (2026-09-08)
 

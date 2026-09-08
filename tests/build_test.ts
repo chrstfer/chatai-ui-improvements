@@ -7,9 +7,9 @@ Deno.test("build.ts: Generates dist/dev with split chunks, bootloader, and manif
     const { code } = await cmd.output();
     assertEquals(code, 0, "build.ts --dev must exit with code 0");
 
-    // Verify bootloader exists and contains dynamic import
+    // Verify bootloader exists and contains dynamic import using browser.* namespace
     const contentJs = await Deno.readTextFile("dist/dev/content.js");
-    assertEquals(contentJs.includes('chrome.runtime.getURL("app.js")'), true);
+    assertEquals(contentJs.includes('browser.runtime.getURL("app.js")'), true);
 
     // Verify app.js entrypoint exists
     const appJs = await Deno.readTextFile("dist/dev/app.js");
@@ -30,8 +30,14 @@ Deno.test("build.ts: Generates dist/dev with split chunks, bootloader, and manif
     assertEquals(manifest.manifest_version, 3);
     assertEquals(manifest.content_scripts[1].js[0], "content.js");
 
-    // Verify web_accessible_resources includes app.js and chunks
+    // Verify web_accessible_resources includes app.js and explicitly enumerated chunks without wildcards
     const webResources = manifest.web_accessible_resources[0].resources;
     assertEquals(webResources.includes("app.js"), true);
-    assertEquals(webResources.includes("*.js"), true);
+    assertEquals(webResources.includes("*.js"), false, "Must not contain *.js wildcard");
+    assertEquals(webResources.length >= 2, true, "Must enumerate generated bundle chunks explicitly");
+
+    // Verify Tailwind CSS was compiled and inlined
+    const tailwindGenerated = await Deno.readTextFile("src/styles/tailwind.generated.ts");
+    assertEquals(tailwindGenerated.includes("export const TAILWIND_CSS: string ="), true);
+    assertNotEquals(tailwindGenerated.length, 0);
 });

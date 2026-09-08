@@ -1,0 +1,7 @@
+@import "tailwindcss";
+
+/* Scan all extension component source files for utility classes */
+@source "../**/*.{tsx,ts,html}";
+
+/* Support dark: variant both on host element (:host([data-theme="dark"])) and internal wrapper ([data-theme="dark"]) */
+@variant dark (:where(:host([data-theme="dark"]) &, [data-theme="dark"] &));

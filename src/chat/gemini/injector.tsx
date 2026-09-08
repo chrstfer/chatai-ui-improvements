@@ -4,12 +4,8 @@ import type { GeminiCodeBlockRef } from "./types.ts";
 import { InSituCodeBlockContainer } from "../../views/codeblock/index.ts";
 import { createLogger } from "../../core/logging/index.ts";
 import { defaultLanguageRegistry } from "../../languages/registry.ts";
-
-declare const chrome: {
-    runtime?: {
-        getURL?: (path: string) => string;
-    };
-} | undefined;
+import { getAdoptedStyleSheets } from "../../styles/adoptedStyleSheets.ts";
+import "./styles/tokens.ts";
 
 export class GeminiInjector {
     private logger = createLogger("Gemini > Injector");
@@ -20,7 +16,7 @@ export class GeminiInjector {
 
     /**
      * Injects sibling container beside <code-block>, hides native block non-destructively,
-     * attaches open Shadow Root, links the external stylesheet, and mounts InSituCodeBlockContainer.
+     * attaches open Shadow Root, adopts inlined stylesheets synchronously, and mounts InSituCodeBlockContainer.
      */
     public inject(
         block: GeminiCodeBlockRef,
@@ -54,14 +50,8 @@ export class GeminiInjector {
         // Attach open Shadow Root
         const shadowRoot = container.attachShadow({ mode: "open" });
 
-        // Link external stylesheet into shadow root
-        const link = document.createElement("link");
-        link.rel = "stylesheet";
-        const runtimeUrl = (typeof chrome !== "undefined" && chrome?.runtime?.getURL)
-            ? chrome.runtime.getURL("src/chat/gemini/styles/gemini.css")
-            : "/src/chat/gemini/styles/gemini.css";
-        link.href = runtimeUrl;
-        shadowRoot.appendChild(link);
+        // Synchronously adopt pre-compiled inlined stylesheets (zero network requests, 0ms hydration)
+        shadowRoot.adoptedStyleSheets = getAdoptedStyleSheets("gemini");
 
         // Coordinate AST settlement and rendered view capability via centralized registry
         const { langDef, ast } = defaultLanguageRegistry.settleContent(rawText, languageHint);
@@ -75,6 +65,7 @@ export class GeminiInjector {
                 hasRenderedView={hasRenderedView}
                 hostElement={hostElement}
                 ast={ast}
+                theme={currentTheme}
             />,
             shadowRoot,
         );
@@ -98,8 +89,12 @@ export class GeminiInjector {
 
     public updateThemes(theme: "light" | "dark"): void {
         this.logger.debug(`Updating ${this.activeRoots.size} mounted root(s) to theme "${theme}"`);
-        for (const { container } of this.activeRoots.values()) {
+        for (const { container, shadowRoot } of this.activeRoots.values()) {
             container.dataset.theme = theme;
+            const innerContainer = shadowRoot.querySelector<HTMLElement>(".ext-codeblock-container");
+            if (innerContainer) {
+                innerContainer.dataset.theme = theme;
+            }
         }
     }
 

@@ -12,6 +12,10 @@ export interface DocumentViewProps {
     readonly isStreaming?: boolean;
     /** Optional metadata associated with the turn or block */
     readonly metadata?: Readonly<Record<string, unknown>>;
+    /** Opaque view state previously saved by this document view (e.g. folded headline sets) */
+    readonly documentViewState?: unknown;
+    /** Callback enabling the document view to persist custom UI state in the LRU cache */
+    readonly onSaveViewState?: (state: unknown) => void;
 }
 
 /**
