@@ -11,7 +11,7 @@ export interface CodeBlockViewState {
  * Keyed by deterministic content hashes.
  */
 export class ViewStateCache {
-    private cache = new Map<string, CodeBlockViewState>();
+    private cache = new Map<number | string, CodeBlockViewState>();
     private capacity: number;
 
     constructor(capacity = 500) {
@@ -21,7 +21,7 @@ export class ViewStateCache {
     /**
      * Retrieves view state for a given hash and marks it as most recently used.
      */
-    public get(hash: string): CodeBlockViewState | undefined {
+    public get(hash: number | string): CodeBlockViewState | undefined {
         const state = this.cache.get(hash);
         if (state !== undefined) {
             this.cache.delete(hash);
@@ -34,7 +34,7 @@ export class ViewStateCache {
      * Stores or updates the view state for a given hash.
      * Evicts the oldest entry if capacity is reached.
      */
-    public set(hash: string, state: CodeBlockViewState): void {
+    public set(hash: number | string, state: CodeBlockViewState): void {
         if (this.cache.has(hash)) {
             this.cache.delete(hash);
         } else if (this.cache.size >= this.capacity) {
@@ -46,11 +46,11 @@ export class ViewStateCache {
         this.cache.set(hash, state);
     }
 
-    public has(hash: string): boolean {
+    public has(hash: number | string): boolean {
         return this.cache.has(hash);
     }
 
-    public delete(hash: string): boolean {
+    public delete(hash: number | string): boolean {
         return this.cache.delete(hash);
     }
 
