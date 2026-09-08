@@ -3,8 +3,10 @@ import { useCallback, useEffect, useMemo, useState } from "preact/hooks";
 import { computeContentHash } from "../../core/utils/contentHash.ts";
 import { copyTextToClipboard } from "../../core/utils/clipboard.ts";
 import { defaultViewStateCache, type ViewMode, type ViewStateCache } from "../../store/viewStateCache.ts";
+import { type AstCache, defaultAstCache } from "../../store/astCache.ts";
 import { CodeBlockHeader } from "./CodeBlockHeader.tsx";
 import { RawSourceView } from "./RawSourceView.tsx";
+import { DocumentViewDispatcher } from "./DocumentViewDispatcher.tsx";
 
 export interface InSituCodeBlockContainerProps {
     /** Pristine raw code text from the host Data-Island */
@@ -17,6 +19,10 @@ export interface InSituCodeBlockContainerProps {
     hostElement?: HTMLElement | null;
     /** Optional cache instance for testing or decoupled lifecycle persistence */
     cache?: ViewStateCache;
+    /** Pre-parsed or cached AST for rich document views */
+    ast?: unknown;
+    /** Optional AST cache instance */
+    astCache?: AstCache;
     /** Rendered view projection slot when viewMode === "rendered" */
     children?: ComponentChildren;
 }
@@ -32,6 +38,8 @@ export function InSituCodeBlockContainer({
     hasRenderedView = false,
     hostElement = null,
     cache = defaultViewStateCache,
+    ast: _ast,
+    astCache: _astCache = defaultAstCache,
     children,
 }: InSituCodeBlockContainerProps): JSX.Element {
     const hash = useMemo(() => computeContentHash(rawText, language), [rawText, language]);
@@ -86,11 +94,10 @@ export function InSituCodeBlockContainer({
                     {viewMode === "rendered" && hasRenderedView
                         ? (
                             children || (
-                                <div class="ext-rendered-placeholder">
-                                    <span class="ext-placeholder-text">
-                                        Rendered view will appear here in Phase 2 Stage 2.
-                                    </span>
-                                </div>
+                                <DocumentViewDispatcher
+                                    language={language}
+                                    rawText={rawText}
+                                />
                             )
                         )
                         : <RawSourceView rawText={rawText} language={language} />}

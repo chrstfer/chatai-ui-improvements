@@ -43,6 +43,11 @@
 - *Heading Node & Subtree* :: A hierarchical Org section (~*~ through ~******~) containing title tokens, status chips (~TODO~, ~DONE~), priority badges (~[#A]~), tag sets (~:TAG:~), and nested child content folded recursively.
 - *Property Drawer* :: Metadata blocks enclosed in ~:PROPERTIES: ... :END:~ containing key-value pairs, collapsible via interactive toggles.
 - *Cookie Progress* :: Dynamic checkbox fraction indicators (e.g. ~[2/5]~ or ~[40%]~) that recalculate in real-time as child checkboxes are clicked.
+- *OrgMetadataCommentNode* :: First-class AST node representing ~#+KEY: VALUE~ lines, storing the case-insensitive normalized keyword as ~metaType~, optional bracketed arguments, and value payload.
+- *Affiliated Keywords* :: Metadata comments (such as ~#+NAME:~, ~#+CAPTION:~, ~#+ATTR_...~) immediately preceding a structural block element (code block, table, list) without an intervening blank line, attached directly to that element as ~affiliatedMetadata~ rather than emitted as standalone siblings.
+- *Lenient Pipe Table Normalization* :: Table parsing heuristic that auto-closes missing trailing pipes, trims whitespace, and pads columns across rows to match the table's maximum column count.
+- *OrgMacroNode* :: Pure, un-mutated AST node representation for Org macro invocations (~{{{name(args)}}}~), preserving raw syntax without eager expansion during the parsing pass.
+- *AstCache* :: In-memory LRU cache storing parsed AST trees keyed by 32-bit FNV-1a content hash and language type (~"org"~), decoupling AST lifetime from host DOM virtual scroller lifecycles.
 - *Turn Metadata Drawer* :: Machine-readable property drawer (~:PROPERTIES: ... :END:~) affixed to conversation turn headlines containing role, indices, and timestamps.
 - *StructuredMessageContainer* :: Universal Preact container component providing a unified interface for message boxes in the DOM, orchestrating folding, collapsed summary badges, portal toolbars, and active view projection.
 

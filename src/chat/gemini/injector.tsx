@@ -3,6 +3,7 @@ import { EXTENSION_INJECTED } from "./selectors.ts";
 import type { GeminiCodeBlockRef } from "./types.ts";
 import { InSituCodeBlockContainer } from "../../views/codeblock/index.ts";
 import { createLogger } from "../../core/logging/index.ts";
+import { defaultLanguageRegistry } from "../../languages/registry.ts";
 
 declare const chrome: {
     runtime?: {
@@ -62,10 +63,9 @@ export class GeminiInjector {
         link.href = runtimeUrl;
         shadowRoot.appendChild(link);
 
-        // Determine whether this language block supports rich rendered view
-        const normalizedLang = languageHint.toLowerCase().trim();
-        const hasRenderedView = normalizedLang === "org" || normalizedLang === "org-mode" ||
-            normalizedLang === "orgmode";
+        // Coordinate AST settlement and rendered view capability via centralized registry
+        const { langDef, ast } = defaultLanguageRegistry.settleContent(rawText, languageHint);
+        const hasRenderedView = langDef !== undefined;
 
         // Mount production InSituCodeBlockContainer component
         render(
@@ -74,6 +74,7 @@ export class GeminiInjector {
                 language={languageHint}
                 hasRenderedView={hasRenderedView}
                 hostElement={hostElement}
+                ast={ast}
             />,
             shadowRoot,
         );

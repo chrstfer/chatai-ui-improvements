@@ -23,4 +23,9 @@ export interface LanguageDefinition {
      * Enables tree-shaking and dynamic ESM loading via web_accessible_resources.
      */
     loadView(): Promise<DocumentViewComponent>;
+
+    /**
+     * Optional headless parser producing an Abstract Syntax Tree (AST) for this language.
+     */
+    parse?(rawText: string): unknown;
 }

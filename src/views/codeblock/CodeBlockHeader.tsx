@@ -13,12 +13,10 @@ export interface CodeBlockHeaderProps {
     onCopy: () => void;
 }
 
-// TODO(Issue-05): Resolve language display name dynamically from a supported language registry.
+import { defaultLanguageRegistry } from "../../languages/registry.ts";
+
 function formatLanguage(lang: string): string {
-    if (!lang || lang.trim() === "") return "CODE";
-    const clean = lang.trim().toLowerCase();
-    if (clean === "org" || clean === "orgmode" || clean === "org-mode") return "ORG MODE";
-    return clean.toUpperCase();
+    return defaultLanguageRegistry.formatDisplayName(lang);
 }
 
 /**
