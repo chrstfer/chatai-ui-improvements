@@ -10,6 +10,7 @@
 - *Host Node* :: A native DOM element created and managed by the Host Application's internal framework (e.g., a native ~<code-block>~ or message container).
 - *Injection Container* :: A lightweight wrapper element created by the extension and inserted as a sibling or wrapper to a Host Node to serve as the mounting anchor for custom UI.
 - *In-Situ Sibling Container* :: A dedicated container mounted as a sibling to the native ~<code-block>~ element, rendering an improved header (with equivalent and custom action buttons) and the parsed DocumentView inside an open Shadow Root while hiding the native ~<code-block>~ via ~display: none~.
+- *InSituCodeBlockContainer* :: The universal Preact component mounted inside the In-Situ Sibling Container orchestrating block folding, view mode transitions ("rendered" vs "raw"), and host copy parity.
 - *Data-Island* :: The superseded native DOM element (specifically ~:scope code-block code~) retained in the DOM in a hidden state (~display: none~), serving as the authentic, unmutated payload source for scrapers and copy actions.
 - *Shadow Root Boundary* :: An encapsulated DOM subtree (~mountContainer.attachShadow({ mode: 'open' })~) isolating extension styles (~adoptedStyleSheets~) and Preact component trees from host CSS resets and global styles.
 
@@ -49,6 +50,8 @@
 - *Floating HUD (Heads-Up Display)* :: An ephemeral floating control panel elevated above the bottom-right corner providing width presets, view toggles, font size controls, and export triggers.
 - *Three-Layer Style Mapping* :: Decoupled styling architecture separating pure domain computation (~computeLayoutStyles~), DOM I/O adapters (~applyLayoutDeclarations~), and reactive Preact hooks (~useLayoutSync~).
 - *Version Overlay* :: Top-center Preact-rendered overlay badge mounted exclusively during development (~__DEV__ === true~) displaying dynamic dev build identifiers.
+- *View Mode* :: The active presentation state (~"rendered"~ vs ~"raw"~) of a supported code block within the In-Situ Sibling Container.
+- *Block Folding* :: The collapsible presentation state hiding the code block body while preserving the header toolbar, language badge, and copy actions in an operable state.
 
 ** 6. Observability & Telemetry
 - *Runlevel* :: The operational execution mode of the extension (~dev~, ~test~, ~prod~) establishing baseline operational presets, dev tooling availability, and default log verbosity thresholds.
