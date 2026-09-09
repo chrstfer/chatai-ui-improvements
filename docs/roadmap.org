@@ -22,14 +22,14 @@
 - [X] Non-Destructive Host Isolation :: CSS hiding (~display: none~) and open Shadow Roots isolating extension styles while preserving native ~code[data-test-id='code-content']~ for host copy parity.
 - [ ] Multi-Platform Chat Adapters :: Extend adapters to support ChatGPT, Claude, and DuckDuckGo AI.
 
-* Rendering Capabilities & Languages [3/8]
+* Rendering Capabilities & Languages [6/8]
 - [X] Universal In-Situ Code Block Container :: Universal ~InSituCodeBlockContainer~ with custom toolbar, language badge, folding toggle, view toggling, and copy parity button.
 - [X] Headless Org-Mode AST Engine :: Canonical Emacs ~org-element.el~ specification AST, O(N) streaming block parser with headline stack hierarchy, delimiter disambiguation, affiliated keywords (~#+NAME:~, ~#+CAPTION:~), tables with rules/alignment, and rich inline objects.
 - [X] Language Registry & AST Settlement Pipeline :: Centralized ~LanguageRegistry~ with language-agnostic ~settleContent~ coordinating pre-parsing and AST caching during turn settlement.
-- [ ] In-Situ Preact Org Document View :: Rich declarative Preact view component (~OrgDocumentView~) rendering collapsible headline sections, TODO state badges, priority chips, tags, property drawers, and description lists.
-- [ ] LaTeX / KaTeX Math Pipeline :: Dynamic KaTeX math fragment rendering ($...$, \(...\)) and ASCII LaTeX Greek entity replacement per ADR 0001.
+- [X] In-Situ Preact Org Document View :: Rich declarative Preact view component (~OrgDocumentView~) rendering collapsible headline sections, TODO state badges, priority chips, tags, property drawers, and description lists.
+- [X] LaTeX / KaTeX Math Pipeline :: Dynamic KaTeX math fragment rendering ($...$, \(...\)) and ASCII LaTeX Greek entity replacement per ADR 0001.
 - [ ] Custom Org Themes & Syntax Presets :: User-selectable color schemes (Org Modern, Doom One, Solarized, Gruvbox) for rendered headlines and code blocks.
-- [ ] Inline Image and Dynamic Attachment Previews :: In-situ rendering of embedded ~[[file:...]]~ and ~[[https://...]]~ image links with zoom overlay.
+- [X] Inline Image and Dynamic Attachment Previews :: In-situ rendering of embedded ~[[file:...]]~ and ~[[https://...]]~ image links with zoom overlay.
 - [ ] Additional DocumentViews :: Pluggable DocumentViews for JSON, Mermaid diagrams, and Markdown.
 
 * HUD & User Controls [0/4]
