@@ -1,6 +1,6 @@
 import type { JSX } from "preact";
 import type { OrgElement } from "../ast/types.ts";
-import { OrgHeadlineView } from "./OrgHeadlineView.tsx";
+import { type HeadlineFoldState, OrgHeadlineView } from "./OrgHeadlineView.tsx";
 import { OrgParagraphView } from "./OrgParagraphView.tsx";
 import { OrgBlockView } from "./OrgBlockView.tsx";
 import { OrgTableView } from "./OrgTableView.tsx";
@@ -12,7 +12,9 @@ export interface OrgElementRendererProps {
     readonly elements?: readonly OrgElement[] | OrgElement | null;
     readonly parentPath?: string;
     readonly foldedHeadlines?: readonly string[];
+    readonly headlineFoldStates?: Readonly<Record<string, HeadlineFoldState>>;
     readonly onToggleHeadlineFold?: (headlineId: string) => void;
+    readonly onCycleHeadlineFold?: (headlineId: string, hasChildHeadlines: boolean) => void;
     readonly foldedBlocks?: readonly string[];
     readonly onToggleBlockFold?: (blockId: string) => void;
     readonly checkedItems?: readonly string[];
@@ -27,7 +29,9 @@ export function OrgElementRenderer(props: OrgElementRendererProps): JSX.Element 
         elements,
         parentPath = "",
         foldedHeadlines,
+        headlineFoldStates,
         onToggleHeadlineFold,
+        onCycleHeadlineFold,
         foldedBlocks,
         onToggleBlockFold,
         checkedItems,
@@ -51,7 +55,9 @@ export function OrgElementRenderer(props: OrgElementRendererProps): JSX.Element 
                 elements={child}
                 parentPath={currentPath}
                 foldedHeadlines={foldedHeadlines}
+                headlineFoldStates={headlineFoldStates}
                 onToggleHeadlineFold={onToggleHeadlineFold}
+                onCycleHeadlineFold={onCycleHeadlineFold}
                 foldedBlocks={foldedBlocks}
                 onToggleBlockFold={onToggleBlockFold}
                 checkedItems={checkedItems}
@@ -72,6 +78,7 @@ export function OrgElementRenderer(props: OrgElementRendererProps): JSX.Element 
                     case "headline": {
                         const headlineId = `${pathPrefix}h-${idx}`;
                         const isFolded = foldedHeadlines ? foldedHeadlines.includes(headlineId) : false;
+                        const foldState = headlineFoldStates?.[headlineId];
 
                         return (
                             <OrgHeadlineView
@@ -79,7 +86,9 @@ export function OrgElementRenderer(props: OrgElementRendererProps): JSX.Element 
                                 headline={elem}
                                 headlinePath={headlineId}
                                 isFolded={isFolded}
+                                foldState={foldState}
                                 onToggleFold={onToggleHeadlineFold}
+                                onCycleFold={onCycleHeadlineFold}
                                 todoOverrides={todoOverrides}
                                 onCycleTodo={onCycleTodo}
                                 onNavigateInternal={onNavigateInternal}
@@ -154,7 +163,9 @@ export function OrgElementRenderer(props: OrgElementRendererProps): JSX.Element 
                                     elements={elem.children}
                                     parentPath={`${pathPrefix}s-${idx}`}
                                     foldedHeadlines={foldedHeadlines}
+                                    headlineFoldStates={headlineFoldStates}
                                     onToggleHeadlineFold={onToggleHeadlineFold}
+                                    onCycleHeadlineFold={onCycleHeadlineFold}
                                     foldedBlocks={foldedBlocks}
                                     onToggleBlockFold={onToggleBlockFold}
                                     checkedItems={checkedItems}
@@ -177,7 +188,9 @@ export function OrgElementRenderer(props: OrgElementRendererProps): JSX.Element 
                                     elements={elem.children}
                                     parentPath={`${pathPrefix}fn-${idx}`}
                                     foldedHeadlines={foldedHeadlines}
+                                    headlineFoldStates={headlineFoldStates}
                                     onToggleHeadlineFold={onToggleHeadlineFold}
+                                    onCycleHeadlineFold={onCycleHeadlineFold}
                                     foldedBlocks={foldedBlocks}
                                     onToggleBlockFold={onToggleBlockFold}
                                     checkedItems={checkedItems}

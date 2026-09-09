@@ -244,24 +244,34 @@ Deno.test("InSituCodeBlockContainer renders body, toggles fold, and synchronizes
         assertEquals(state1?.isFolded, false);
         assertEquals(state1?.viewMode, "rendered");
 
-        // Fold toggle
+        // 1. First cycle on rendered view switches to raw view
         const foldBtn = root.querySelector(".ext-btn-fold");
         triggerClick(foldBtn);
+        await new Promise((resolve) => setTimeout(resolve, 50));
 
-        // Allow rerender & effect update
-        await new Promise((resolve) => setTimeout(resolve, 80));
+        const rawEl = root.querySelector("code[data-language='org']");
+        assertNotEquals(rawEl, null, "First cycle should switch from rendered to raw view");
+        assertEquals(cache.get(hash)?.viewMode, "raw");
+        assertEquals(cache.get(hash)?.isFolded, false);
 
-        // After fold, body should be unmounted
-        const bodyEl = root.querySelector(".ext-codeblock-body");
-        assertEquals(bodyEl, null);
+        // 2. Second cycle from raw view collapses the block
+        triggerClick(foldBtn);
+        await new Promise((resolve) => setTimeout(resolve, 50));
 
-        // Header remains visible
-        const headerEl = root.querySelector(".ext-header");
-        assertNotEquals(headerEl, null);
+        assertEquals(root.querySelector(".ext-codeblock-body"), null, "Second cycle should fold block body");
+        assertEquals(cache.get(hash)?.isFolded, true);
 
-        // Cache reflects folded state
-        const state2 = cache.get(hash);
-        assertEquals(state2?.isFolded, true);
+        // 3. Third cycle from collapsed expands back to rendered view
+        triggerClick(foldBtn);
+        await new Promise((resolve) => setTimeout(resolve, 50));
+
+        assertNotEquals(
+            root.querySelector(".test-rendered-content"),
+            null,
+            "Third cycle should expand to rendered view",
+        );
+        assertEquals(cache.get(hash)?.isFolded, false);
+        assertEquals(cache.get(hash)?.viewMode, "rendered");
     } finally {
         cleanup();
     }

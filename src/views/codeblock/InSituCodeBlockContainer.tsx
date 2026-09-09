@@ -64,8 +64,22 @@ export function InSituCodeBlockContainer({
     }, [cache, hash, isFolded, viewMode, documentViewState]);
 
     const handleToggleFold = useCallback(() => {
-        setIsFolded((prev) => !prev);
-    }, []);
+        if (hasRenderedView) {
+            if (isFolded) {
+                // Collapsed -> Rendered view
+                setIsFolded(false);
+                setViewMode("rendered");
+            } else if (viewMode === "rendered") {
+                // Rendered view -> Raw code view
+                setViewMode("raw");
+            } else {
+                // Raw code view -> Collapsed
+                setIsFolded(true);
+            }
+        } else {
+            setIsFolded((prev) => !prev);
+        }
+    }, [hasRenderedView, isFolded, viewMode]);
 
     const handleToggleViewMode = useCallback(() => {
         setViewMode((prev) => (prev === "rendered" ? "raw" : "rendered"));

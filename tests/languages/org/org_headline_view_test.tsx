@@ -234,3 +234,102 @@ Deno.test("OrgHeadlineView: Subtree copy button writes serialized Org subtree to
         cleanup();
     }
 });
+
+Deno.test("OrgHeadlineView: Supports 3-state visibility cycling (folded -> children -> subtree)", () => {
+    const { root, cleanup } = setupDom();
+    try {
+        let cycledInfo: { id: string; hasChildren: boolean } | null = null;
+        const headlineWithChildren: OrgHeadlineElement = {
+            type: "headline",
+            level: 1,
+            title: [{ type: "text", value: "Parent Topic" }],
+            tags: [],
+            children: [
+                {
+                    type: "paragraph",
+                    children: [{ type: "text", value: "Parent direct paragraph" }],
+                },
+                {
+                    type: "headline",
+                    level: 2,
+                    title: [{ type: "text", value: "Nested Sub-Topic" }],
+                    tags: [],
+                    children: [],
+                },
+            ],
+        };
+
+        // 1. Folded State: shows ellipsis and ▶, neither paragraph nor child headline rendered
+        render(
+            <OrgHeadlineView
+                headline={headlineWithChildren}
+                headlinePath="h-0"
+                foldState="folded"
+                onCycleFold={(id, hasChildren) => {
+                    cycledInfo = { id, hasChildren };
+                }}
+                renderElement={(elem, _idx, path) => (
+                    <div class={`child-${elem.type}`} data-path={path}>
+                        {elem.type}
+                    </div>
+                )}
+            />,
+            root,
+        );
+
+        const foldToggle = root.querySelector(".org-fold-toggle");
+        assertEquals(foldToggle?.textContent?.trim(), "▶");
+        assertNotEquals(root.querySelector(".org-fold-ellipsis"), null);
+        assertEquals(root.querySelector(".org-headline-body"), null);
+
+        // Clicking invokes onCycleFold with hasChildren = true
+        const h1 = root.querySelector("h1.org-headline");
+        triggerClick(h1);
+        assertEquals(cycledInfo, { id: "h-0", hasChildren: true });
+
+        // 2. Children State: shows ▷ and ellipsis, renders nested child headline, hides parent paragraph
+        render(
+            <OrgHeadlineView
+                headline={headlineWithChildren}
+                headlinePath="h-0"
+                foldState="children"
+                renderElement={(elem, _idx, path) => (
+                    <div class={`child-${elem.type}`} data-path={path}>
+                        {elem.type}
+                    </div>
+                )}
+            />,
+            root,
+        );
+
+        assertEquals(root.querySelector(".org-fold-toggle")?.textContent?.trim(), "▷");
+        assertNotEquals(root.querySelector(".org-fold-ellipsis"), null);
+        assertNotEquals(root.querySelector(".org-headline-body"), null);
+        // Child headline is rendered
+        assertNotEquals(root.querySelector(".child-headline"), null);
+        // Direct paragraph is NOT rendered
+        assertEquals(root.querySelector(".child-paragraph"), null);
+
+        // 3. Subtree State: shows ▼ and no ellipsis, renders both paragraph and child headline
+        render(
+            <OrgHeadlineView
+                headline={headlineWithChildren}
+                headlinePath="h-0"
+                foldState="subtree"
+                renderElement={(elem, _idx, path) => (
+                    <div class={`child-${elem.type}`} data-path={path}>
+                        {elem.type}
+                    </div>
+                )}
+            />,
+            root,
+        );
+
+        assertEquals(root.querySelector(".org-fold-toggle")?.textContent?.trim(), "▼");
+        assertEquals(root.querySelector(".org-fold-ellipsis"), null);
+        assertNotEquals(root.querySelector(".child-headline"), null);
+        assertNotEquals(root.querySelector(".child-paragraph"), null);
+    } finally {
+        cleanup();
+    }
+});

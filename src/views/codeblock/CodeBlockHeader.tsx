@@ -41,21 +41,29 @@ export function CodeBlockHeader({
         onToggleFold();
     };
 
+    const headerTitle = hasRenderedView
+        ? (isFolded
+            ? "Click to view rendered document"
+            : viewMode === "rendered"
+            ? "Click to switch to raw code"
+            : "Click to collapse code block")
+        : (isFolded ? "Click to expand code block" : "Click to collapse code block");
+
     return (
         <header
             class={`ext-header flex items-center justify-between px-3 py-2 bg-neutral-100 dark:bg-[#131314] select-none transition-colors duration-200 cursor-pointer hover:bg-neutral-200/60 dark:hover:bg-neutral-800/40 ${
                 isFolded ? "border-b-0" : "border-b border-neutral-200 dark:border-neutral-700"
             }`}
             onClick={handleHeaderClick}
-            title={isFolded ? "Click to expand code block" : "Click to collapse code block"}
+            title={headerTitle}
         >
             <div class="ext-header-left flex items-center gap-2">
                 <button
                     class="ext-btn ext-btn-icon ext-btn-fold inline-flex items-center justify-center p-1 rounded-md text-neutral-600 dark:text-neutral-300 hover:bg-black/5 dark:hover:bg-white/10 hover:text-neutral-900 dark:hover:text-white transition-colors cursor-pointer border-0 bg-transparent"
                     type="button"
                     onClick={onToggleFold}
-                    aria-label={isFolded ? "Expand code block" : "Collapse code block"}
-                    title={isFolded ? "Expand" : "Collapse"}
+                    aria-label={headerTitle}
+                    title={headerTitle}
                 >
                     <ChevronIcon
                         class={`transition-transform duration-200 ${isFolded ? "-rotate-90" : ""}`}

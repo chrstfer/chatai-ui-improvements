@@ -5,11 +5,15 @@ import { serializeOrgSubtree } from "../ast/serializer.ts";
 import { OrgObjectRenderer } from "./OrgObjectRenderer.tsx";
 import { OrgDrawerView } from "./OrgDrawerView.tsx";
 
+export type HeadlineFoldState = "folded" | "children" | "subtree";
+
 export interface OrgHeadlineViewProps {
     readonly headline: OrgHeadlineElement;
     readonly headlinePath: string;
     readonly isFolded?: boolean;
+    readonly foldState?: HeadlineFoldState;
     readonly onToggleFold?: (headlineId: string) => void;
+    readonly onCycleFold?: (headlineId: string, hasChildHeadlines: boolean) => void;
     readonly todoOverrides?: Readonly<Record<string, string>>;
     readonly onCycleTodo?: (headlineId: string, currentStatus: string) => void;
     readonly onNavigateInternal?: (targetId: string) => void;
@@ -75,7 +79,9 @@ export function OrgHeadlineView({
     headline,
     headlinePath,
     isFolded = false,
+    foldState,
     onToggleFold,
+    onCycleFold,
     todoOverrides,
     onCycleTodo,
     onNavigateInternal,
@@ -86,11 +92,22 @@ export function OrgHeadlineView({
     const headlineId = headlinePath;
     const plainTitle = extractText(title).trim();
 
+    const hasChildHeadlines = children.some((c) => c.type === "headline");
+    const activeFoldState: HeadlineFoldState = foldState ?? (isFolded ? "folded" : "subtree");
+
     const currentTodo = todoOverrides?.[headlineId] ?? headline.todoKeyword;
     const isDone = currentTodo === "DONE" || currentTodo === "CANCELLED";
 
     const HeaderTag = getHeaderTag(level);
     const styleClasses = getHeadlineStyles(level);
+
+    const handleFoldAction = () => {
+        if (onCycleFold) {
+            onCycleFold(headlineId, hasChildHeadlines);
+        } else if (onToggleFold) {
+            onToggleFold(headlineId);
+        }
+    };
 
     const handleHeadingClick = (e: MouseEvent) => {
         const target = e.target as HTMLElement;
@@ -101,7 +118,7 @@ export function OrgHeadlineView({
         ) {
             return;
         }
-        onToggleFold?.(headlineId);
+        handleFoldAction();
     };
 
     const handleCopySubtree = async (e: MouseEvent) => {
@@ -119,18 +136,27 @@ export function OrgHeadlineView({
         }
     };
 
+    const foldToggleIcon = activeFoldState === "folded" ? "▶" : activeFoldState === "children" ? "▷" : "▼";
+    const foldToggleTitle = activeFoldState === "folded"
+        ? (hasChildHeadlines ? "Click to show child headlines" : "Click to expand subtree")
+        : activeFoldState === "children"
+        ? "Click to expand entire subtree"
+        : "Click to collapse subtree";
+
     return (
         <section
             class="org-headline-section my-2"
             data-headline-id={headlineId}
             data-headline-title={plainTitle}
             data-level={level}
+            data-fold-state={activeFoldState}
         >
             <HeaderTag
                 class={`org-headline flex items-center justify-between gap-2 border rounded px-2.5 py-1.5 my-1.5 cursor-pointer select-none transition-colors hover:bg-neutral-100/60 dark:hover:bg-neutral-800/60 group ${styleClasses}`}
                 onClick={handleHeadingClick}
                 role={level > 6 ? "heading" : undefined}
                 aria-level={level > 6 ? level : undefined}
+                title={foldToggleTitle}
             >
                 {/* Left: Title Flow pinned to text baseline */}
                 <div class="flex items-baseline gap-2 min-w-0 flex-1">
@@ -138,13 +164,13 @@ export function OrgHeadlineView({
                         type="button"
                         onClick={(e) => {
                             e.stopPropagation();
-                            onToggleFold?.(headlineId);
+                            handleFoldAction();
                         }}
                         class="org-fold-toggle shrink-0 inline-flex items-center text-xs font-mono self-baseline mt-0.5 text-neutral-400 hover:text-neutral-700 dark:hover:text-neutral-200 cursor-pointer p-0.5 rounded transition-colors"
-                        title={isFolded ? "Expand subtree" : "Collapse subtree"}
-                        aria-expanded={!isFolded}
+                        title={foldToggleTitle}
+                        aria-expanded={activeFoldState !== "folded"}
                     >
-                        {isFolded ? "▶" : "▼"}
+                        {foldToggleIcon}
                     </button>
 
                     {currentTodo && (
@@ -175,6 +201,11 @@ export function OrgHeadlineView({
                         }`}
                     >
                         <OrgObjectRenderer objects={title} onNavigateInternal={onNavigateInternal} />
+                        {activeFoldState !== "subtree" && (
+                            <span class="org-fold-ellipsis font-mono text-xs text-neutral-400 dark:text-neutral-500 ml-1 font-bold select-none">
+                                ...
+                            </span>
+                        )}
                     </span>
                 </div>
 
@@ -220,7 +251,7 @@ export function OrgHeadlineView({
                 </div>
             </HeaderTag>
 
-            {planning && (
+            {activeFoldState === "subtree" && planning && (
                 <div class="org-planning text-xs font-mono text-neutral-500 dark:text-neutral-400 mb-2 flex items-center gap-3 pl-5">
                     {planning.scheduled && (
                         <span>
@@ -243,7 +274,7 @@ export function OrgHeadlineView({
                 </div>
             )}
 
-            {properties && Object.keys(properties).length > 0 && (
+            {activeFoldState === "subtree" && properties && Object.keys(properties).length > 0 && (
                 <div class="pl-5 mb-2">
                     <OrgDrawerView
                         drawer={{
@@ -259,9 +290,13 @@ export function OrgHeadlineView({
                 </div>
             )}
 
-            {!isFolded && children.length > 0 && (
+            {activeFoldState !== "folded" && children.length > 0 && (
                 <div class="org-headline-body pl-3 md:pl-5 border-l border-neutral-200/50 dark:border-neutral-800/50 space-y-2 mt-2">
                     {children.map((child, cIdx) => {
+                        // In "children" state, hide direct paragraphs/blocks and only render child headlines
+                        if (activeFoldState === "children" && child.type !== "headline") {
+                            return null;
+                        }
                         if (renderElement) {
                             return renderElement(child, cIdx, `${headlineId}.c-${cIdx}`);
                         }

@@ -7,8 +7,13 @@ import type { OrgDocumentElement } from "../ast/types.ts";
 import { parseOrgDocument } from "../ast/parser.ts";
 import { OrgElementRenderer } from "./OrgElementRenderer.tsx";
 
+import type { HeadlineFoldState } from "./OrgHeadlineView.tsx";
+
+export type { HeadlineFoldState } from "./OrgHeadlineView.tsx";
+
 export interface OrgDocumentViewState {
     readonly foldedHeadlines?: readonly string[];
+    readonly headlineFoldStates?: Readonly<Record<string, HeadlineFoldState>>;
     readonly foldedBlocks?: readonly string[];
     readonly checkedItems?: readonly string[];
     readonly todoOverrides?: Readonly<Record<string, string>>;
@@ -29,18 +34,35 @@ export function OrgDocumentView(props: DocumentViewProps): JSX.Element {
 
     // Top-matter #+STARTUP: directive parsing with fallback to all-expanded
     const savedState = documentViewState as OrgDocumentViewState | undefined;
-    const initialHeadlines = useMemo(() => {
-        if (savedState?.foldedHeadlines) return savedState.foldedHeadlines;
+    const initialHeadlineFoldStates = useMemo(() => {
+        if (savedState?.headlineFoldStates) return savedState.headlineFoldStates;
+        const res: Record<string, HeadlineFoldState> = {};
+        if (savedState?.foldedHeadlines) {
+            for (const id of savedState.foldedHeadlines) {
+                res[id] = "folded";
+            }
+            return res;
+        }
         const startup = (docAst.properties?.["startup"] ?? docAst.properties?.["STARTUP"])?.toLowerCase();
         if (startup === "overview" || startup === "fold") {
-            return docAst.children
-                .map((c, idx) => ({ c, idx }))
-                .filter(({ c }) => c.type === "headline")
-                .map(({ idx }) => `h-${idx}`);
+            docAst.children.forEach((c, idx) => {
+                if (c.type === "headline") {
+                    res[`h-${idx}`] = "folded";
+                }
+            });
         }
-        return [];
+        return res;
     }, [savedState, docAst]);
 
+    const initialHeadlines = useMemo(() => {
+        return Object.entries(initialHeadlineFoldStates)
+            .filter(([_, state]) => state === "folded")
+            .map(([k]) => k);
+    }, [initialHeadlineFoldStates]);
+
+    const [headlineFoldStates, setHeadlineFoldStates] = useState<Readonly<Record<string, HeadlineFoldState>>>(
+        initialHeadlineFoldStates,
+    );
     const [foldedHeadlines, setFoldedHeadlines] = useState<readonly string[]>(initialHeadlines);
     const [foldedBlocks, setFoldedBlocks] = useState<readonly string[]>(savedState?.foldedBlocks ?? []);
     const [checkedItems, setCheckedItems] = useState<readonly string[]>(savedState?.checkedItems ?? []);
@@ -48,13 +70,36 @@ export function OrgDocumentView(props: DocumentViewProps): JSX.Element {
         savedState?.todoOverrides ?? {},
     );
 
-    const toggleHeadlineFold = useCallback((id: string) => {
-        setFoldedHeadlines((prev) => {
-            const next = prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id];
-            onSaveViewState?.({ foldedHeadlines: next, foldedBlocks, checkedItems, todoOverrides });
-            return next;
+    const cycleHeadlineFold = useCallback((id: string, hasChildHeadlines: boolean) => {
+        setHeadlineFoldStates((prev) => {
+            const current = prev[id] ?? "subtree";
+            let next: HeadlineFoldState;
+            if (current === "folded") {
+                next = hasChildHeadlines ? "children" : "subtree";
+            } else if (current === "children") {
+                next = "subtree";
+            } else {
+                next = "folded";
+            }
+            const updated = { ...prev, [id]: next };
+            const nextFoldedList = Object.entries(updated)
+                .filter(([_, state]) => state === "folded")
+                .map(([k]) => k);
+            setFoldedHeadlines(nextFoldedList);
+            onSaveViewState?.({
+                foldedHeadlines: nextFoldedList,
+                headlineFoldStates: updated,
+                foldedBlocks,
+                checkedItems,
+                todoOverrides,
+            });
+            return updated;
         });
     }, [foldedBlocks, checkedItems, todoOverrides, onSaveViewState]);
+
+    const toggleHeadlineFold = useCallback((id: string) => {
+        cycleHeadlineFold(id, false);
+    }, [cycleHeadlineFold]);
 
     const toggleBlockFold = useCallback((id: string) => {
         setFoldedBlocks((prev) => {
@@ -110,7 +155,9 @@ export function OrgDocumentView(props: DocumentViewProps): JSX.Element {
                 <OrgElementRenderer
                     elements={docAst.children}
                     foldedHeadlines={foldedHeadlines}
+                    headlineFoldStates={headlineFoldStates}
                     onToggleHeadlineFold={toggleHeadlineFold}
+                    onCycleHeadlineFold={cycleHeadlineFold}
                     foldedBlocks={foldedBlocks}
                     onToggleBlockFold={toggleBlockFold}
                     checkedItems={checkedItems}
