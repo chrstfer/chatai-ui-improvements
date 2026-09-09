@@ -30,3 +30,7 @@ When conducting sequential thinking or deep analysis, calibrate thought depth dy
   - Development (`dist/dev/` via `deno task build:dev`): Default target for all active development and automated workflows.
   - Release (`dist/release/` via `deno task build`): Only run upon explicit user request.
 
+## Code Formatting Policy
+- **Format In-Place Rather than Checking**: Never run `deno fmt --check`. Always apply formatting directly in-place with `deno fmt`.
+- **Silent Formatting Output**: Discard `deno fmt` output to null (`deno fmt > /dev/null 2>&1`) to avoid polluting execution logs.
+
