@@ -27,6 +27,8 @@ export class GeminiDOMObserver {
     public observe(targetNode: Node = document.body): void {
         this.disconnect();
 
+        if (typeof MutationObserver === "undefined") return;
+
         this.logger.debug("Attaching MutationObserver to target root");
 
         this.observer = new MutationObserver((mutations) => {

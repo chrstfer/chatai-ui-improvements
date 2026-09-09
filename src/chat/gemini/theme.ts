@@ -25,7 +25,7 @@ export class GeminiThemeAuthority implements HostThemeAuthority {
     }
 
     private initObserver(): void {
-        if (typeof document === "undefined" || !document.body) return;
+        if (typeof document === "undefined" || !document.body || typeof MutationObserver === "undefined") return;
         this.logger.debug(`Initialized theme observer, initial mode detected: "${this.getTheme()}"`);
         this.observer = new MutationObserver(() => {
             const active = this.getTheme() === "dark" ? "dark" : "light";
