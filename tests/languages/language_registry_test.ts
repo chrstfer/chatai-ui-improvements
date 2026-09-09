@@ -3,18 +3,31 @@ import { defaultLanguageRegistry, LanguageRegistry } from "../../src/languages/r
 import { orgLanguageDefinition } from "../../src/languages/org/definition.ts";
 import type { LanguageDefinition } from "../../src/core/contracts/language.ts";
 
-Deno.test("LanguageRegistry: Resolves default Org language by hint and aliases", () => {
-    assertExists(defaultLanguageRegistry.resolve("org"));
-    assertExists(defaultLanguageRegistry.resolve("ORG"));
-    assertExists(defaultLanguageRegistry.resolve("orgmode"));
-    assertExists(defaultLanguageRegistry.resolve("org-mode"));
+Deno.test("LanguageRegistry: Resolves lazy Org language before and after load", async () => {
+    // Before load: lazy definition exists
+    assertExists(defaultLanguageRegistry.resolveLazy("org"));
+    assertExists(defaultLanguageRegistry.resolveLazy("ORG"));
+    assertExists(defaultLanguageRegistry.resolveLazy("orgmode"));
+    assertExists(defaultLanguageRegistry.resolveLazy("org-mode"));
 
+    // Asynchronously load language
+    const loadedDef = await defaultLanguageRegistry.loadLanguage("org");
+    assertExists(loadedDef);
+    assertEquals(loadedDef.id, "org");
+    assertEquals(loadedDef.name, "Org Mode");
+
+    // After load: direct resolve returns definition
     const def = defaultLanguageRegistry.resolve("org");
+    assertExists(def);
     assertEquals(def?.id, "org");
     assertEquals(def?.name, "Org Mode");
+    assertExists(def?.view);
 });
 
-Deno.test("LanguageRegistry: matchContent falls back to content inspection", () => {
+Deno.test("LanguageRegistry: matchContent falls back to content inspection", async () => {
+    // Ensure Org is loaded
+    await defaultLanguageRegistry.loadLanguage("org");
+
     // Explicit hint match
     const byHint = defaultLanguageRegistry.matchContent("org", []);
     assertEquals(byHint?.id, "org");
@@ -50,10 +63,9 @@ Deno.test("LanguageRegistry: formatDisplayName standardizes display labels", () 
     assertEquals(defaultLanguageRegistry.formatDisplayName("   "), "CODE");
 });
 
-Deno.test("OrgLanguageDefinition: loadView resolves view component", async () => {
-    const viewComponent = await orgLanguageDefinition.loadView();
-    assertExists(viewComponent);
-    assertEquals(typeof viewComponent, "function");
+Deno.test("OrgLanguageDefinition: view exposes document view component", () => {
+    assertExists(orgLanguageDefinition.view);
+    assertEquals(typeof orgLanguageDefinition.view, "function");
 });
 
 Deno.test("OrgLanguageDefinition: parses raw text into AST", () => {
@@ -70,7 +82,7 @@ Deno.test("LanguageRegistry: Custom language registration and unregistration", (
         name: "Markdown",
         aliases: ["md", "markdown"],
         matches: (hint) => hint === "md" || hint === "markdown",
-        loadView: () => Promise.reject(new Error("Not implemented")),
+        view: () => null,
     };
 
     registry.register(customLang);

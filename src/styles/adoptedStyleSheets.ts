@@ -1,6 +1,14 @@
 import { TAILWIND_CSS } from "./tailwind.generated.ts";
+import { KATEX_CSS } from "./katex.generated.ts";
+
+declare const browser: {
+    runtime?: {
+        getURL?: (path: string) => string;
+    };
+} | undefined;
 
 let sharedTailwindSheet: CSSStyleSheet | null = null;
+let sharedKatexSheet: CSSStyleSheet | null = null;
 const hostStyleSheets = new Map<string, CSSStyleSheet>();
 const hostThemeRegistry = new Map<string, string>();
 
@@ -49,4 +57,40 @@ export function getAdoptedStyleSheets(host?: string): CSSStyleSheet[] {
     }
 
     return sheets;
+}
+
+/**
+ * Returns a cached CSSStyleSheet singleton containing inlined KaTeX CSS.
+ * Dynamically resolves bundled font URLs to the extension's runtime location.
+ * Used on-demand by math-rendering components (e.g. LatexMathView).
+ */
+export function getKatexStyleSheet(): CSSStyleSheet | null {
+    if (typeof CSSStyleSheet === "undefined") {
+        return null;
+    }
+
+    if (!sharedKatexSheet) {
+        sharedKatexSheet = new CSSStyleSheet();
+        try {
+            const fontBase = typeof browser !== "undefined" && browser?.runtime?.getURL
+                ? browser.runtime.getURL("vendor/fonts")
+                : "vendor/fonts";
+            const resolvedCss = KATEX_CSS.replaceAll("__KATEX_FONTS_ROOT__", fontBase);
+            sharedKatexSheet.replaceSync(resolvedCss);
+        } catch (err) {
+            console.warn("[AdoptedStyleSheets] Failed to parse inlined KaTeX CSS:", err);
+        }
+    }
+
+    return sharedKatexSheet;
+}
+
+/**
+ * Testing-only utility to reset singleton stylesheet caches.
+ */
+export function _resetStyleSheetCacheForTesting(): void {
+    sharedTailwindSheet = null;
+    sharedKatexSheet = null;
+    hostStyleSheets.clear();
+    hostThemeRegistry.clear();
 }

@@ -8,6 +8,7 @@ import type { LanguageDefinition } from "../../core/contracts/language.ts";
 import type { DocumentViewComponent } from "../../core/contracts/documentView.ts";
 import type { OrgDocumentElement } from "./ast/types.ts";
 import { parseOrgDocument } from "./ast/parser.ts";
+import { OrgDocumentView } from "./views/OrgDocumentView.tsx";
 
 export class OrgLanguageDefinition implements LanguageDefinition {
     readonly id = "org";
@@ -53,15 +54,7 @@ export class OrgLanguageDefinition implements LanguageDefinition {
         return parseOrgDocument(rawText);
     }
 
-    /**
-     * Asynchronously loads the Preact document view component.
-     */
-    async loadView(): Promise<DocumentViewComponent> {
-        const { OrgPlaceholderView } = await import(
-            "./views/OrgPlaceholderView.tsx"
-        );
-        return OrgPlaceholderView;
-    }
+    readonly view: DocumentViewComponent = OrgDocumentView;
 }
 
 /** Global default Org language definition singleton */

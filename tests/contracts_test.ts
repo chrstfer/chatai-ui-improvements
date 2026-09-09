@@ -17,10 +17,7 @@ Deno.test("LanguageDefinition matches contract evaluates aliases, Code snippet, 
             }
             return false;
         },
-        loadView() {
-            // Mock view component loader returning a Promise
-            return Promise.resolve(() => null);
-        },
+        view: () => null,
     };
 
     // Explicit alias match

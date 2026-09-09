@@ -67,8 +67,9 @@ function setupDom() {
     };
 }
 
-Deno.test("LanguageRegistry.settleContent: Parses and caches Org block AST", () => {
+Deno.test("LanguageRegistry.settleContent: Parses and caches Org block AST", async () => {
     defaultAstCache.clear();
+    await defaultLanguageRegistry.loadLanguage("org");
 
     const rawOrg = [
         "* Project Planning",
@@ -105,9 +106,10 @@ Deno.test("LanguageRegistry.settleContent: Parses and caches Org block AST", () 
     assertEquals(cachedResult.ast, ast);
 });
 
-Deno.test("GeminiInjector: Injects Org block, populates AstCache, and supports 0ms recycling", () => {
+Deno.test("GeminiInjector: Injects Org block, populates AstCache, and supports 0ms recycling", async () => {
     const { hostEl, cleanup } = setupDom();
     defaultAstCache.clear();
+    await defaultLanguageRegistry.loadLanguage("org");
 
     try {
         const injector = new GeminiInjector();

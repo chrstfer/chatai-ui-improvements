@@ -279,3 +279,31 @@ Deno.test("InSituCodeBlockContainer copy button triggers clipboard write and vis
         cleanup();
     }
 });
+
+Deno.test("CodeBlockViewDispatcher loads language view and mounts inside InSituCodeBlockContainer", async () => {
+    const { root, cleanup } = setupDom();
+    try {
+        const orgText = "* Live Org Headline\nProse content.";
+        render(
+            <InSituCodeBlockContainer
+                rawText={orgText}
+                language="org"
+                hasRenderedView
+            />,
+            root,
+        );
+
+        // Allow lazy loader and Preact rerender
+        await new Promise((resolve) => setTimeout(resolve, 80));
+
+        // Rich Org Document view should be rendered
+        const orgDoc = root.querySelector(".org-document-view");
+        assertNotEquals(orgDoc, null);
+
+        const headline = root.querySelector("h1.org-headline");
+        assertNotEquals(headline, null);
+        assertEquals(headline?.textContent?.includes("Live Org Headline"), true);
+    } finally {
+        cleanup();
+    }
+});

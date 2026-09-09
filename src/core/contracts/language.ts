@@ -19,10 +19,9 @@ export interface LanguageDefinition {
     matches(languageHint: string, firstLines: readonly string[]): boolean;
 
     /**
-     * Asynchronous loader resolving the view component chunk on demand.
-     * Enables tree-shaking and dynamic ESM loading via web_accessible_resources.
+     * View component for rendering documents of this language.
      */
-    loadView(): Promise<DocumentViewComponent>;
+    readonly view: DocumentViewComponent;
 
     /**
      * Optional headless parser producing an Abstract Syntax Tree (AST) for this language.

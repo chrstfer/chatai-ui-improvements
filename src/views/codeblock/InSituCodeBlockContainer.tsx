@@ -6,7 +6,7 @@ import { defaultViewStateCache, type ViewMode, type ViewStateCache } from "../..
 import { type AstCache, defaultAstCache } from "../../store/astCache.ts";
 import { CodeBlockHeader } from "./CodeBlockHeader.tsx";
 import { RawSourceView } from "./RawSourceView.tsx";
-import { DocumentViewDispatcher } from "./DocumentViewDispatcher.tsx";
+import { CodeBlockViewDispatcher } from "./CodeBlockViewDispatcher.tsx";
 
 export interface InSituCodeBlockContainerProps {
     /** Pristine raw code text from the host Data-Island */
@@ -115,7 +115,7 @@ export function InSituCodeBlockContainer({
                     {viewMode === "rendered" && hasRenderedView
                         ? (
                             children || (
-                                <DocumentViewDispatcher
+                                <CodeBlockViewDispatcher
                                     language={language}
                                     rawText={rawText}
                                     documentViewState={documentViewState}

@@ -465,11 +465,7 @@ export function parseOrgBlocks(content: string): OrgDocumentElement {
             const val = keywordMatch[3];
 
             // Capture document-level properties
-            if (
-                doc.properties &&
-                (normKey === "title" || normKey === "author" ||
-                    normKey === "date" || normKey === "options")
-            ) {
+            if (doc.properties) {
                 doc.properties[normKey] = val.trim();
                 if (normKey === "title") {
                     doc.title = val.trim();

@@ -54,8 +54,9 @@ export class GeminiInjector {
         shadowRoot.adoptedStyleSheets = getAdoptedStyleSheets("gemini");
 
         // Coordinate AST settlement and rendered view capability via centralized registry
-        const { langDef, ast } = defaultLanguageRegistry.settleContent(rawText, languageHint);
-        const hasRenderedView = langDef !== undefined;
+        const firstLines = rawText.split("\n").slice(0, 10);
+        const hasRenderedView = defaultLanguageRegistry.hasLanguage(languageHint, firstLines);
+        const { ast } = defaultLanguageRegistry.settleContent(rawText, languageHint);
 
         // Mount production InSituCodeBlockContainer component
         render(
