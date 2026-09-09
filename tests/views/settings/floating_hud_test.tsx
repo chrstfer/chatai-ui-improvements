@@ -102,7 +102,7 @@ Deno.test("FloatingHud: Renders title, collapse toggle, and active chat width co
     }
 });
 
-Deno.test("FloatingHud: Clicking collapse toggle hides controls and flips button label to +", () => {
+Deno.test("FloatingHud: Clicking header or collapse button collapses HUD into compact square", () => {
     const { root, cleanup } = setupDom();
     try {
         let updatedSettings: Partial<ExtensionSettings> = {};
@@ -124,10 +124,52 @@ Deno.test("FloatingHud: Clicking collapse toggle hides controls and flips button
             root,
         );
 
-        const collapseBtn = root.querySelector(".ext-hud-collapse-btn");
-        triggerClick(collapseBtn);
+        // Clicking the header bar directly collapses the HUD
+        const header = root.querySelector(".ext-hud-header");
+        assertNotEquals(header, null);
+        triggerClick(header);
 
         assertEquals(updatedSettings.hudCollapsed, true);
+    } finally {
+        cleanup();
+    }
+});
+
+Deno.test("FloatingHud: When collapsed, renders compact square with icon and expands on click", () => {
+    const { root, cleanup } = setupDom();
+    try {
+        let updatedSettings: Partial<ExtensionSettings> = {};
+        const settings: ExtensionSettings = {
+            fullWidth: true,
+            widthPercent: 94,
+            hudCollapsed: true,
+            autoRenderOrg: true,
+        };
+
+        render(
+            <FloatingHud
+                settings={settings}
+                onUpdateSettings={(partial) => {
+                    updatedSettings = { ...updatedSettings, ...partial };
+                }}
+                theme="light"
+            />,
+            root,
+        );
+
+        // Compact square element present with icon
+        const collapsedSquare = root.querySelector(".ext-hud-collapsed");
+        assertNotEquals(collapsedSquare, null);
+        assertEquals(collapsedSquare?.className.includes("w-9"), true);
+        assertEquals(collapsedSquare?.className.includes("h-9"), true);
+        assertEquals(collapsedSquare?.textContent?.includes("⚡"), true);
+
+        // Expanded body is NOT present
+        assertEquals(root.querySelector(".ext-hud-body"), null);
+
+        // Clicking collapsed square expands it
+        triggerClick(collapsedSquare);
+        assertEquals(updatedSettings.hudCollapsed, false);
     } finally {
         cleanup();
     }
