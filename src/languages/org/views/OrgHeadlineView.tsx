@@ -100,6 +100,7 @@ export function OrgHeadlineView({
     const plainTitle = extractText(title).trim();
 
     const hasChildHeadlines = children.some((c) => c.type === "headline");
+    const hasPropertyDrawerChild = children.some((c) => c.type === "property_drawer");
     const activeFoldState: HeadlineFoldState = foldState ?? (defaultFoldState ?? (isFolded ? "folded" : "subtree"));
 
     const currentTodo = todoOverrides?.[headlineId] ?? headline.todoKeyword;
@@ -281,7 +282,8 @@ export function OrgHeadlineView({
                 </div>
             )}
 
-            {activeFoldState === "subtree" && properties && Object.keys(properties).length > 0 && (
+            {activeFoldState === "subtree" && !hasPropertyDrawerChild && properties &&
+                Object.keys(properties).length > 0 && (
                 <div class="pl-5 mb-2">
                     <OrgDrawerView
                         drawer={{

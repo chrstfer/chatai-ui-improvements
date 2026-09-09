@@ -323,3 +323,25 @@ Deno.test("OrgElementRenderer: Property drawers render collapsible key-value tab
         cleanup();
     }
 });
+
+Deno.test("OrgElementRenderer: Headline with properties drawer renders exactly one drawer (no duplication)", () => {
+    const { root, cleanup } = setupDom();
+    try {
+        const orgText = `* Headline With Properties
+:PROPERTIES:
+:CUSTOM_ID: sec-props
+:VERSION: 2.0
+:END:
+Paragraph under headline.
+`;
+        const ast = parseOrgDocument(orgText);
+        render(<OrgElementRenderer elements={ast.children} />, root);
+
+        // Verify that only ONE property drawer is rendered
+        const drawers = root.querySelectorAll(".org-drawer");
+        assertEquals(drawers.length, 1, "Must render exactly one property drawer without duplication");
+        assertEquals(drawers[0].textContent?.includes(":PROPERTIES:"), true);
+    } finally {
+        cleanup();
+    }
+});
