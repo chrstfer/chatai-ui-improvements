@@ -208,7 +208,35 @@ export function parseOrgInline(text: string): OrgObject[] {
             }
         }
 
-        // 5. LaTeX Fragments: \(...\) or $...$
+        // 5. LaTeX Fragments: $$...$$ (display), \[...\] (display), \(...\) (inline), $...$ (inline)
+        if (text.startsWith("$$", cursor)) {
+            const endIdx = text.indexOf("$$", cursor + 2);
+            if (endIdx !== -1) {
+                flushText();
+                result.push({
+                    type: "latex_fragment",
+                    value: text.slice(cursor, endIdx + 2),
+                    isDisplay: true,
+                });
+                cursor = endIdx + 2;
+                continue;
+            }
+        }
+
+        if (text.startsWith("\\[", cursor)) {
+            const endIdx = text.indexOf("\\]", cursor + 2);
+            if (endIdx !== -1) {
+                flushText();
+                result.push({
+                    type: "latex_fragment",
+                    value: text.slice(cursor, endIdx + 2),
+                    isDisplay: true,
+                });
+                cursor = endIdx + 2;
+                continue;
+            }
+        }
+
         if (text.startsWith("\\(", cursor)) {
             const endIdx = text.indexOf("\\)", cursor + 2);
             if (endIdx !== -1) {
@@ -216,6 +244,7 @@ export function parseOrgInline(text: string): OrgObject[] {
                 result.push({
                     type: "latex_fragment",
                     value: text.slice(cursor, endIdx + 2),
+                    isDisplay: false,
                 });
                 cursor = endIdx + 2;
                 continue;
@@ -233,6 +262,7 @@ export function parseOrgInline(text: string): OrgObject[] {
                     result.push({
                         type: "latex_fragment",
                         value: text.slice(cursor, endIdx + 1),
+                        isDisplay: false,
                     });
                     cursor = endIdx + 1;
                     continue;

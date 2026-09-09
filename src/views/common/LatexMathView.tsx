@@ -5,6 +5,7 @@ import { getKatexStyleSheet } from "../../styles/adoptedStyleSheets.ts";
 
 export interface LatexMathViewProps {
     readonly value: string;
+    readonly isDisplay?: boolean;
 }
 
 interface KaTeXDomNode {
@@ -85,14 +86,30 @@ function renderKaTeXDomNode(node: KaTeXDomNode, key: number | string): JSX.Eleme
     );
 }
 
-export function LatexMathView({ value }: LatexMathViewProps): JSX.Element {
-    const containerRef = useRef<HTMLSpanElement>(null);
-    const isDisplay = value.startsWith("$$") || value.startsWith("\\begin{equation}") || value.startsWith("\\[");
-    const trimmed = value
-        .replace(/^\$\$|\$\$$|^\\\(|\\\)$|^\\\[|\\\]$/g, "")
-        .replace(/^\$|\$$/g, "")
-        .replace(/^\\begin\{equation\}|\\end\{equation\}$/g, "")
-        .trim();
+export function LatexMathView({ value, isDisplay: explicitDisplay }: LatexMathViewProps): JSX.Element {
+    const containerRef = useRef<HTMLElement>(null);
+    const trimmedRaw = value.trim();
+    const isDisplay = explicitDisplay ?? (
+        trimmedRaw.startsWith("$$") ||
+        trimmedRaw.startsWith("\\[") ||
+        trimmedRaw.startsWith("\\begin{")
+    );
+
+    let trimmed = trimmedRaw;
+    if (trimmed.startsWith("$$") && trimmed.endsWith("$$") && trimmed.length >= 4) {
+        trimmed = trimmed.slice(2, -2).trim();
+    } else if (trimmed.startsWith("\\[") && trimmed.endsWith("\\]") && trimmed.length >= 4) {
+        trimmed = trimmed.slice(2, -2).trim();
+    } else if (trimmed.startsWith("\\(") && trimmed.endsWith("\\)") && trimmed.length >= 4) {
+        trimmed = trimmed.slice(2, -2).trim();
+    } else if (trimmed.startsWith("$") && trimmed.endsWith("$") && trimmed.length >= 2) {
+        trimmed = trimmed.slice(1, -1).trim();
+    } else {
+        trimmed = trimmed
+            .replace(/^\\begin\{[a-zA-Z0-9*]+\}/i, "")
+            .replace(/\\end\{[a-zA-Z0-9*]+\}$/i, "")
+            .trim();
+    }
 
     useLayoutEffect(() => {
         if (!containerRef.current) return;
@@ -116,6 +133,16 @@ export function LatexMathView({ value }: LatexMathViewProps): JSX.Element {
         const domTree = (katex as unknown as { __renderToDomTree?: (expr: string, opts: unknown) => KaTeXDomNode })
             .__renderToDomTree?.(trimmed, { throwOnError: false, displayMode: isDisplay, output: "html" });
         if (domTree) {
+            if (isDisplay) {
+                return (
+                    <div
+                        ref={containerRef as unknown as { current: HTMLDivElement | null }}
+                        class="latex-math my-3 text-center block w-full overflow-x-auto py-1"
+                    >
+                        {renderKaTeXDomNode(domTree, "root")}
+                    </div>
+                );
+            }
             return (
                 <span ref={containerRef} class="latex-math inline-block">
                     {renderKaTeXDomNode(domTree, "root")}
@@ -124,6 +151,17 @@ export function LatexMathView({ value }: LatexMathViewProps): JSX.Element {
         }
     } catch {
         /* Gracefully fall through to styled fallback typography */
+    }
+
+    if (isDisplay) {
+        return (
+            <div
+                ref={containerRef as unknown as { current: HTMLDivElement | null }}
+                class="math-fallback font-mono text-xs my-3 p-2 rounded bg-neutral-100 text-neutral-800 dark:bg-neutral-800 dark:text-neutral-200 text-center block w-full overflow-x-auto"
+            >
+                {value}
+            </div>
+        );
     }
 
     return (

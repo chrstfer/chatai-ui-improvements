@@ -189,7 +189,7 @@ export function OrgObjectRenderer({ objects, onNavigateInternal }: OrgObjectRend
                         );
                     }
                     case "latex_fragment":
-                        return <LatexMathView key={idx} value={obj.value} />;
+                        return <LatexMathView key={idx} value={obj.value} isDisplay={obj.isDisplay} />;
                     case "statistics_cookie":
                         return (
                             <span

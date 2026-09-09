@@ -671,7 +671,7 @@ export function parseOrgBlocks(content: string): OrgDocumentElement {
         }
 
         // ---------------------------------------------------------------------
-        // 8. LaTeX Environment (\begin{equation} ... \end{equation})
+        // 8. LaTeX Environment (\begin{equation} ... \end{equation}, $$...$$, \[...\])
         // ---------------------------------------------------------------------
         const latexEnvMatch = line.match(LATEX_ENV_START_REGEX);
         if (latexEnvMatch) {
@@ -684,6 +684,51 @@ export function parseOrgBlocks(content: string): OrgDocumentElement {
                 envLines.push(cur);
                 i++;
                 if (endRegex.test(cur)) break;
+            }
+            const latexEnv: OrgLatexEnvironmentElement = {
+                type: "latex_environment",
+                value: envLines.join("\n"),
+            };
+            attachAffiliatedKeywords(latexEnv, pendingKeywords);
+            appendElement(latexEnv);
+            continue;
+        }
+
+        const trimmedLine = line.trim();
+        if (trimmedLine.startsWith("$$")) {
+            const envLines: string[] = [line];
+            if (trimmedLine.length > 2 && trimmedLine.endsWith("$$")) {
+                i++;
+            } else {
+                i++;
+                while (i < totalLines) {
+                    const cur = lines[i];
+                    envLines.push(cur);
+                    i++;
+                    if (cur.trim().endsWith("$$") || cur.includes("$$")) break;
+                }
+            }
+            const latexEnv: OrgLatexEnvironmentElement = {
+                type: "latex_environment",
+                value: envLines.join("\n"),
+            };
+            attachAffiliatedKeywords(latexEnv, pendingKeywords);
+            appendElement(latexEnv);
+            continue;
+        }
+
+        if (trimmedLine.startsWith("\\[")) {
+            const envLines: string[] = [line];
+            if (trimmedLine.endsWith("\\]")) {
+                i++;
+            } else {
+                i++;
+                while (i < totalLines) {
+                    const cur = lines[i];
+                    envLines.push(cur);
+                    i++;
+                    if (cur.includes("\\]")) break;
+                }
             }
             const latexEnv: OrgLatexEnvironmentElement = {
                 type: "latex_environment",

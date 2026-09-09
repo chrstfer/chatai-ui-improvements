@@ -57,6 +57,8 @@ Deno.test("LatexMathView: Renders inline KaTeX expression into declarative JSX e
 
         const container = root.querySelector(".latex-math");
         assertNotEquals(container, null, "Container must have latex-math class");
+        assertEquals(container?.tagName.toLowerCase(), "span");
+        assertEquals(container?.className.includes("inline-block"), true);
 
         // Verify KaTeX rendered hierarchy
         const katexEl = root.querySelector(".katex");
@@ -80,6 +82,9 @@ Deno.test("LatexMathView: Trims $$ and LaTeX delimiters and detects display mode
 
         const container = root.querySelector(".latex-math");
         assertNotEquals(container, null);
+        assertEquals(container?.tagName.toLowerCase(), "div");
+        assertEquals(container?.className.includes("text-center"), true);
+        assertEquals(container?.className.includes("block"), true);
 
         const katexEl = root.querySelector(".katex");
         assertNotEquals(katexEl, null);

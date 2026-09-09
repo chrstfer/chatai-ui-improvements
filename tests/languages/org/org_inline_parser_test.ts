@@ -119,6 +119,32 @@ Deno.test("parseOrgInline: LaTeX Greek entities and math fragments", () => {
     assertEquals(mathFragment.length, 3);
     assertEquals(mathFragment[1].type, "latex_fragment");
     assertEquals((mathFragment[1] as OrgLatexFragmentObject).value, "$e^{i\\pi} + 1 = 0$");
+    assertEquals((mathFragment[1] as OrgLatexFragmentObject).isDisplay, false);
+
+    const displayDoubleDollar = parseOrgInline("Formula: $$\\sum_{i=1}^n x_i = S$$ is centered.");
+    assertEquals(displayDoubleDollar.length, 3);
+    assertEquals(displayDoubleDollar[1].type, "latex_fragment");
+    assertEquals((displayDoubleDollar[1] as OrgLatexFragmentObject).value, "$$\\sum_{i=1}^n x_i = S$$");
+    assertEquals((displayDoubleDollar[1] as OrgLatexFragmentObject).isDisplay, true);
+
+    const displayBracket = parseOrgInline("Equation: \\[\\int_0^1 f(x)dx\\] is definite.");
+    assertEquals(displayBracket.length, 3);
+    assertEquals(displayBracket[1].type, "latex_fragment");
+    assertEquals((displayBracket[1] as OrgLatexFragmentObject).value, "\\[\\int_0^1 f(x)dx\\]");
+    assertEquals((displayBracket[1] as OrgLatexFragmentObject).isDisplay, true);
+
+    // Titan snippet scenario: inline math followed by display math inside text
+    const titanSnippet =
+        "reacts it with ambient $CH_4$:\n  $$\\text{CH}_4 + \\text{H}_2\\text{O} \\longrightarrow \\text{CO} + 3\\text{H}_2$$\n  produces synthesis gas.";
+    const titanNodes = parseOrgInline(titanSnippet);
+    assertEquals(
+        titanNodes.some((n) => n.type === "latex_fragment" && (n as OrgLatexFragmentObject).isDisplay === true),
+        true,
+    );
+    assertEquals(
+        titanNodes.some((n) => n.type === "text" && (n as { value: string }).value.includes("produces synthesis gas")),
+        true,
+    );
 });
 
 Deno.test("parseOrgInline: Statistics cookies", () => {

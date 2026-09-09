@@ -5,6 +5,7 @@ import type {
     OrgDynamicBlockElement,
     OrgHeadlineElement,
     OrgKeywordElement,
+    OrgLatexEnvironmentElement,
     OrgListElement,
     OrgParagraphElement,
     OrgPropertyDrawerElement,
@@ -340,4 +341,41 @@ Deno.test("parseOrgBlocks: Fixed-width, horizontal rules, and comments", () => {
         type: "text",
         value: "Paragraph after rule.",
     });
+});
+
+Deno.test("parseOrgBlocks: LaTeX environments and standalone display math blocks", () => {
+    const input = [
+        "\\begin{equation}",
+        "E = mc^2",
+        "\\end{equation}",
+        "",
+        "$$",
+        "\\int_{-\\infty}^\\infty e^{-x^2} dx = \\sqrt{\\pi}",
+        "$$",
+        "",
+        "$$\\text{Single-line double dollar}$$",
+        "",
+        "\\[",
+        "\\sum_{k=1}^n k = \\frac{n(n+1)}{2}",
+        "\\]",
+    ].join("\n");
+
+    const doc = parseOrgDocument(input);
+    assertEquals(doc.children.length, 4);
+
+    const env0 = doc.children[0] as OrgLatexEnvironmentElement;
+    assertEquals(env0.type, "latex_environment");
+    assertEquals(env0.value, "\\begin{equation}\nE = mc^2\n\\end{equation}");
+
+    const env1 = doc.children[1] as OrgLatexEnvironmentElement;
+    assertEquals(env1.type, "latex_environment");
+    assertEquals(env1.value.includes("\\sqrt{\\pi}"), true);
+
+    const env2 = doc.children[2] as OrgLatexEnvironmentElement;
+    assertEquals(env2.type, "latex_environment");
+    assertEquals(env2.value, "$$\\text{Single-line double dollar}$$");
+
+    const env3 = doc.children[3] as OrgLatexEnvironmentElement;
+    assertEquals(env3.type, "latex_environment");
+    assertEquals(env3.value.includes("\\sum_{k=1}^n"), true);
 });

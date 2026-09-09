@@ -170,6 +170,7 @@ export interface OrgEntityObject {
 export interface OrgLatexFragmentObject {
     type: "latex_fragment";
     value: string;
+    isDisplay?: boolean;
 }
 
 export interface OrgFootnoteReferenceObject {
