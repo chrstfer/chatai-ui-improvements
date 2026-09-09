@@ -9,6 +9,8 @@ docs/completed-steps/
 .env.production.local
 .env.local
 
+src/styles/*.generated.ts
+
 dist-archive/
 dist-amo/
 web-ext-artifacts/
@@ -157,3 +159,6 @@ thumb
 sketch
 
 # End of https://www.toptal.com/developers/gitignore/api/emacs,react
+
+# Local helper scripts
+scripts/transcript.py

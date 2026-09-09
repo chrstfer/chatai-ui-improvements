@@ -1,2 +1,4 @@
 .archive/
 
+# Explicitly allowed tools and scripts
+!scripts/transcript.py
