@@ -34,6 +34,16 @@ export class GeminiInjector {
             return;
         }
 
+        // Non-Destructive Host Bypass: verify registered rendered view capability before touching host DOM
+        const firstLines = rawText.split("\n").slice(0, 10);
+        const hasRenderedView = defaultLanguageRegistry.hasLanguage(languageHint, firstLines);
+        if (!hasRenderedView) {
+            this.logger.debug(
+                `Bypassing injection for block #${block.id}: no alternate rendered view available for "${languageHint}"`,
+            );
+            return;
+        }
+
         // Create sibling container
         const container = document.createElement("div");
         container.className = EXTENSION_INJECTED.CONTAINER_CLASS;
@@ -53,9 +63,7 @@ export class GeminiInjector {
         // Synchronously adopt pre-compiled inlined stylesheets (zero network requests, 0ms hydration)
         shadowRoot.adoptedStyleSheets = getAdoptedStyleSheets("gemini");
 
-        // Coordinate AST settlement and rendered view capability via centralized registry
-        const firstLines = rawText.split("\n").slice(0, 10);
-        const hasRenderedView = defaultLanguageRegistry.hasLanguage(languageHint, firstLines);
+        // Coordinate AST settlement via centralized registry
         const { ast } = defaultLanguageRegistry.settleContent(rawText, languageHint);
 
         // Mount production InSituCodeBlockContainer component

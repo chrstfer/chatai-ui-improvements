@@ -13,6 +13,7 @@
 - *InSituCodeBlockContainer* :: The universal Preact component mounted inside the In-Situ Sibling Container orchestrating block folding, view mode transitions ("rendered" vs "raw"), and host copy parity.
 - *Data-Island* :: The superseded native DOM element (specifically ~:scope code-block code~) retained in the DOM in a hidden state (~display: none~), serving as the authentic, unmutated payload source for scrapers and copy actions.
 - *Shadow Root Boundary* :: An encapsulated DOM subtree (~mountContainer.attachShadow({ mode: 'open' })~) isolating extension styles (~adoptedStyleSheets~) and Preact component trees from host CSS resets and global styles.
+- *Non-Destructive Host Bypass* :: The immediate non-intervention decision made by a host injector when a code block's language lacks an alternate rendered view in the ~LanguageRegistry~, leaving native host elements, syntax highlighting, and controls completely untouched without injecting sibling containers or hiding host DOM nodes.
 
 ** 2. Architectural Layers & Components
 - *Pure Domain Layer (~*/ast/~, ~*/model/~, ~*/contracts/~)* :: Headless, deterministic TypeScript modules containing domain models, parsing logic, AST manipulation, and type definitions. Completely free of DOM and WebExtension APIs.
@@ -50,6 +51,8 @@
 - *AstCache* :: In-memory LRU cache storing parsed AST trees keyed by 32-bit FNV-1a content hash and language type (~"org"~), decoupling AST lifetime from host DOM virtual scroller lifecycles.
 - *Turn Metadata Drawer* :: Machine-readable property drawer (~:PROPERTIES: ... :END:~) affixed to conversation turn headlines containing role, indices, and timestamps.
 - *StructuredMessageContainer* :: Universal Preact container component providing a unified interface for message boxes in the DOM, orchestrating folding, collapsed summary badges, portal toolbars, and active view projection.
+- *Headline-Scoped Subtree Copy* :: Pure AST serialization (~serializeOrgSubtree~) extracting the complete textual representation of an Org headline, its planning line, property drawers, body content, and nested sub-headlines into the clipboard with green confirmation feedback.
+- *Display Math Block* :: Standalone or embedded mathematical equation delimited by ~$$...$$~, ~\[...\]~, or ~\begin{equation}...\end{equation}~ rendered as an isolated, horizontally scrollable centered block container with vertical spacing, distinct from inline LaTeX fragments.
 
 ** 5. UI Controls & Styling
 - *Floating HUD (Heads-Up Display)* :: An ephemeral floating control panel elevated above the bottom-right corner providing width presets, view toggles, font size controls, and export triggers.

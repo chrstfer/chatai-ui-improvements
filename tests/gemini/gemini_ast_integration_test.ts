@@ -179,6 +179,11 @@ Deno.test("GeminiInjector: Non-org language does not populate Org AST cache", ()
 
         injector.inject(blockRef, "light");
 
+        // Non-Destructive Host Bypass: host element is NOT hidden and no sibling container is created
+        assertEquals((hostEl as unknown as { style: { display?: string } }).style.display, undefined);
+        assertEquals(blockRef.siblingContainer, undefined);
+        assertEquals(hostEl.parentElement?.children.length, 1);
+
         assertFalse(defaultAstCache.has(hash, "python"));
         assertFalse(defaultAstCache.has(hash, "org"));
 
