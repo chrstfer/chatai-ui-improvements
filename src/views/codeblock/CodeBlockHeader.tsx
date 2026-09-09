@@ -33,11 +33,21 @@ export function CodeBlockHeader({
     onToggleViewMode,
     onCopy,
 }: CodeBlockHeaderProps): JSX.Element {
+    const handleHeaderClick = (e: MouseEvent) => {
+        const target = e.target as HTMLElement | null;
+        if (target?.closest?.("button, a, input")) {
+            return;
+        }
+        onToggleFold();
+    };
+
     return (
         <header
-            class={`ext-header flex items-center justify-between px-3 py-2 bg-neutral-100 dark:bg-[#131314] select-none transition-colors duration-200 ${
+            class={`ext-header flex items-center justify-between px-3 py-2 bg-neutral-100 dark:bg-[#131314] select-none transition-colors duration-200 cursor-pointer hover:bg-neutral-200/60 dark:hover:bg-neutral-800/40 ${
                 isFolded ? "border-b-0" : "border-b border-neutral-200 dark:border-neutral-700"
             }`}
+            onClick={handleHeaderClick}
+            title={isFolded ? "Click to expand code block" : "Click to collapse code block"}
         >
             <div class="ext-header-left flex items-center gap-2">
                 <button
@@ -64,7 +74,10 @@ export function CodeBlockHeader({
                             viewMode === "rendered" ? "is-rendered" : "is-raw"
                         }`}
                         type="button"
-                        onClick={onToggleViewMode}
+                        onClick={(e) => {
+                            e.stopPropagation();
+                            onToggleViewMode();
+                        }}
                         aria-label={viewMode === "rendered" ? "Switch to raw code" : "Switch to rendered view"}
                         title={viewMode === "rendered" ? "Switch to raw code" : "Switch to rendered view"}
                     >
@@ -82,7 +95,10 @@ export function CodeBlockHeader({
                             : "text-neutral-600 dark:text-neutral-300 hover:text-neutral-900 dark:hover:text-white"
                     }`}
                     type="button"
-                    onClick={onCopy}
+                    onClick={(e) => {
+                        e.stopPropagation();
+                        onCopy();
+                    }}
                     aria-label={isCopied ? "Copied to clipboard" : "Copy code"}
                     title={isCopied ? "Copied!" : "Copy code"}
                 >

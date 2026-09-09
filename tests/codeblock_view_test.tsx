@@ -6,10 +6,21 @@ import { ViewStateCache } from "../src/store/viewStateCache.ts";
 import { computeContentHash } from "../src/core/utils/contentHash.ts";
 
 function triggerClick(el: unknown) {
-    if (el && typeof (el as { dispatchEvent?: unknown }).dispatchEvent === "function") {
-        (el as { dispatchEvent: (ev: Event) => void }).dispatchEvent(
-            new Event("click", { bubbles: true }),
-        );
+    const origTarget = el as Node;
+    let curr = el as (Node & { dispatchEvent?: (e: Event) => boolean; parentNode?: Node | null }) | null;
+    const ev = new Event("click", { bubbles: true, cancelable: true });
+    Object.defineProperty(ev, "target", {
+        get: () => origTarget,
+        configurable: true,
+    });
+    while (curr) {
+        if (typeof curr.dispatchEvent === "function") {
+            curr.dispatchEvent(ev);
+        }
+        if ((ev as unknown as { cancelBubble?: boolean }).cancelBubble) {
+            break;
+        }
+        curr = curr.parentNode as typeof curr;
     }
 }
 
@@ -141,6 +152,60 @@ Deno.test("CodeBlockHeader formats language badge and respects hasRenderedView v
 
         const copiedBtn = root.querySelector(".ext-btn-copy");
         assertEquals(copiedBtn?.textContent?.includes("Copied!"), true);
+    } finally {
+        cleanup();
+    }
+});
+
+Deno.test("CodeBlockHeader allows clicking anywhere on the header to toggle fold across the bar", () => {
+    const { root, cleanup } = setupDom();
+    try {
+        let foldCount = 0;
+        let copyCount = 0;
+
+        render(
+            <CodeBlockHeader
+                language="python"
+                isFolded={false}
+                viewMode="raw"
+                hasRenderedView={false}
+                isCopied={false}
+                onToggleFold={() => {
+                    foldCount++;
+                }}
+                onToggleViewMode={() => {}}
+                onCopy={() => {
+                    copyCount++;
+                }}
+            />,
+            root,
+        );
+
+        const header = root.querySelector("header.ext-header");
+        assertNotEquals(header, null);
+
+        // 1. Clicking directly on the header background triggers fold
+        triggerClick(header);
+        assertEquals(foldCount, 1, "Clicking header bar should trigger fold");
+
+        // 2. Clicking the language badge inside header triggers fold
+        const badge = root.querySelector(".ext-language-badge");
+        assertNotEquals(badge, null);
+        triggerClick(badge);
+        assertEquals(foldCount, 2, "Clicking language badge inside header should trigger fold");
+
+        // 3. Clicking the fold icon button triggers fold exactly once
+        const foldBtn = root.querySelector(".ext-btn-fold");
+        assertNotEquals(foldBtn, null);
+        triggerClick(foldBtn);
+        assertEquals(foldCount, 3, "Clicking fold button should trigger fold");
+
+        // 4. Clicking the copy button does NOT trigger fold
+        const copyBtn = root.querySelector(".ext-btn-copy");
+        assertNotEquals(copyBtn, null);
+        triggerClick(copyBtn);
+        assertEquals(foldCount, 3, "Clicking copy button must not trigger fold");
+        assertEquals(copyCount, 1, "Copy action should fire");
     } finally {
         cleanup();
     }
