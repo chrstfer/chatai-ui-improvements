@@ -1,48 +1,69 @@
-#+TITLE: AI Chat UI Improvements — Planned Features & Roadmap
-#+DATE: 2026-09-08
+#+TITLE: AI Chat UI Improvements — Unified Roadmap & Feature Architecture
+#+DATE: 2026-09-09
 #+OPTIONS: toc:2 num:nil
 
-* Architecture & Core Foundation [5/5]
+* Architecture & Core Foundation [6/6]
 - [X] Pluggable Extensibility Contracts :: Standardized ~LanguageDefinition~, ~SiteAdapter~, and ~DocumentViewComponent~ contracts in ~src/core/contracts/~.
-- [X] Dynamic Loading & View Dispatching :: Dynamic import loading for language document views via ~DocumentViewDispatcher~ and code splitting in build toolchain.
+- [X] Dynamic Loading & View Dispatching :: Dynamic import loading for language document views via ~DocumentViewDispatcher~ and code splitting in the build toolchain.
 - [X] Stream Settlement State Machine :: Formalized Phase A (in-flight streaming buffer) vs. Phase B (settled >300ms macro-settle) transitions with idempotent mount guards (~data-ext-processed~, ~data-ext-mounted~).
 - [X] Decoupled In-Memory Caching :: 32-bit FNV-1a content-hash indexed LRU caches (~ViewStateCache~ and ~AstCache~) surviving virtual scroller recycling with 0ms instant hydration.
-- [X] Scoped Logging & Telemetry Submodule :: Hierarchical scoped logging (~CoreLogger~), dynamic runlevels (~prod~, ~debug~, ~trace~), in-memory ring buffer, Preact lifecycle profiling hooks, and global console API (~window.__AI_CHAT_UI__~).
+- [X] Scoped Logging & Telemetry Submodule :: Hierarchical scoped logging (~CoreLogger~), dynamic runlevels (~prod~, ~debug~, ~trace~), in-memory ring buffer, Preact lifecycle profiling hooks, and global console API (~window.__AI_CHAT_UI__~). See [[file:../.scratch/logging/spec.org][Logging Spec]].
+- [X] Tailwind CSS v4 In-Process Pipeline & Shadow DOM :: Compiled in-process at build time and injected as a singleton ~adoptedStyleSheets~ constant, eliminating runtime network overhead and memory duplication across Shadow Roots per [[file:adr/0002-tailwind-v4-shadow-dom.org][ADR 0002]]. See [[file:../.scratch/tailwind-integration/spec.org][Tailwind Integration Spec]].
 
-* Testing and Toolchain Improvements [3/3]
+* Testing & Toolchain Improvements [3/5]
 - [X] Multi-Target Bundle Script :: Modular ~build.ts~ supporting dev builds (~dist/dev/~ via ~deno task build:dev~) and production releases, manifest generation, dynamic bootloader, and code splitting.
 - [X] Chat-Independent Mock Testing :: Static HTML chat fixtures and DOM-independent tests using ~@b-fuze/deno-dom~ for testing adapters and views without browser runtime overhead.
 - [X] Headless Domain Unit Testing :: Deterministic unit test suite testing pure AST parsing, inline tokenizing, content hashing, view state, and AST caching with zero DOM dependencies (~deno task test~).
-- [ ] Consider Updating Tests to a Dedicated Preact Unit Test Library :: There are dedicated preact libraries facilitating unit tests, and we should consider updating our tests to use one. (https://github.com/developit/preact-jsx-chai, https://github.com/bruderstein/unexpected-preact)
+- [ ] Chat AI Agnostic Local Manual Test Framework :: Standalone local HTML/TS harness (~deno task test:manual~) simulating AI chat stream responses, Phase A/B settlement transitions, theme switching, and container remounting with rich sample fixtures. See [[file:../.scratch/manual-test-framework/spec.org][Manual Test Framework Spec]] and [[file:../.scratch/manual-test-framework/issues/01-chat-ai-agnostic-local-manual-test-harness.org][Issue 01]].
+- [ ] Dedicated Preact Unit Test Library Evaluation :: Evaluate dedicated Preact testing utilities (e.g. ~preact-jsx-chai~, ~unexpected-preact~) to enhance component assertion ergonomics and DOM tree diffing.
 
-* Host Interface Extensions [4/5]
+* Host Interface Extensions [4/6]
 - [X] Gemini Adapter :: Full Gemini scraper (~GeminiScraper~), DOM observer (~GeminiDOMObserver~), and shadow root injector (~GeminiInjector~) matching Gemini's custom element tree.
 - [X] Host Theme Authority :: Implemented ~theme~ and ~onThemeChange~ contracts on ~src/chat/gemini/theme.ts~ to observe host light/dark mode and synchronize Shadow Root themes.
 - [X] Host Auto-Discovery Registry :: Centralized ~ChatAdapterRegistry~ with eager and lazy resolution based on URL hostname and DOM fingerprints.
 - [X] Non-Destructive Host Isolation :: CSS hiding (~display: none~) and open Shadow Roots isolating extension styles while preserving native ~code[data-test-id='code-content']~ for host copy parity.
-- [ ] Multi-Platform Chat Adapters :: Extend adapters to support ChatGPT, Claude, and DuckDuckGo AI.
+- [ ] SPA In-Session Chat Switch Observer Resilience :: Strengthen DOM observers to cleanly handle in-page conversation transitions and new chat initialization without requiring page reloads. See [[file:potential-features.org][potential-features.org]].
+- [ ] Multi-Platform Chat Adapters :: Extend adapters to support ChatGPT, Claude, and DuckDuckGo AI (Duck.ai).
 
-* Rendering Capabilities & Languages [7/9]
-- [X] Universal In-Situ Code Block Container :: Universal ~InSituCodeBlockContainer~ with custom toolbar, language badge, folding toggle, view toggling, and copy parity button.
-- [X] Headless Org-Mode AST Engine :: Canonical Emacs ~org-element.el~ specification AST, O(N) streaming block parser with headline stack hierarchy, delimiter disambiguation, affiliated keywords (~#+NAME:~, ~#+CAPTION:~), tables with rules/alignment, and rich inline objects.
+* Rendering Capabilities & Languages [8/13]
+- [X] Universal In-Situ Code Block Container :: Universal ~InSituCodeBlockContainer~ with custom toolbar, language badge, H_0 block fold cycling, 2-state collapse bypass button (+ / −), decoupled view toggling, and copy parity button per [[file:adr/0003-code-block-heading-parity.org][ADR 0003]].
+- [X] Headless Org-Mode AST Engine :: Canonical Emacs ~org-element.el~ specification AST, O(N) streaming block parser with headline stack hierarchy, delimiter disambiguation, affiliated keywords (~#+NAME:~, ~#+CAPTION:~), tables with rules/alignment, and rich inline objects. See [[file:../.scratch/org-ast/spec.org][Org AST Spec]].
 - [X] Language Registry & AST Settlement Pipeline :: Centralized ~LanguageRegistry~ with language-agnostic ~settleContent~ coordinating pre-parsing and AST caching during turn settlement.
-- [X] In-Situ Preact Org Document View :: Rich declarative Preact view component (~OrgDocumentView~) rendering collapsible headline sections, TODO state badges, priority chips, tags, property drawers, and description lists.
-- [X] LaTeX / KaTeX Math Pipeline :: Dynamic KaTeX math fragment rendering ($...$, \(...\)) and ASCII LaTeX Greek entity replacement per ADR 0001.
-- [X] Org Document View Polish & Scoped Actions :: Stage 4: Compact boxed headings, row-click folding, inline chevron alignment, display LaTeX ($$...$$, \[...\]) centered block rendering, headline-scoped subtree copying, and host non-Org block bypass.
+- [X] In-Situ Preact Org Document View :: Rich declarative Preact view component (~OrgDocumentView~) rendering collapsible headline sections, TODO state badges, priority chips, tags, property drawers, and description lists. See [[file:../.scratch/org-document-view/spec.org][Org Document View Spec]].
+- [X] Canonical 3-State Outline Visibility Cycling :: Full Emacs Org-mode outline cycling across all headline levels: ~folded~ (\blacktriangleright + ...), ~children~ (\rhd + ...), and ~subtree~ (\triangledown) with descendant state pruning and full-card click targets.
+- [X] Offline KaTeX Mathematical Typography :: Bundled 100% offline KaTeX WOFF2 fonts and CSS rendering inline math, display equations, and ASCII LaTeX Greek entities into declarative JSX without ~innerHTML~ per [[file:adr/0001-katex-math-pipeline.org][ADR 0001]].
+- [X] Inline Image & Dynamic Attachment Previews :: In-situ rendering of embedded ~[[file:...]]~ and ~[[https://...]]~ image links with interactive zoom modal overlay.
+- [X] Org Document View Polish & Scoped Subtree Actions :: Compact boxed headings, row-click folding, inline chevron alignment, display LaTeX centered block rendering, and headline-scoped subtree copying via ~serializeOrgSubtree~.
+- [ ] Universal Syntax Highlighting Module :: Decoupled syntax highlighting engine in ~src/views/common/CodeHighlighter.tsx~ with modular, code-split grammars (Python, TypeScript, Rust, Bash, SQL, JSON) mapped to Tailwind v4 theme tokens without external network requests. See [[file:../.scratch/syntax-highlighting/spec.org][Syntax Highlighting Spec]] and [[file:../.scratch/syntax-highlighting/issues/01-universal-syntax-highlighting-module.org][Issue 01]].
 - [ ] Custom Org Themes & Syntax Presets :: User-selectable color schemes (Org Modern, Doom One, Solarized, Gruvbox) for rendered headlines and code blocks.
-- [X] Inline Image and Dynamic Attachment Previews :: In-situ rendering of embedded ~[[file:...]]~ and ~[[https://...]]~ image links with zoom overlay.
-- [ ] Additional DocumentViews :: Pluggable DocumentViews for JSON, Mermaid diagrams, and Markdown.
-- [ ] Chat width control :: The chats need to be wider, and there needs to be user control for how wide (in the floating HUD, see [[*HUD & User Controls][HUD & User Controls]])
+- [ ] LaTeX Math Pipeline Delimiter & Greek Entity Refinement :: Refine tokenizer sequencing to prevent raw Greek entity replacement from corrupting complex LaTeX math environments prior to KaTeX execution. See [[file:potential-features.org][potential-features.org]].
+- [ ] GitHub Flavored Markdown (GFM) Document View & AST Engine :: Complete feature parity with the Org engine: pure headless AST parser, outline visibility cycling (folded/children/subtree), H_0 heading parity, GitHub alerts ([!NOTE], [!TIP], etc.), GFM pipe tables with alignment, interactive task lists, KaTeX math, scoped subtree copying, and full-message GFM serialization. See [[file:../.scratch/markdown-document-view/spec.org][GFM Document View Spec]].
+- [ ] Additional DocumentViews :: Pluggable DocumentViews for JSON tree structure and Mermaid diagram rendering.
 
-* HUD & User Controls [0/4]
-- [ ] Moveable HUD :: Click and drag the HUD box around the chat column.
-- [ ] Universal HUD Integration :: Compute default position for HUD seamlessly across supported host platforms to avoid visual collision with host toolbars.
-- [ ] Customizable Hotkeys & Keybindings :: User-configurable shortcut bindings for HUD toggle, folding, font sizing, and export actions.
-- [ ] Previous Versions UI :: Read-only "Previous Versions" inspection panel/button allowing users to review and restore historical user query and model response versions from the tree store.
+* HUD, Layout & User Controls [3/6]
+- [X] Moveable Floating HUD :: Ultra-responsive 1:1 pointer dragging without motion lag, persistent position caching in ~SettingsStore~, and boundary clamping within viewport. See [[file:../.scratch/hud/spec.org][HUD Spec]].
+- [X] Widescreen Layout Engine & Width Presets :: Surgical CSS removal of ~768px constraints, natural user bubble proportions, and quick presets (80%, 90%, 94%, 100%) backed by typed WebExtension storage.
+- [X] Compact Pill Mode & Rapid Hotkeys :: Collapsible 36x36px icon mode, header click toggle, and hotkey shortcuts (~Alt + W~ for full width toggle, ~Alt + O~ for global Org toggle).
+- [ ] Extension Settings Panel :: Dedicated Preact settings modal/dialog for managing navigation preferences (auto-scroll vs. visual pulse on internal link jumps), default view modes, startup fold levels, and theme locks. See [[file:../.scratch/settings-panel/spec.org][Settings Panel Spec]] and [[file:../.scratch/settings-panel/issues/01-settings-panel-scroll-behavior.org][Issue 01]].
+- [ ] Universal HUD Integration & Multi-Host Origin :: Compute collision-free default HUD anchor positions across supported host platforms avoiding overlap with host toolbars.
+- [ ] Customizable Hotkeys & Keybinding Manager :: User-configurable shortcut bindings for HUD toggle, folding, font sizing, and export actions.
 
-* Chat Storage, History & Export [0/5]
-- [ ] Tree-Structured Conversation Store :: Append completed streaming turns to persistent ~browser.storage.local~ in a branching tree model to preserve query edits and regenerated responses.
-- [ ] Branch Navigation & Lineage Resolution :: Map linear chat views to historical branching paths, especially across hosts without native branching support.
-- [ ] Multi-Format & Scoped Subtree Copying :: Provide copy actions for specific headlines, functions, or subtrees, alongside multi-format copy ("Copy as Raw Org", "Copy as Markdown").
-- [ ] Subtree & Turn Selection Export :: Allow selective downloading of individual turn subtrees or marked sections into ~.org~ files.
+* Workflow & Task Management [1/4]
+- [X] In-Situ Interactive Checklists & Progress Cookies :: Toggleable checkboxes (~- [ ]~ / ~- [X]~) and dynamic progress cookies (~[1/3]~, ~[33%]~) recalculating in real time.
+- [ ] Universal TODO Tracking System :: Dedicated domain module under ~src/features/todo/~ with configurable workflow state machines (~TODO -> NEXT -> DONE~, bug triaging, multi-state cancellations) and cross-document task rollups. See [[file:../.scratch/todo-tracking/spec.org][TODO Tracking Spec]] and [[file:../.scratch/todo-tracking/issues/01-universal-todo-tracking-system.org][Issue 01]].
+- [ ] Chat Context Task Re-Injection :: Mechanism to inject updated or marked TODO lists back into active chat prompts to maintain task continuity with AI models. See [[file:potential-features.org][potential-features.org]].
+- [ ] Task Export & Agenda Synchronization :: Export active task lists and scheduled/deadline items to standalone ~.org~ agenda files.
+
+* Chat Storage, History & Export [1/7]
+- [X] Scoped Subtree Copying :: Headline-level AST export copying (~serializeOrgSubtree~) with non-destructive clipboard integration and visual feedback.
+- [ ] Multi-Format Scoped Copying :: Contextual clipboard export options ("Copy as Raw Org", "Copy as Markdown", "Copy as Plain Text") across document sections and non-Org code block functions. See [[file:../.scratch/scoped-copying/spec.org][Scoped Copying Spec]] and [[file:../.scratch/scoped-copying/issues/01-scoped-subtree-and-section-copying.org][Issue 01]].
+- [ ] Full-Message GFM Serializer :: High-fidelity serializer transforming entire message turns (prose and embedded code blocks) into valid GFM markdown with dynamic code fence sizing ($N+1$ backticks or tildes). See [[file:../.scratch/markdown-document-view/issues/08-full-message-gfm-serializer.org][GFM Issue 08]].
+- [ ] Tree-Structured Conversation Store :: Append completed streaming turns to persistent ~browser.storage.local~ in a branching tree model to preserve query edits and regenerated responses. See [[file:../.scratch/conversation-history/spec.org][Conversation History Spec]] and [[file:../.scratch/conversation-history/issues/01-tree-structured-backup-and-previous-versions.org][Issue 01]].
+- [ ] Branch Navigation & Previous Versions UI :: Read-only inspection panel and branch switcher allowing users to review and restore historical prompt and response branches.
+- [ ] Direct Turn & Block File Saving :: One-click file export actions for entire conversations, individual messages, or specific code blocks with AI-suggested filenames. See [[file:potential-features.org][potential-features.org]].
 - [ ] Complete Conversation Exporter :: Markdown-to-Org AST converter generating clean, annotated Org documents with metadata drawers.
+
+* Advanced Integrations & Extension Ecosystem [0/3]
+- [ ] Prompt Store & Dynamic Capability Injection :: Extension management view for saved prompts, URL-loaded prompts, and dynamically generated "supported capabilities" prompts that inform the AI model of available interactive renderers. See [[file:potential-features.org][potential-features.org]].
+- [ ] Local API for Software I/O :: Lightweight local bridge enabling external developer tools, scripts, and editors to interface directly with active chat sessions. See [[file:potential-features.org][potential-features.org]].
+- [ ] Background Script & Cross-Tab State Coordination :: Service worker / background script for cross-tab message passing, global settings synchronization, and export coordination.
