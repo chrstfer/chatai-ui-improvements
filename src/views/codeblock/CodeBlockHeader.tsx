@@ -1,15 +1,18 @@
 import type { JSX } from "preact";
 import type { ViewMode } from "../../store/viewStateCache.ts";
-import { CheckmarkIcon, ChevronIcon, CopyIcon, ViewToggleIcon } from "./icons.tsx";
+import { CheckmarkIcon, CopyIcon, ViewToggleIcon } from "./icons.tsx";
 import { defaultLanguageRegistry } from "../../languages/registry.ts";
 
 export interface CodeBlockHeaderProps {
     language: string;
     isFolded: boolean;
+    rootFoldState?: "folded" | "children" | "subtree";
     viewMode: ViewMode;
     hasRenderedView: boolean;
     isCopied: boolean;
-    onToggleFold: () => void;
+    onToggleFold?: () => void;
+    onCycleFold?: () => void;
+    onToggleCollapse?: () => void;
     onToggleViewMode: () => void;
     onCopy: () => void;
 }
@@ -26,26 +29,34 @@ function formatLanguage(lang: string): string {
 export function CodeBlockHeader({
     language,
     isFolded,
+    rootFoldState,
     viewMode,
     hasRenderedView,
     isCopied,
     onToggleFold,
+    onCycleFold,
+    onToggleCollapse,
     onToggleViewMode,
     onCopy,
 }: CodeBlockHeaderProps): JSX.Element {
+    const handleFoldCycle = onCycleFold ?? onToggleFold;
+    const handleCollapseToggle = onToggleCollapse ?? onToggleFold;
+
     const handleHeaderClick = (e: MouseEvent) => {
         const target = e.target as HTMLElement | null;
         if (target?.closest?.("button, a, input")) {
             return;
         }
-        onToggleFold();
+        handleFoldCycle?.();
     };
+
+    const foldGlyph = isFolded ? "▶" : rootFoldState === "children" ? "▷" : "▼";
 
     const headerTitle = hasRenderedView
         ? (isFolded
-            ? "Click to view rendered document"
-            : viewMode === "rendered"
-            ? "Click to switch to raw code"
+            ? "Click to show outline overview"
+            : rootFoldState === "children"
+            ? "Click to expand entire subtree"
             : "Click to collapse code block")
         : (isFolded ? "Click to expand code block" : "Click to collapse code block");
 
@@ -59,16 +70,16 @@ export function CodeBlockHeader({
         >
             <div class="ext-header-left flex items-center gap-2">
                 <button
-                    class="ext-btn ext-btn-icon ext-btn-fold inline-flex items-center justify-center p-1 rounded-md text-neutral-600 dark:text-neutral-300 hover:bg-black/5 dark:hover:bg-white/10 hover:text-neutral-900 dark:hover:text-white transition-colors cursor-pointer border-0 bg-transparent"
+                    class="ext-btn ext-btn-icon ext-btn-fold inline-flex items-center justify-center p-1 rounded-md text-neutral-600 dark:text-neutral-300 hover:bg-black/5 dark:hover:bg-white/10 hover:text-neutral-900 dark:hover:text-white transition-colors cursor-pointer border-0 bg-transparent font-mono text-xs select-none"
                     type="button"
-                    onClick={onToggleFold}
+                    onClick={(e) => {
+                        e.stopPropagation();
+                        handleFoldCycle?.();
+                    }}
                     aria-label={headerTitle}
                     title={headerTitle}
                 >
-                    <ChevronIcon
-                        class={`transition-transform duration-200 ${isFolded ? "-rotate-90" : ""}`}
-                        isFolded={isFolded}
-                    />
+                    {foldGlyph}
                 </button>
                 <span class="ext-language-badge inline-block text-[11px] font-semibold tracking-wide px-2 py-0.5 rounded bg-sky-500/10 text-sky-700 dark:bg-sky-400/15 dark:text-sky-300 leading-normal">
                     {formatLanguage(language)}
@@ -95,6 +106,19 @@ export function CodeBlockHeader({
                         </span>
                     </button>
                 )}
+
+                <button
+                    class="ext-btn ext-btn-collapse inline-flex items-center justify-center gap-1 px-2 py-1 rounded-md text-xs font-mono text-neutral-600 dark:text-neutral-300 hover:bg-black/5 dark:hover:bg-white/10 hover:text-neutral-900 dark:hover:text-white transition-colors cursor-pointer border-0 bg-transparent"
+                    type="button"
+                    onClick={(e) => {
+                        e.stopPropagation();
+                        handleCollapseToggle?.();
+                    }}
+                    aria-label={isFolded ? "Expand code block" : "Collapse code block"}
+                    title={isFolded ? "Expand code block" : "Collapse code block"}
+                >
+                    {isFolded ? "+" : "−"}
+                </button>
 
                 <button
                     class={`ext-btn ext-btn-copy inline-flex items-center justify-center gap-1.5 px-2.5 py-1 rounded-md text-xs font-medium hover:bg-black/5 dark:hover:bg-white/10 transition-colors cursor-pointer border-0 bg-transparent ${

@@ -1,5 +1,5 @@
 import type { JSX } from "preact";
-import { useCallback, useMemo, useState } from "preact/hooks";
+import { useCallback, useEffect, useMemo, useState } from "preact/hooks";
 import type { DocumentViewProps } from "../../../core/contracts/documentView.ts";
 import { defaultAstCache } from "../../../store/astCache.ts";
 import { computeContentHash } from "../../../core/utils/contentHash.ts";
@@ -12,6 +12,7 @@ import type { HeadlineFoldState } from "./OrgHeadlineView.tsx";
 export type { HeadlineFoldState } from "./OrgHeadlineView.tsx";
 
 export interface OrgDocumentViewState {
+    readonly rootFoldState?: HeadlineFoldState;
     readonly foldedHeadlines?: readonly string[];
     readonly headlineFoldStates?: Readonly<Record<string, HeadlineFoldState>>;
     readonly foldedBlocks?: readonly string[];
@@ -34,6 +35,8 @@ export function OrgDocumentView(props: DocumentViewProps): JSX.Element {
 
     // Top-matter #+STARTUP: directive parsing with fallback to all-expanded
     const savedState = documentViewState as OrgDocumentViewState | undefined;
+    const rootFoldState = savedState?.rootFoldState;
+
     const initialHeadlineFoldStates = useMemo(() => {
         if (savedState?.headlineFoldStates) return savedState.headlineFoldStates;
         const res: Record<string, HeadlineFoldState> = {};
@@ -44,7 +47,7 @@ export function OrgDocumentView(props: DocumentViewProps): JSX.Element {
             return res;
         }
         const startup = (docAst.properties?.["startup"] ?? docAst.properties?.["STARTUP"])?.toLowerCase();
-        if (startup === "overview" || startup === "fold") {
+        if (rootFoldState === "children" || startup === "overview" || startup === "fold") {
             docAst.children.forEach((c, idx) => {
                 if (c.type === "headline") {
                     res[`h-${idx}`] = "folded";
@@ -52,7 +55,7 @@ export function OrgDocumentView(props: DocumentViewProps): JSX.Element {
             });
         }
         return res;
-    }, [savedState, docAst]);
+    }, [savedState, rootFoldState, docAst]);
 
     const initialHeadlines = useMemo(() => {
         return Object.entries(initialHeadlineFoldStates)
@@ -70,36 +73,69 @@ export function OrgDocumentView(props: DocumentViewProps): JSX.Element {
         savedState?.todoOverrides ?? {},
     );
 
-    const cycleHeadlineFold = useCallback((id: string, hasChildHeadlines: boolean) => {
-        setHeadlineFoldStates((prev) => {
-            const current = prev[id] ?? "subtree";
-            let next: HeadlineFoldState;
-            if (current === "folded") {
-                next = hasChildHeadlines ? "children" : "subtree";
-            } else if (current === "children") {
-                next = "subtree";
-            } else {
-                next = "folded";
-            }
-            const updated = { ...prev, [id]: next };
-            const nextFoldedList = Object.entries(updated)
-                .filter(([_, state]) => state === "folded")
-                .map(([k]) => k);
-            setFoldedHeadlines(nextFoldedList);
-            onSaveViewState?.({
-                foldedHeadlines: nextFoldedList,
-                headlineFoldStates: updated,
-                foldedBlocks,
-                checkedItems,
-                todoOverrides,
+    useEffect(() => {
+        if (!rootFoldState) return;
+        if (rootFoldState === "children") {
+            const res: Record<string, HeadlineFoldState> = {};
+            docAst.children.forEach((c, idx) => {
+                if (c.type === "headline") {
+                    res[`h-${idx}`] = "folded";
+                }
             });
-            return updated;
-        });
-    }, [foldedBlocks, checkedItems, todoOverrides, onSaveViewState]);
+            setHeadlineFoldStates(res);
+            setFoldedHeadlines(Object.keys(res));
+        } else if (rootFoldState === "subtree") {
+            setHeadlineFoldStates({});
+            setFoldedHeadlines([]);
+        }
+    }, [rootFoldState, docAst]);
+
+    const cycleHeadlineFold = useCallback(
+        (id: string, hasChildHeadlines: boolean, currentFoldState?: HeadlineFoldState) => {
+            setHeadlineFoldStates((prev) => {
+                const current = currentFoldState ?? prev[id] ?? "subtree";
+                let next: HeadlineFoldState;
+                if (current === "folded") {
+                    next = hasChildHeadlines ? "children" : "subtree";
+                } else if (current === "children") {
+                    next = "subtree";
+                } else {
+                    next = "folded";
+                }
+
+                // Descendant State Pruning
+                const updated: Record<string, HeadlineFoldState> = {};
+                const childPrefix = `${id}.`;
+                for (const [k, v] of Object.entries(prev)) {
+                    if (k === id) continue;
+                    if (next === "folded" && k.startsWith(childPrefix)) {
+                        continue;
+                    }
+                    updated[k] = v;
+                }
+                updated[id] = next;
+
+                const nextFoldedList = Object.entries(updated)
+                    .filter(([_, state]) => state === "folded")
+                    .map(([k]) => k);
+                setFoldedHeadlines(nextFoldedList);
+                onSaveViewState?.({
+                    rootFoldState,
+                    foldedHeadlines: nextFoldedList,
+                    headlineFoldStates: updated,
+                    foldedBlocks,
+                    checkedItems,
+                    todoOverrides,
+                });
+                return updated;
+            });
+        },
+        [rootFoldState, foldedBlocks, checkedItems, todoOverrides, onSaveViewState],
+    );
 
     const toggleHeadlineFold = useCallback((id: string) => {
-        cycleHeadlineFold(id, false);
-    }, [cycleHeadlineFold]);
+        cycleHeadlineFold(id, false, headlineFoldStates[id]);
+    }, [cycleHeadlineFold, headlineFoldStates]);
 
     const toggleBlockFold = useCallback((id: string) => {
         setFoldedBlocks((prev) => {

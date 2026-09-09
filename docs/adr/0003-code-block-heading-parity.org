@@ -1,0 +1,46 @@
+#+TITLE: ADR 0003: Code Block Heading Parity and Document Outline Folding
+#+DATE: 2026-09-09
+
+:PROPERTIES:
+:STATUS: Accepted
+:END:
+
+* Status
+Accepted
+
+* Context
+In AI chat interfaces, code blocks with rich markup (such as Org-mode documents) are rendered inside an ~InSituCodeBlockContainer~ equipped with a ~CodeBlockHeader~. Previously, code block headers treated folding as an ad-hoc container collapse (~"rendered"~ $\to$ ~"source"~ $\to$ ~"collapsed"~), while inner Org headlines implemented a disjoint 3-state outline visibility cycle (~"folded"~ $\to$ ~"children"~ $\to$ ~"subtree"~).
+
+This created two usability issues:
+1. Clicking the code block header interleaved raw source mode into what users expect to be a structural fold toggle.
+2. The outer code block header felt like an external foreign wrapper rather than a natural top-level heading ($H_0$) encompassing the document AST. Users expect outline visibility cycling to apply uniformly from the outer container down through all nested headlines.
+
+* Decision
+We adopt *Code Block Heading Parity*:
+1. *Block Header as Root Heading ($H_0$)*:
+   The outer ~CodeBlockHeader~ functions conceptually as the root heading ($H_0$) of foldable code blocks. Its header bar click target and left fold indicator (~▶~ / ~▷~ / ~▼~) operate identically to headline outline cycling:
+   - *State 1 (Initial / Subtree)*: Fully expanded (~▼~), all document sections and paragraphs visible.
+   - *State 2 (First Click / Folded)*: Fully collapsed (~▶~), entire block body hidden; only the header bar is visible.
+   - *State 3 (Second Click / Children)*: Children overview (~▷~), block body open, displaying direct child headlines ($H_1$) in their ~folded~ state (~▶~ + ~...~) and hiding the document preamble.
+   - *State 4 (Third Click / Subtree)*: Subtree expanded (~▼~), entire document outline and text fully exposed.
+2. *Decoupled View Mode Switching*:
+   Switching between "Rendered View" and "Raw Source View" is isolated exclusively to the dedicated "View" toggle button in the header toolbar, eliminating mode thrashing during fold cycles.
+3. *Non-AST / Non-Foldable Code Blocks*:
+   Code blocks lacking an outline AST (e.g. Python, JS, raw fixed-width text) adopt 2-state folding (~collapsed~ $\leftrightarrow$ ~expanded~) across both the header bar and collapse button.
+4. *Dedicated Collapse Button as 2-State Bypass*:
+   The dedicated collapse button on the block header toolbar acts as a fast 2-state bypass (~collapsed~ $\leftrightarrow$ ~expanded~), allowing users to immediately collapse or expand the entire block without traversing the ~children~ overview state.
+5. *Declarative Root Fold State Coordination*:
+   The container communicates $H_0$ state declaratively to ~DocumentView~ implementations via ~documentViewState.rootFoldState~ in ~DocumentViewProps~. When ~rootFoldState === "children"~, top-level headlines initialize to ~folded~.
+6. *Descendant State Pruning*:
+   When a parent heading (or the root $H_0$ block) collapses to ~folded~, all cached descendant fold state keys are pruned so subsequent expansions start fresh from the canonical baseline.
+
+* Consequences
+** Positive
+- Uniform mental model: Outline folding behaves identically whether clicking the outer container or any inner headline.
+- Eliminates visual clutter and unexpected mode flips to raw source code during folding.
+- Fast 2-state collapse is preserved via the dedicated toolbar button while 3-state overview cycling is accessible via the header bar.
+- Clean state synchronization across Preact boundaries via declarative view state props.
+
+** Negative
+- ~DocumentViewProps~ must coordinate ~rootFoldState~ across the container-view boundary.
+- Requires maintaining left-side fold glyph parity (~▶~ / ~▷~ / ~▼~) on ~CodeBlockHeader~.

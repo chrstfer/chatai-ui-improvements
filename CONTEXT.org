@@ -53,6 +53,9 @@
 - *StructuredMessageContainer* :: Universal Preact container component providing a unified interface for message boxes in the DOM, orchestrating folding, collapsed summary badges, portal toolbars, and active view projection.
 - *Headline-Scoped Subtree Copy* :: Pure AST serialization (~serializeOrgSubtree~) extracting the complete textual representation of an Org headline, its planning line, property drawers, body content, and nested sub-headlines into the clipboard with green confirmation feedback.
 - *Display Math Block* :: Standalone or embedded mathematical equation delimited by ~$$...$$~, ~\[...\]~, or ~\begin{equation}...\end{equation}~ rendered as an isolated, horizontally scrollable centered block container with vertical spacing, distinct from inline LaTeX fragments.
+- *Headline Visibility Cycling* :: Canonical 3-state outline visibility cycling on Org headlines: ~folded~ (header card only, fold indicator ~▶~, title ellipsis ~...~, body and children hidden), ~children~ (direct child headlines revealed in ~folded~ state, direct paragraphs hidden), and ~subtree~ (entire hierarchy fully expanded).
+- *Descendant State Pruning* :: The policy of clearing all cached fold state entries for nested descendant headline paths (~<id>.c-...~) whenever a parent headline collapses to ~folded~, ensuring subsequent expansions start from a clean baseline.
+- *Code Block Heading Parity* :: The conceptual unification of the outer code block container header with document outline headlines, treating the block header as an encompassing top-level heading ($H_0$) whose primary folding behavior mirrors headline outline cycling rather than disjoint mode toggling.
 
 ** 5. UI Controls & Styling
 - *Floating HUD (Heads-Up Display)* :: An ephemeral floating control panel elevated above the bottom-right corner providing width presets, view toggles, font size controls, and export triggers.
@@ -256,4 +259,5 @@ See [[file:docs/roadmap.org][docs/roadmap.org]] for the backlog and planned feat
 * Architectural Decision Records (ADRs)
 - [[file:docs/adr/0001-katex-math-pipeline.org][ADR 0001: KaTeX Math and LaTeX Greek Rendering Pipeline]] — Accepted (2026-09-03)
 - [[file:docs/adr/0002-tailwind-v4-shadow-dom.org][ADR 0002: Tailwind CSS v4 in Isolated Shadow DOM Boundaries]] — Accepted (2026-09-08)
+- [[file:docs/adr/0003-code-block-heading-parity.org][ADR 0003: Code Block Heading Parity and Document Outline Folding]] — Accepted (2026-09-09)
 

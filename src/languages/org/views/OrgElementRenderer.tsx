@@ -13,8 +13,13 @@ export interface OrgElementRendererProps {
     readonly parentPath?: string;
     readonly foldedHeadlines?: readonly string[];
     readonly headlineFoldStates?: Readonly<Record<string, HeadlineFoldState>>;
+    readonly defaultFoldState?: HeadlineFoldState;
     readonly onToggleHeadlineFold?: (headlineId: string) => void;
-    readonly onCycleHeadlineFold?: (headlineId: string, hasChildHeadlines: boolean) => void;
+    readonly onCycleHeadlineFold?: (
+        headlineId: string,
+        hasChildHeadlines: boolean,
+        currentFoldState: HeadlineFoldState,
+    ) => void;
     readonly foldedBlocks?: readonly string[];
     readonly onToggleBlockFold?: (blockId: string) => void;
     readonly checkedItems?: readonly string[];
@@ -30,6 +35,7 @@ export function OrgElementRenderer(props: OrgElementRendererProps): JSX.Element 
         parentPath = "",
         foldedHeadlines,
         headlineFoldStates,
+        defaultFoldState,
         onToggleHeadlineFold,
         onCycleHeadlineFold,
         foldedBlocks,
@@ -48,6 +54,7 @@ export function OrgElementRenderer(props: OrgElementRendererProps): JSX.Element 
         child: OrgElement,
         cIdx: number,
         currentPath: string,
+        childDefaultFoldState?: HeadlineFoldState,
     ): JSX.Element | null => {
         return (
             <OrgElementRenderer
@@ -56,6 +63,7 @@ export function OrgElementRenderer(props: OrgElementRendererProps): JSX.Element 
                 parentPath={currentPath}
                 foldedHeadlines={foldedHeadlines}
                 headlineFoldStates={headlineFoldStates}
+                defaultFoldState={childDefaultFoldState ?? defaultFoldState}
                 onToggleHeadlineFold={onToggleHeadlineFold}
                 onCycleHeadlineFold={onCycleHeadlineFold}
                 foldedBlocks={foldedBlocks}
@@ -87,6 +95,7 @@ export function OrgElementRenderer(props: OrgElementRendererProps): JSX.Element 
                                 headlinePath={headlineId}
                                 isFolded={isFolded}
                                 foldState={foldState}
+                                defaultFoldState={defaultFoldState}
                                 onToggleFold={onToggleHeadlineFold}
                                 onCycleFold={onCycleHeadlineFold}
                                 todoOverrides={todoOverrides}
@@ -164,6 +173,7 @@ export function OrgElementRenderer(props: OrgElementRendererProps): JSX.Element 
                                     parentPath={`${pathPrefix}s-${idx}`}
                                     foldedHeadlines={foldedHeadlines}
                                     headlineFoldStates={headlineFoldStates}
+                                    defaultFoldState={defaultFoldState}
                                     onToggleHeadlineFold={onToggleHeadlineFold}
                                     onCycleHeadlineFold={onCycleHeadlineFold}
                                     foldedBlocks={foldedBlocks}
@@ -189,6 +199,7 @@ export function OrgElementRenderer(props: OrgElementRendererProps): JSX.Element 
                                     parentPath={`${pathPrefix}fn-${idx}`}
                                     foldedHeadlines={foldedHeadlines}
                                     headlineFoldStates={headlineFoldStates}
+                                    defaultFoldState={defaultFoldState}
                                     onToggleHeadlineFold={onToggleHeadlineFold}
                                     onCycleHeadlineFold={onCycleHeadlineFold}
                                     foldedBlocks={foldedBlocks}

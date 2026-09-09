@@ -12,8 +12,13 @@ export interface OrgHeadlineViewProps {
     readonly headlinePath: string;
     readonly isFolded?: boolean;
     readonly foldState?: HeadlineFoldState;
+    readonly defaultFoldState?: HeadlineFoldState;
     readonly onToggleFold?: (headlineId: string) => void;
-    readonly onCycleFold?: (headlineId: string, hasChildHeadlines: boolean) => void;
+    readonly onCycleFold?: (
+        headlineId: string,
+        hasChildHeadlines: boolean,
+        currentFoldState: HeadlineFoldState,
+    ) => void;
     readonly todoOverrides?: Readonly<Record<string, string>>;
     readonly onCycleTodo?: (headlineId: string, currentStatus: string) => void;
     readonly onNavigateInternal?: (targetId: string) => void;
@@ -21,6 +26,7 @@ export interface OrgHeadlineViewProps {
         element: OrgElement,
         index: number,
         parentPath: string,
+        defaultFoldState?: HeadlineFoldState,
     ) => JSX.Element | null;
 }
 
@@ -80,6 +86,7 @@ export function OrgHeadlineView({
     headlinePath,
     isFolded = false,
     foldState,
+    defaultFoldState,
     onToggleFold,
     onCycleFold,
     todoOverrides,
@@ -93,7 +100,7 @@ export function OrgHeadlineView({
     const plainTitle = extractText(title).trim();
 
     const hasChildHeadlines = children.some((c) => c.type === "headline");
-    const activeFoldState: HeadlineFoldState = foldState ?? (isFolded ? "folded" : "subtree");
+    const activeFoldState: HeadlineFoldState = foldState ?? (defaultFoldState ?? (isFolded ? "folded" : "subtree"));
 
     const currentTodo = todoOverrides?.[headlineId] ?? headline.todoKeyword;
     const isDone = currentTodo === "DONE" || currentTodo === "CANCELLED";
@@ -103,7 +110,7 @@ export function OrgHeadlineView({
 
     const handleFoldAction = () => {
         if (onCycleFold) {
-            onCycleFold(headlineId, hasChildHeadlines);
+            onCycleFold(headlineId, hasChildHeadlines, activeFoldState);
         } else if (onToggleFold) {
             onToggleFold(headlineId);
         }
@@ -293,9 +300,14 @@ export function OrgHeadlineView({
             {activeFoldState !== "folded" && children.length > 0 && (
                 <div class="org-headline-body pl-3 md:pl-5 border-l border-neutral-200/50 dark:border-neutral-800/50 space-y-2 mt-2">
                     {children.map((child, cIdx) => {
-                        // In "children" state, hide direct paragraphs/blocks and only render child headlines
-                        if (activeFoldState === "children" && child.type !== "headline") {
-                            return null;
+                        // In "children" state, hide direct paragraphs/blocks and only render child headlines in folded state
+                        if (activeFoldState === "children") {
+                            if (child.type !== "headline") {
+                                return null;
+                            }
+                            if (renderElement) {
+                                return renderElement(child, cIdx, `${headlineId}.c-${cIdx}`, "folded");
+                            }
                         }
                         if (renderElement) {
                             return renderElement(child, cIdx, `${headlineId}.c-${cIdx}`);

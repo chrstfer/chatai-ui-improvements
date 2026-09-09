@@ -244,34 +244,62 @@ Deno.test("InSituCodeBlockContainer renders body, toggles fold, and synchronizes
         assertEquals(state1?.isFolded, false);
         assertEquals(state1?.viewMode, "rendered");
 
-        // 1. First cycle on rendered view switches to raw view
+        // 1. First cycle on rendered view folds everything (H0: subtree -> folded)
         const foldBtn = root.querySelector(".ext-btn-fold");
         triggerClick(foldBtn);
         await new Promise((resolve) => setTimeout(resolve, 50));
 
-        const rawEl = root.querySelector("code[data-language='org']");
-        assertNotEquals(rawEl, null, "First cycle should switch from rendered to raw view");
-        assertEquals(cache.get(hash)?.viewMode, "raw");
-        assertEquals(cache.get(hash)?.isFolded, false);
-
-        // 2. Second cycle from raw view collapses the block
-        triggerClick(foldBtn);
-        await new Promise((resolve) => setTimeout(resolve, 50));
-
-        assertEquals(root.querySelector(".ext-codeblock-body"), null, "Second cycle should fold block body");
+        assertEquals(root.querySelector(".ext-codeblock-body"), null, "First cycle should fold block body");
         assertEquals(cache.get(hash)?.isFolded, true);
+        assertEquals(
+            (cache.get(hash)?.documentViewState as { rootFoldState?: string })?.rootFoldState,
+            "folded",
+        );
 
-        // 3. Third cycle from collapsed expands back to rendered view
+        // 2. Second cycle from folded opens in children overview mode (H0: folded -> children)
         triggerClick(foldBtn);
         await new Promise((resolve) => setTimeout(resolve, 50));
 
         assertNotEquals(
-            root.querySelector(".test-rendered-content"),
+            root.querySelector(".ext-codeblock-body"),
             null,
-            "Third cycle should expand to rendered view",
+            "Second cycle should show body in children mode",
         );
         assertEquals(cache.get(hash)?.isFolded, false);
-        assertEquals(cache.get(hash)?.viewMode, "rendered");
+        assertEquals(
+            (cache.get(hash)?.documentViewState as { rootFoldState?: string })?.rootFoldState,
+            "children",
+        );
+
+        // 3. Third cycle from children expands entire subtree (H0: children -> subtree)
+        triggerClick(foldBtn);
+        await new Promise((resolve) => setTimeout(resolve, 50));
+
+        assertNotEquals(root.querySelector(".ext-codeblock-body"), null, "Third cycle should expand subtree");
+        assertEquals(cache.get(hash)?.isFolded, false);
+        assertEquals(
+            (cache.get(hash)?.documentViewState as { rootFoldState?: string })?.rootFoldState,
+            "subtree",
+        );
+
+        // 4. View mode toggle switches between rendered and raw independently
+        const viewToggleBtn = root.querySelector(".ext-btn-view-toggle");
+        assertNotEquals(viewToggleBtn, null);
+        triggerClick(viewToggleBtn);
+        await new Promise((resolve) => setTimeout(resolve, 50));
+
+        const rawEl = root.querySelector("code[data-language='org']");
+        assertNotEquals(rawEl, null, "View toggle should switch to raw code view");
+        assertEquals(cache.get(hash)?.viewMode, "raw");
+
+        // 5. 2-State Collapse bypass button collapses directly to folded
+        const collapseBtn = root.querySelector(".ext-btn-collapse");
+        assertNotEquals(collapseBtn, null);
+        triggerClick(collapseBtn);
+        await new Promise((resolve) => setTimeout(resolve, 50));
+
+        assertEquals(root.querySelector(".ext-codeblock-body"), null, "Collapse bypass should fold body");
+        assertEquals(cache.get(hash)?.isFolded, true);
     } finally {
         cleanup();
     }

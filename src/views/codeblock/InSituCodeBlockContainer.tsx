@@ -49,12 +49,22 @@ export function InSituCodeBlockContainer({
     const hash = useMemo(() => computeContentHash(rawText, language), [rawText, language]);
     const cachedState = useMemo(() => cache.get(hash), [cache, hash]);
 
-    const [isFolded, setIsFolded] = useState<boolean>(cachedState?.isFolded ?? false);
+    const initialRootFoldState: "folded" | "children" | "subtree" = cachedState?.isFolded
+        ? "folded"
+        : ((cachedState?.documentViewState as { rootFoldState?: "folded" | "children" | "subtree" })?.rootFoldState ??
+            "subtree");
+
+    const [rootFoldState, setRootFoldState] = useState<"folded" | "children" | "subtree">(
+        initialRootFoldState,
+    );
+    const [isFolded, setIsFolded] = useState<boolean>(
+        cachedState?.isFolded ?? (initialRootFoldState === "folded"),
+    );
     const [viewMode, setViewMode] = useState<ViewMode>(
         cachedState?.viewMode ?? (hasRenderedView ? "rendered" : "raw"),
     );
     const [documentViewState, setDocumentViewState] = useState<unknown>(
-        cachedState?.documentViewState,
+        cachedState?.documentViewState ?? (hasRenderedView ? { rootFoldState: initialRootFoldState } : undefined),
     );
     const [isCopied, setIsCopied] = useState<boolean>(false);
 
@@ -63,23 +73,68 @@ export function InSituCodeBlockContainer({
         cache.set(hash, { isFolded, viewMode, documentViewState });
     }, [cache, hash, isFolded, viewMode, documentViewState]);
 
-    const handleToggleFold = useCallback(() => {
+    const handleCycleFold = useCallback(() => {
         if (hasRenderedView) {
-            if (isFolded) {
-                // Collapsed -> Rendered view
-                setIsFolded(false);
-                setViewMode("rendered");
-            } else if (viewMode === "rendered") {
-                // Rendered view -> Raw code view
-                setViewMode("raw");
+            // 3-state outline cycling on H0: subtree -> folded -> children -> subtree
+            let nextRootFoldState: "folded" | "children" | "subtree";
+            if (isFolded || rootFoldState === "folded") {
+                // Click 2: Children overview
+                nextRootFoldState = "children";
+            } else if (rootFoldState === "children") {
+                // Click 3: Subtree expanded
+                nextRootFoldState = "subtree";
             } else {
-                // Raw code view -> Collapsed
-                setIsFolded(true);
+                // Click 1 (from subtree / initial): Folds everything
+                nextRootFoldState = "folded";
             }
+
+            const nextIsFolded = nextRootFoldState === "folded";
+            setRootFoldState(nextRootFoldState);
+            setIsFolded(nextIsFolded);
+
+            const nextDocState = {
+                ...((documentViewState as Record<string, unknown>) || {}),
+                rootFoldState: nextRootFoldState,
+            };
+            setDocumentViewState(nextDocState);
+            cache.set(hash, {
+                isFolded: nextIsFolded,
+                viewMode,
+                documentViewState: nextDocState,
+            });
         } else {
-            setIsFolded((prev) => !prev);
+            // 2-state folding for non-rendered code blocks (e.g. Python, JS)
+            const nextIsFolded = !isFolded;
+            setIsFolded(nextIsFolded);
+            setRootFoldState(nextIsFolded ? "folded" : "subtree");
+            cache.set(hash, {
+                isFolded: nextIsFolded,
+                viewMode,
+                documentViewState,
+            });
         }
-    }, [hasRenderedView, isFolded, viewMode]);
+    }, [hasRenderedView, isFolded, rootFoldState, documentViewState, cache, hash, viewMode]);
+
+    const handleToggleCollapse = useCallback(() => {
+        // Quick 2-state collapse/expand bypass
+        const nextIsFolded = !isFolded;
+        const nextRootFoldState = nextIsFolded ? "folded" : "subtree";
+        setIsFolded(nextIsFolded);
+        setRootFoldState(nextRootFoldState);
+
+        const nextDocState = hasRenderedView
+            ? {
+                ...((documentViewState as Record<string, unknown>) || {}),
+                rootFoldState: nextRootFoldState,
+            }
+            : documentViewState;
+        setDocumentViewState(nextDocState);
+        cache.set(hash, {
+            isFolded: nextIsFolded,
+            viewMode,
+            documentViewState: nextDocState,
+        });
+    }, [isFolded, hasRenderedView, documentViewState, cache, hash, viewMode]);
 
     const handleToggleViewMode = useCallback(() => {
         setViewMode((prev) => (prev === "rendered" ? "raw" : "rendered"));
@@ -117,10 +172,13 @@ export function InSituCodeBlockContainer({
             <CodeBlockHeader
                 language={language}
                 isFolded={isFolded}
+                rootFoldState={rootFoldState}
                 viewMode={viewMode}
                 hasRenderedView={hasRenderedView}
                 isCopied={isCopied}
-                onToggleFold={handleToggleFold}
+                onCycleFold={handleCycleFold}
+                onToggleCollapse={handleToggleCollapse}
+                onToggleFold={handleCycleFold}
                 onToggleViewMode={handleToggleViewMode}
                 onCopy={handleCopy}
             />

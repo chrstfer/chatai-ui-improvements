@@ -223,3 +223,129 @@ Paragraph with a link to [[*First Target Headline][Go to Top]].
         cleanup();
     }
 });
+
+Deno.test("OrgDocumentView: Canonical 3-state outline visibility cycling (folded -> children -> subtree)", async () => {
+    const { root, cleanup } = setupDom();
+    try {
+        const content = `* H1 Top Level
+H1 direct body text.
+** H2 Child Level
+H2 direct body text.
+*** H3 Grandchild Level
+H3 direct body text.
+`;
+        render(
+            <OrgDocumentView
+                content={content}
+                language="org"
+            />,
+            root,
+        );
+
+        // Initial state: Everything is expanded in subtree view
+        const allHeadlines = root.querySelectorAll(".org-headline");
+        assertEquals(allHeadlines.length, 3, "All 3 headline levels rendered initially");
+        assertEquals(root.textContent?.includes("H1 direct body text."), true);
+        assertEquals(root.textContent?.includes("H2 direct body text."), true);
+        assertEquals(root.textContent?.includes("H3 direct body text."), true);
+
+        // Find H1 headline element
+        const h1Section = root.querySelector('[data-headline-title="H1 Top Level"]');
+        assertNotEquals(h1Section, null);
+        const h1Header = h1Section?.querySelector(".org-headline");
+        assertNotEquals(h1Header, null);
+
+        // 1. Click H1: cycles from subtree to 'folded'
+        triggerClick(h1Header);
+        await new Promise((r) => setTimeout(r, 20));
+
+        // In 'folded' state: only H1 header is visible; H1 body, H2, H3 are hidden
+        assertEquals(root.querySelectorAll(".org-headline").length, 1, "Only H1 header visible when folded");
+        assertEquals(root.textContent?.includes("H1 direct body text."), false);
+        assertEquals(root.textContent?.includes("H2 Child Level"), false);
+        assertEquals(root.textContent?.includes("H3 Grandchild Level"), false);
+
+        // 2. Click H1 again: cycles from 'folded' to 'children'
+        triggerClick(h1Header);
+        await new Promise((r) => setTimeout(r, 20));
+
+        // In 'children' state:
+        // - H1 header shows ▷ and ellipsis
+        // - H1 direct body text is HIDDEN
+        // - H2 header is revealed in its FOLDED state (showing ▶ and ellipsis)
+        // - H2 body text is HIDDEN
+        // - H3 is HIDDEN
+        assertEquals(h1Header?.querySelector(".org-fold-toggle")?.textContent?.trim(), "▷");
+        assertEquals(
+            root.textContent?.includes("H1 direct body text."),
+            false,
+            "H1 body text must be hidden in children mode",
+        );
+
+        const h2Section = root.querySelector('[data-headline-title="H2 Child Level"]');
+        assertNotEquals(h2Section, null, "H2 Child Level must be visible in children mode");
+        const h2Header = h2Section?.querySelector(".org-headline");
+        assertNotEquals(h2Header, null);
+        assertEquals(
+            h2Header?.querySelector(".org-fold-toggle")?.textContent?.trim(),
+            "▶",
+            "H2 must be folded in children mode",
+        );
+        assertNotEquals(h2Header?.querySelector(".org-fold-ellipsis"), null, "H2 must show ellipsis");
+        assertEquals(
+            root.textContent?.includes("H2 direct body text."),
+            false,
+            "H2 body must be hidden in children mode",
+        );
+        assertEquals(root.textContent?.includes("H3 Grandchild Level"), false, "H3 must be hidden in children mode");
+
+        // 3. Click H1 again: cycles from 'children' to 'subtree'
+        triggerClick(h1Header);
+        await new Promise((r) => setTimeout(r, 20));
+
+        // In 'subtree' state: All headlines and paragraphs are visible
+        assertEquals(h1Header?.querySelector(".org-fold-toggle")?.textContent?.trim(), "▼");
+        assertEquals(root.querySelectorAll(".org-headline").length, 3, "All 3 headlines visible in subtree");
+        assertEquals(root.textContent?.includes("H1 direct body text."), true);
+        assertEquals(root.textContent?.includes("H2 direct body text."), true);
+        assertEquals(root.textContent?.includes("H3 direct body text."), true);
+
+        // 4. Click H1 again: cycles back to 'folded'
+        triggerClick(h1Header);
+        await new Promise((r) => setTimeout(r, 20));
+        assertEquals(root.querySelectorAll(".org-headline").length, 1, "Collapses back to H1 header only");
+    } finally {
+        cleanup();
+    }
+});
+
+Deno.test("OrgDocumentView: rootFoldState='children' initializes top-level headlines to folded", () => {
+    const { root, cleanup } = setupDom();
+    try {
+        const content = `* H1 Alpha
+Alpha text.
+** H2 Beta
+Beta text.
+`;
+        render(
+            <OrgDocumentView
+                content={content}
+                language="org"
+                documentViewState={{
+                    rootFoldState: "children",
+                }}
+            />,
+            root,
+        );
+
+        // In root children mode, H1 Alpha should be folded
+        const h1 = root.querySelector('[data-headline-title="H1 Alpha"]');
+        assertNotEquals(h1, null);
+        const foldToggle = h1?.querySelector(".org-fold-toggle");
+        assertEquals(foldToggle?.textContent?.trim(), "▶");
+        assertEquals(root.textContent?.includes("Alpha text."), false);
+        assertEquals(root.textContent?.includes("H2 Beta"), false);
+    } finally {
+        cleanup();
+    }
+});
