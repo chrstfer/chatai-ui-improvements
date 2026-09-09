@@ -9,7 +9,9 @@ docs/completed-steps/
 .env.production.local
 .env.local
 
-src/styles/*.generated.ts
+# Generated build files
+src/env.ts
+**/*.generated.ts
 
 dist-archive/
 dist-amo/

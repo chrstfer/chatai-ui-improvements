@@ -1,0 +1,85 @@
+@theme {
+    --ext-chat-max-width: 94%;
+}
+
+/* Gemini conversation stream widening when full-width mode is active */
+body.ext-fullwidth-active {
+    /* Conversation stream containers */
+    & chat-window .conversation-container,
+    & .chat-window .conversation-container,
+    & .conversation-container,
+    & .conversation-content,
+    & chat-history,
+    & .chat-history,
+    & div[class*="conversation-container"]:not(side-navigation-v2 *):not(nav *) {
+        max-width: var(--ext-chat-max-width, 94%) !important;
+        width: 100% !important;
+        margin-left: auto !important;
+        margin-right: auto !important;
+        box-sizing: border-box !important;
+    }
+
+    /* Ensure navigation sidebars and drawers are never squished */
+    & side-navigation-v2,
+    & .side-nav,
+    & .mat-drawer,
+    & nav[aria-label],
+    & div[class*="side-nav"],
+    & div[class*="sidebar"] {
+        max-width: none !important;
+        margin-left: 0 !important;
+        margin-right: 0 !important;
+    }
+
+    /* Response message bodies expand cleanly */
+    & response-element,
+    & message-content,
+    & .response-container,
+    & .response-container-content,
+    & .model-response-text,
+    & .content-wrapper,
+    & div[class*="response-container"],
+    & div[class*="presented-content"] {
+        max-width: 100% !important;
+        width: 100% !important;
+        box-sizing: border-box !important;
+    }
+
+    /* User query container anchored to the right */
+    & .conversation-container user-query,
+    & user-query,
+    & user-query-item,
+    & .user-query-container,
+    & div[class*="user-query-container"],
+    & div[class*="user-query"] {
+        display: flex !important;
+        flex-direction: column !important;
+        align-items: flex-end !important;
+        margin-left: auto !important;
+        margin-right: 0 !important;
+        max-width: 92% !important;
+        width: auto !important;
+        box-sizing: border-box !important;
+    }
+
+    /* Prompt input bar expansion */
+    & .bottom-container,
+    & .input-area-container,
+    & .chat-input-container,
+    & div[class*="bottom-container"]:not(nav *),
+    & div[class*="input-area-container"]:not(nav *) {
+        max-width: var(--ext-chat-max-width, 94%) !important;
+        width: 100% !important;
+        margin-left: auto !important;
+        margin-right: auto !important;
+        box-sizing: border-box !important;
+    }
+
+    & .text-input-field,
+    & rich-textarea,
+    & div[class*="text-input-field"],
+    & div[class*="input-box"] {
+        max-width: 100% !important;
+        width: 100% !important;
+    }
+}
