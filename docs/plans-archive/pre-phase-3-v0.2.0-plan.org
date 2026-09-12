@@ -1,0 +1,121 @@
+#+TITLE: Master Plan: Pre-Phase 3 Milestone (v0.2.0 Release Readiness)
+#+DATE: 2026-09-11
+#+AUTHOR: chrstfer & Antigravity
+#+OPTIONS: toc:2 num:nil
+
+:PROPERTIES:
+:STATUS: approved
+:VERSION: 0.2.0
+:MILESTONE: Pre-Phase 3
+:END:
+
+* Executive Summary & Purpose
+Before launching the expansive multi-platform and GFM capabilities of Phase 3, a focused pre-phase milestone is executed to harden existing core features and deliver the **v0.2.0 production release**.
+
+This plan consolidates all architectural and interaction decisions settled through rigorous multi-round grilling. It delivers a clean browser action toolbar toggle with a non-destructive synchronous teardown barrier, confines the Floating HUD to the chat column with bilateral edge snapping and inward expansion, establishes a standardized ~HostLayoutController~ seam, and scales user requests symmetrically with model responses across the widened conversation column.
+
+* Architectural Decisions & Specifications
+
+** 1. Browser Action Toolbar Toggle & Clean Teardown State Machine (Issue 01)
+- *Manifest V3 Integration*:
+  - Register ~"action": { "default_title": "AI Chat UI Improvements" }~ in ~src/manifest.json~.
+  - Register background script under ~"background": { "scripts": ["src/entrypoints/background.ts"] }~.
+  - Update ~build.ts~ to compile ~src/entrypoints/background.ts~ into ~dist/dev/src/entrypoints/background.js~ (and release).
+- *Per-Tab Activation Memory*:
+  - Background script manages ~tabStates: Map<number, boolean>~ in memory.
+  - State persists across page reloads (~F5~ / ~Ctrl+R~) until the specific tab is closed.
+  - When deactivated on a tab, background sets ~browser.action.setBadgeText({ tabId, text: "OFF" })~ with a muted gray badge color.
+  - When active, the badge text is cleared.
+- *Synchronous Cancellation & Teardown Barrier*:
+  - Clicking the toolbar action dispatches a toggle message to the active tab's content script.
+  - On deactivation, ~adapter.destroy()~ executes an immediate synchronous cancellation barrier:
+    1. Sets an internal ~this.destroyed = true~ latch on the adapter and injector.
+    2. Disconnects host ~MutationObserver~ instances immediately.
+    3. Clears all active ~setTimeout~ and ~requestAnimationFrame~ macro-settle debounce handles.
+    4. Unmounts all turn Preact roots and restores native ~<code-block>~ elements (~display: none~ removed) via ~injector.destroyAll()~.
+    5. Unmounts the Floating HUD from the DOM via ~unmountHud()~.
+    6. Destroys host-specific layout overrides via ~adapter.layoutController.destroy()~.
+    7. Retains in-memory caches (~AstCache~ and ~ViewStateCache~) so that subsequent re-enabling re-hydrates instantly (0ms) without reparsing.
+  - Zero broken markup, orphaned containers, or hidden host elements remain in the DOM.
+
+** 2. Floating HUD: Chat-Column Contained Overlay & Bilateral Snapping (Issue 02)
+- *Layer Separation & Flow Independence*:
+  - The Floating HUD is rendered on a dedicated overlay layer (~position: fixed~, ~z-index: 999999~).
+  - It overlays chat messages without altering document flow or layout underneath.
+- *Chat Column Containment*:
+  - Boundary clamping and snapping are strictly contained within the active chat column rather than the outer window boundaries.
+  - ~SiteAdapter~ provides ~getChatColumnBounds(): { left: number; right: number; top: number; bottom: number } | null~:
+    - On Gemini: queries ~.conversation-container~ (falling back to viewport margins on zero-state home screen).
+    - On Duck.ai: queries the conversation column (stable selector finalized in Phase 3 Stage 1).
+  - When dragging, ~x~ is clamped within ~[column.left + 16, column.right - hudWidth - 16]~.
+- *Bilateral Snapping (~1em / 16px)*:
+  - Pointer movement is 1:1 continuous during dragging without magnetic resistance.
+  - On pointer release (~pointerup~), if the HUD is within 32px of a column boundary, it smoothly snaps to 16px (~1em) from that boundary:
+    - *Right-Anchored*: Snaps to ~column.right - hudWidth - 16px~; expands horizontally to the *left* (towards the center).
+    - *Left-Anchored*: Snaps to ~column.left + 16px~; expands horizontally to the *right* (towards the center).
+- *Default Spawn Position*:
+  - On fresh sessions with no stored position, spawns docked at the **bottom-right** of the chat column:
+    - Horizontally: docked ~1em (16px) inside the right column boundary.
+    - Vertically: docked **2em (~32px) above the bottom prompt input container**.
+    - Mode: started in **compact collapsed pill mode**.
+
+** 3. Symmetrical Widescreen & Multi-Host Layout Controller (Issue 03)
+- *Standardized ~HostLayoutController~ Seam*:
+  - Defined in ~src/core/contracts/layout.ts~:
+#+BEGIN_SRC typescript
+export interface HostLayoutController {
+    initialize(targetDoc?: DocumentLike): void;
+    apply(settings: ExtensionSettings, targetDoc?: DocumentLike): void;
+    destroy(targetDoc?: DocumentLike): void;
+}
+#+END_SRC
+  - ~SiteAdapter~ exposes ~readonly layoutController?: HostLayoutController~.
+  - ~build.ts~ compiles ~src/chat/<host>/styles/layout.css~ into ~layout.generated.ts~ across supported host directories.
+- *Gemini Widescreen Scaling & 708px Ceiling Override*:
+  - Widens the centered conversational column (~.conversation-container~) to ~var(--ext-chat-max-width, 94%)~ with ~margin-inline: auto~.
+  - Overrides Gemini's scoped 708px ceiling on inner model markdown elements:
+#+BEGIN_SRC css
+body.ext-fullwidth-active {
+    & .enable-extended-and-xl-grid .md-content > :not(#_),
+    & .enable-extended-and-xl-grid .conversation-container .md-content > :not(#_),
+    & .md-content > :not(#_),
+    & .model-response-text,
+    & message-content,
+    & .response-container-content,
+    & .response-content {
+        max-width: 100% !important;
+        box-sizing: border-box !important;
+    }
+}
+#+END_SRC
+  - Expands ~user-query~ to 100% of the conversational column.
+- *Stable 90% Max-Width Cap (Read & Edit Parity)*:
+  - Long user query bubbles (~.user-query-bubble-with-background~) and prompt edit boxes (~.user-query-container:has(textarea), .edit-mode~) are capped at **90%** of the column width.
+  - Leaving a 10% indentation on the left visually preserves speech bubble identity.
+  - Both read mode and edit mode share identical 90% max-width bounds, guaranteeing **zero layout jump** when clicking the edit pencil.
+  - Short prompts remain compact, right-anchored bubbles with intact copy and edit buttons.
+- *Duck.ai Isolation & Compatibility*:
+  - Duck.ai natively controls its chat container and input form width via ~--duckai-chat-max-width~.
+  - ~DuckLayoutController~ manages ~--duckai-chat-max-width~ without requiring custom CSS overrides.
+  - Gemini CSS remains strictly isolated to Gemini tabs.
+
+** 4. Cleanup: Ad-Hoc Hotkey Deprecation
+- Remove existing ad-hoc ~Alt + W~ and ~Alt + O~ keydown listeners from ~src/entrypoints/content.ts~.
+- Prevents keystroke interception or shortcut collisions in the v0.2.0 release. Formal user-configurable keybindings are deferred to future settings architecture.
+
+* Implementation Steps & Order of Execution
+
+| Step | Scope / Issue | Primary Files | Objectives |
+| :--- | :--- | :--- | :--- |
+| **1** | **Issue 03: Symmetrical Layout** | ~src/core/contracts/layout.ts~<br/>~src/chat/gemini/styles/layout.css~<br/>~src/chat/gemini/layout.ts~<br/>~build.ts~ | Formalize ~HostLayoutController~ contract.<br/>Add 708px model ceiling override.<br/>Scale ~user-query~ to 100% with stable 90% bubble and edit cap.<br/>Update ~build.ts~ layout compilation. |
+| **2** | **Issue 02: Chat-Column HUD** | ~src/core/contracts/adapter.ts~<br/>~src/chat/gemini/adapter.ts~<br/>~src/views/settings/FloatingHud.tsx~ | Add ~getChatColumnBounds()~ to ~SiteAdapter~.<br/>Constrain HUD dragging within chat column.<br/>Implement 16px release snap and bilateral expansion.<br/>Set default position to bottom-right (2em above input, collapsed). |
+| **3** | **Issue 01: Toolbar Toggle** | ~src/manifest.json~<br/>~src/entrypoints/background.ts~<br/>~src/entrypoints/content.ts~<br/>~src/chat/gemini/injector.tsx~<br/>~src/chat/gemini/adapter.ts~<br/>~build.ts~ | Add ~action~ and ~background~ to ~manifest.json~.<br/>Create ~background.ts~ tracking per-tab memory & badges.<br/>Implement synchronous teardown barrier & DOM restoration in content/injector. |
+| **4** | **Cleanup & Hotkey Removal** | ~src/entrypoints/content.ts~ | Remove ~Alt + W~ and ~Alt + O~ keydown handlers. |
+| **5** | **Verification & Build Gate** | Full codebase | Compile dev build (~deno task build:dev~).<br/>Pass silent format (~deno fmt > /dev/null 2>&1~).<br/>Pass linter (~deno task lint~).<br/>Verify activate/deactivate and symmetrical layout in Firefox via Marionette MCP. |
+
+* Quality Gates
+1. *Format Gate*: In-place silent formatting (~deno fmt > /dev/null 2>&1~).
+2. *Lint Gate*: ~deno task lint~ passes with 0 errors across all files.
+3. *Unit Test Gate*: Existing unit test suite passes cleanly with zero regressions.
+4. *DOM Teardown Gate*: Deactivating extension via toolbar toggle completely restores native ~<code-block>~, removes HUD, disconnects observers, and leaves zero orphaned nodes.
+5. *Widescreen Symmetry Gate*: 80%, 90%, 94%, 100% width presets scale user prompts and assistant turns symmetrically inside the centered column; edit mode triggers with zero width jump.

@@ -21,12 +21,15 @@
 - *Controller / Adapter (~src/chat/<provider>/controller/~)* :: The orchestration layer connecting Scrapers, background services, caching layers, and View lifecycles. It listens to DOM mutations, manages the settlement state machine, and triggers mounting/unmounting.
 - *View Layer (~*/views/~, ~*/ui/~, ~src/views/~)* :: Preact component trees, hooks, and localized styles that render parsed domain ASTs into visual interfaces inside the Shadow Root.
 - *Platform / Storage Adapter (~src/core/storage/~, ~src/core/rpc/~)* :: The module wrapping browser-specific runtime APIs (~browser.storage~, ~browser.runtime.sendMessage~) behind typed Promise-based contracts.
-- *Site Adapter* :: Host-specific module implementing the standard adapter contract for a specific web AI interface (e.g. Gemini, Claude, ChatGPT).
+- *Site Adapter* :: Host-specific module implementing the standard adapter contract for a specific web AI interface (e.g. Gemini, Duck.ai, ChatGPT). Encapsulates host observation, autonomous SPA route navigation, theme authority, and host chat input mutation (~insertPromptText~).
 - *Host Theme Authority* :: The property and observation contract supplied by ~src/chat/<host>~ that determines if the host application implements dark/light mode theming and reports the active mode to mounted views.
 - *Dynamic Import Bootloader (~content.js~)* :: A lightweight, zero-dependency classic content script injected by Manifest V3 that dynamically imports the extension's modular entrypoint (~import(chrome.runtime.getURL("app.js"))~), enabling isolated ES module execution, relative split chunk resolution, and full CSP compliance.
 - *Lazy Site Adapter (~src/chat/registry.ts~)* :: An adapter definition pattern allowing host-specific modules (e.g. Gemini, DuckAI) to remain unloaded until the active browser URL matches the host hostname predicate.
 - *Native Deno 2 Bundler (~build.ts~)* :: The build pipeline utilizing Deno 2's native ~deno bundle~ command with ~--platform browser~ and ~--code-splitting~ to emit optimized, modular JavaScript chunks without external npm bundler dependencies.
 - *Language Module* :: A pluggable content handler implementing ~LanguageDefinition~ (e.g., Org-mode, Markdown, LaTeX, Mermaid) loaded dynamically or statically.
+- *Settlement Observer* :: The lifecycle observation contract supplied by ~SiteAdapter~ detecting stream completion and categorizing termination into ~SettlementStatus~ (~"completed" | "interrupted" | "failed"~).
+- *Conversation Serializer Contract* :: The standardized domain interface (~ConversationSerializer~) converting conversational turns and root-to-leaf branch paths into structured document syntax (e.g. Org-mode, GFM).
+- *Browser Action Toolbar Toggle* :: The WebExtension action control providing one-click activation/deactivation, executing a full, non-destructive teardown (~adapter.destroy()~, ~injector.destroyAll()~) on deactivation and seamless re-mounting on activation.
 
 ** 3. Lifecycle & State Machine Concepts
 - *Micro-Debouncing (Observer Batching)* :: An execution delay (200ms minimum) applied to ~MutationObserver~ events to coalesce high-frequency DOM changes before processing.
@@ -35,8 +38,8 @@
 - *Settled Phase (Finalized)* :: The stable state reached after token generation completes, triggering full AST parsing, syntax highlighting, and interactive Preact view mounting.
 - *Mount Guard* :: Explicit HTML dataset attributes (~data-ext-processed~, ~data-ext-mounted~) set on DOM elements to make scrapers and injectors strictly idempotent across multiple observer passes.
 - *Decoupled LRU Cache* :: An in-memory cache keyed by content hash (e.g. fast FNV-1a fingerprint of code prefix, length, and language) that stores parsed ASTs and view state independent of physical host DOM node lifecycle, surviving virtual-scroller recycling.
-- *Conversation Turn* :: The atomic conversational unit composed of a paired user query (raw string) and a model response (array of segmented child elements: prose and exact code blocks), including completion status flags (~isCompleted: boolean~).
-- *Conversation Tree Store* :: A persistent append-only tree repository in ~browser.storage.local~ preserving all conversation turns, edits, and regenerated branches across sessions.
+- *Conversation Turn* :: The atomic conversational unit composed of a paired user query (raw string) and a model response (array of segmented child elements: ~ResponseSegment~ discriminated union covering prose, code blocks, tables, and math display), including completion status flags (~isCompleted: boolean~).
+- *Conversation Tree Store* :: A persistent append-only tree repository in ~browser.storage.local~ preserving all conversation turns, edits, and regenerated branches across sessions, enforcing an internal automatic LRU eviction policy (<8MB threshold) to operate within the 10MB quota without extra permissions.
 - *Message Destruction Signal* :: Observer event triggered on DOM node removal to safely unmount Preact roots without purging persistent AST caches.
 
 ** 4. Org-Mode & Content Domain Concepts
@@ -67,6 +70,8 @@
 - *AdoptedStyleSheet Singleton* :: A single ~CSSStyleSheet~ constructed and cached once in memory (~new CSSStyleSheet()~, ~sheet.replaceSync(TAILWIND_CSS)~), adopted across all injected open Shadow Roots (~shadowRoot.adoptedStyleSheets = [sharedSheet]~), guaranteeing 0ms hydration and zero duplicate memory allocations across virtual scroller lifecycles.
 - *Shadow DOM Host Theme Variant* :: Tailwind selector mapping (~@variant dark (:where(:host([data-theme="dark"]) &, [data-theme="dark"] &));~) coupled with inner container ~data-theme~ attribute projection, ensuring ~dark:...~ utility classes respond dynamically to host dark mode across shadow boundaries.
 - *Host-Specific Theme Contract* :: The structural interface allowing site adapters to define custom theme tokens, overrides, or color mappings without polluting universal Preact presentation components.
+- *Right-Anchored Leftward Expansion* :: The positioning constraint for the Floating HUD anchoring the container to its right edge, expanding horizontally outwards to the left and collapsing to the right, enabling placement against the right screen edge without off-screen clipping.
+- *Conversation Tree Export Flyout* :: The interactive HUD flyout visualizing the conversation branch tree with node checkboxes, enabling users to select and export one or more root-to-leaf paths as unified multi-turn documents.
 
 ** 6. Observability & Telemetry
 - *Runlevel* :: The operational execution mode of the extension (~dev~, ~test~, ~prod~) establishing baseline operational presets, dev tooling availability, and default log verbosity thresholds.

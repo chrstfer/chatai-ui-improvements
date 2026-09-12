@@ -3,6 +3,9 @@
 ## Convention Preferences
 Upon conversation initialization, execute skill /org-mode-conventions. All persistent documents, specifications, research reports, ADRs, and issue tickets MUST be native Org-mode (.org) files. When any skill refers to a .md document (e.g. `CONTEXT.md`, `spec.md`, `map.md`), substitute the .org equivalent (`CONTEXT.org`, `spec.org`, `map.org`).
 
+## Org-Mode Source Block Formatting
+- **Source Block Delimiters**: `#+BEGIN_SRC` and `#+END_SRC` block delimiters MUST ALWAYS be placed on their own line and start at the absolute beginning of that line (column 0, zero indentation). Never indent `#+BEGIN_SRC` or `#+END_SRC` within lists, quote blocks, or subheadings.
+
 ## Math & LaTeX Formatting
 Format mathematical notation using vanilla Org-mode syntax:
 - General equations and variables do not require `$...$` or `\(...\)` delimiters unless creating centered display equations via `\begin{equation}...\end{equation}`.

@@ -2,6 +2,11 @@
 #+DATE: 2026-09-09
 #+OPTIONS: toc:2 num:nil
 
+* Pre-Phase 3: v0.2.0 Release Readiness [0/3]
+- [ ] Browser Action Toolbar Toggle :: Clean activate/deactivate state machine with non-destructive DOM teardown. See [[file:../.scratch/pre-phase-3-v0.2.0/spec.org][Pre-Phase 3 Spec]] and [[file:../.scratch/pre-phase-3-v0.2.0/issues/01-browser-action-toolbar-toggle.org][Issue 01]].
+- [ ] HUD Bilateral Edge Snapping & Adaptive Expansion :: Snaps ~1em from horizontal margins; adapts expansion direction (leftwards if on right half, rightwards if on left half). See [[file:../.scratch/pre-phase-3-v0.2.0/issues/02-hud-bilateral-edge-snapping-and-expansion.org][Issue 02]].
+- [ ] Symmetrical Conversation Width Controls :: Scale user query bubbles symmetrically with model responses. See [[file:../.scratch/pre-phase-3-v0.2.0/issues/03-message-width-user-query-expansion.org][Issue 03]].
+
 * Architecture & Core Foundation [6/6]
 - [X] Pluggable Extensibility Contracts :: Standardized ~LanguageDefinition~, ~SiteAdapter~, and ~DocumentViewComponent~ contracts in ~src/core/contracts/~.
 - [X] Dynamic Loading & View Dispatching :: Dynamic import loading for language document views via ~DocumentViewDispatcher~ and code splitting in the build toolchain.
@@ -14,7 +19,7 @@
 - [X] Multi-Target Bundle Script :: Modular ~build.ts~ supporting dev builds (~dist/dev/~ via ~deno task build:dev~) and production releases, manifest generation, dynamic bootloader, and code splitting.
 - [X] Chat-Independent Mock Testing :: Static HTML chat fixtures and DOM-independent tests using ~@b-fuze/deno-dom~ for testing adapters and views without browser runtime overhead.
 - [X] Headless Domain Unit Testing :: Deterministic unit test suite testing pure AST parsing, inline tokenizing, content hashing, view state, and AST caching with zero DOM dependencies (~deno task test~).
-- [ ] Chat AI Agnostic Local Manual Test Framework :: Standalone local HTML/TS harness (~deno task test:manual~) simulating AI chat stream responses, Phase A/B settlement transitions, theme switching, and container remounting with rich sample fixtures. See [[file:../.scratch/manual-test-framework/spec.org][Manual Test Framework Spec]] and [[file:../.scratch/manual-test-framework/issues/01-chat-ai-agnostic-local-manual-test-harness.org][Issue 01]].
+- [ ] Chat AI Agnostic Local Manual Test Framework :: (Deferred for deeper discussion & consideration) Standalone local HTML/TS harness (~deno task test:manual~) simulating AI chat stream responses, Phase A/B settlement transitions, theme switching, and container remounting with rich sample fixtures. See [[file:../.scratch/manual-test-framework/spec.org][Manual Test Framework Spec]] and [[file:../.scratch/manual-test-framework/issues/01-chat-ai-agnostic-local-manual-test-harness.org][Issue 01]].
 - [ ] Dedicated Preact Unit Test Library Evaluation :: Evaluate dedicated Preact testing utilities (e.g. ~preact-jsx-chai~, ~unexpected-preact~) to enhance component assertion ergonomics and DOM tree diffing.
 
 * Host Interface Extensions [4/6]
@@ -34,7 +39,7 @@
 - [X] Offline KaTeX Mathematical Typography :: Bundled 100% offline KaTeX WOFF2 fonts and CSS rendering inline math, display equations, and ASCII LaTeX Greek entities into declarative JSX without ~innerHTML~ per [[file:adr/0001-katex-math-pipeline.org][ADR 0001]].
 - [X] Inline Image & Dynamic Attachment Previews :: In-situ rendering of embedded ~[[file:...]]~ and ~[[https://...]]~ image links with interactive zoom modal overlay.
 - [X] Org Document View Polish & Scoped Subtree Actions :: Compact boxed headings, row-click folding, inline chevron alignment, display LaTeX centered block rendering, and headline-scoped subtree copying via ~serializeOrgSubtree~.
-- [ ] Universal Syntax Highlighting Module :: Decoupled syntax highlighting engine in ~src/views/common/CodeHighlighter.tsx~ with modular, code-split grammars (Python, TypeScript, Rust, Bash, SQL, JSON) mapped to Tailwind v4 theme tokens without external network requests. See [[file:../.scratch/syntax-highlighting/spec.org][Syntax Highlighting Spec]] and [[file:../.scratch/syntax-highlighting/issues/01-universal-syntax-highlighting-module.org][Issue 01]].
+- [ ] Universal Syntax Highlighting Module :: (Deferred to Future Backlog) Decoupled syntax highlighting engine in ~src/views/common/CodeHighlighter.tsx~ with modular, code-split grammars (Python, TypeScript, Rust, Bash, SQL, JSON) mapped to Tailwind v4 theme tokens without external network requests. See [[file:../.scratch/syntax-highlighting/spec.org][Syntax Highlighting Spec]] and [[file:../.scratch/syntax-highlighting/issues/01-universal-syntax-highlighting-module.org][Issue 01]].
 - [ ] Custom Org Themes & Syntax Presets :: User-selectable color schemes (Org Modern, Doom One, Solarized, Gruvbox) for rendered headlines and code blocks.
 - [ ] LaTeX Math Pipeline Delimiter & Greek Entity Refinement :: Refine tokenizer sequencing to prevent raw Greek entity replacement from corrupting complex LaTeX math environments prior to KaTeX execution. See [[file:potential-features.org][potential-features.org]].
 - [ ] GitHub Flavored Markdown (GFM) Document View & AST Engine :: Complete feature parity with the Org engine: pure headless AST parser, outline visibility cycling (folded/children/subtree), H_0 heading parity, GitHub alerts ([!NOTE], [!TIP], etc.), GFM pipe tables with alignment, interactive task lists, KaTeX math, scoped subtree copying, and full-message GFM serialization. See [[file:../.scratch/markdown-document-view/spec.org][GFM Document View Spec]].
@@ -44,22 +49,22 @@
 - [X] Moveable Floating HUD :: Ultra-responsive 1:1 pointer dragging without motion lag, persistent position caching in ~SettingsStore~, and boundary clamping within viewport. See [[file:../.scratch/hud/spec.org][HUD Spec]].
 - [X] Widescreen Layout Engine & Width Presets :: Surgical CSS removal of ~768px constraints, natural user bubble proportions, and quick presets (80%, 90%, 94%, 100%) backed by typed WebExtension storage.
 - [X] Compact Pill Mode & Rapid Hotkeys :: Collapsible 36x36px icon mode, header click toggle, and hotkey shortcuts (~Alt + W~ for full width toggle, ~Alt + O~ for global Org toggle).
-- [ ] Extension Settings Panel :: Dedicated Preact settings modal/dialog for managing navigation preferences (auto-scroll vs. visual pulse on internal link jumps), default view modes, startup fold levels, and theme locks. See [[file:../.scratch/settings-panel/spec.org][Settings Panel Spec]] and [[file:../.scratch/settings-panel/issues/01-settings-panel-scroll-behavior.org][Issue 01]].
+- [ ] Extension Settings Page :: Dedicated WebExtension options page (~options.html~) for managing navigation preferences (auto-scroll vs. visual pulse on internal link jumps), storage usage meter and quota warnings, default view modes, startup fold levels, and theme locks. See [[file:../.scratch/settings-panel/spec.org][Settings Page Spec]] and [[file:../.scratch/settings-panel/issues/02-storage-usage-and-quota-warnings.org][Issue 02]].
 - [ ] Universal HUD Integration & Multi-Host Origin :: Compute collision-free default HUD anchor positions across supported host platforms avoiding overlap with host toolbars.
 - [ ] Customizable Hotkeys & Keybinding Manager :: User-configurable shortcut bindings for HUD toggle, folding, font sizing, and export actions.
 
 * Workflow & Task Management [1/4]
 - [X] In-Situ Interactive Checklists & Progress Cookies :: Toggleable checkboxes (~- [ ]~ / ~- [X]~) and dynamic progress cookies (~[1/3]~, ~[33%]~) recalculating in real time.
 - [ ] Universal TODO Tracking System :: Dedicated domain module under ~src/features/todo/~ with configurable workflow state machines (~TODO -> NEXT -> DONE~, bug triaging, multi-state cancellations) and cross-document task rollups. See [[file:../.scratch/todo-tracking/spec.org][TODO Tracking Spec]] and [[file:../.scratch/todo-tracking/issues/01-universal-todo-tracking-system.org][Issue 01]].
-- [ ] Chat Context Task Re-Injection :: Mechanism to inject updated or marked TODO lists back into active chat prompts to maintain task continuity with AI models. See [[file:potential-features.org][potential-features.org]].
+- [ ] Chat Context Task Re-Injection :: Mechanism to inject updated or marked TODO lists back into active chat prompts to maintain task continuity with AI models with configurable format (GFM vs Org). See [[file:potential-features.org][potential-features.org]].
 - [ ] Task Export & Agenda Synchronization :: Export active task lists and scheduled/deadline items to standalone ~.org~ agenda files.
 
 * Chat Storage, History & Export [1/7]
 - [X] Scoped Subtree Copying :: Headline-level AST export copying (~serializeOrgSubtree~) with non-destructive clipboard integration and visual feedback.
 - [ ] Multi-Format Scoped Copying :: Contextual clipboard export options ("Copy as Raw Org", "Copy as Markdown", "Copy as Plain Text") across document sections and non-Org code block functions. See [[file:../.scratch/scoped-copying/spec.org][Scoped Copying Spec]] and [[file:../.scratch/scoped-copying/issues/01-scoped-subtree-and-section-copying.org][Issue 01]].
 - [ ] Full-Message GFM Serializer :: High-fidelity serializer transforming entire message turns (prose and embedded code blocks) into valid GFM markdown with dynamic code fence sizing ($N+1$ backticks or tildes). See [[file:../.scratch/markdown-document-view/issues/08-full-message-gfm-serializer.org][GFM Issue 08]].
-- [ ] Tree-Structured Conversation Store :: Append completed streaming turns to persistent ~browser.storage.local~ in a branching tree model to preserve query edits and regenerated responses. See [[file:../.scratch/conversation-history/spec.org][Conversation History Spec]] and [[file:../.scratch/conversation-history/issues/01-tree-structured-backup-and-previous-versions.org][Issue 01]].
-- [ ] Branch Navigation & Previous Versions UI :: Read-only inspection panel and branch switcher allowing users to review and restore historical prompt and response branches.
+- [ ] Tree-Structured Conversation Store :: Append completed streaming turns to persistent ~browser.storage.local~ in a branching tree model with automatic LRU pruning (<8MB). See [[file:../.scratch/conversation-history/spec.org][Conversation History Spec]] and [[file:../.scratch/conversation-history/issues/01-tree-structured-backup-and-previous-versions.org][Issue 01]].
+- [ ] Interactive Conversation Tree Export Flyout in HUD :: HUD-mounted tree visualizer with node checkboxes allowing users to select and export one or more root-to-leaf paths as unified ~.org~ or ~.md~ files. See [[file:../.scratch/conversation-history/issues/02-interactive-conversation-tree-export-flyout.org][Issue 02]].
 - [ ] Direct Turn & Block File Saving :: One-click file export actions for entire conversations, individual messages, or specific code blocks with AI-suggested filenames. See [[file:potential-features.org][potential-features.org]].
 - [ ] Complete Conversation Exporter :: Markdown-to-Org AST converter generating clean, annotated Org documents with metadata drawers.
 
