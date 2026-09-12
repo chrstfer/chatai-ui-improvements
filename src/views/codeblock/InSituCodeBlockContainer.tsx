@@ -1,5 +1,5 @@
 import type { ComponentChildren, JSX } from "preact";
-import { useCallback, useEffect, useMemo, useState } from "preact/hooks";
+import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "preact/hooks";
 import { computeContentHash } from "../../core/utils/contentHash.ts";
 import { copyTextToClipboard } from "../../core/utils/clipboard.ts";
 import { defaultViewStateCache, type ViewMode, type ViewStateCache } from "../../store/viewStateCache.ts";
@@ -7,6 +7,36 @@ import { type AstCache, defaultAstCache } from "../../store/astCache.ts";
 import { CodeBlockHeader } from "./CodeBlockHeader.tsx";
 import { RawSourceView } from "./RawSourceView.tsx";
 import { CodeBlockViewDispatcher } from "./CodeBlockViewDispatcher.tsx";
+
+function findParentMessage(el: HTMLElement | null): HTMLElement | null {
+    if (!el || typeof document === "undefined") return null;
+    const root = el.getRootNode?.();
+    const host = (root instanceof ShadowRoot) ? (root.host as HTMLElement) : el;
+    return host?.closest<HTMLElement>(
+        ".conversation-container, .response-container, [class*='conversation-container'], [class*='model-turn'], .model-turn, user-query",
+    ) ?? host;
+}
+
+function findScrollContainer(el: HTMLElement | null): HTMLElement | Window {
+    if (!el || typeof window === "undefined") return globalThis as unknown as Window;
+    const root = el.getRootNode?.();
+    const host = (root instanceof ShadowRoot) ? (root.host as HTMLElement) : el;
+    let curr: HTMLElement | null = host;
+    while (curr && curr !== document.body && curr !== document.documentElement) {
+        if (typeof window.getComputedStyle === "function") {
+            const style = window.getComputedStyle(curr);
+            if (/(auto|scroll)/.test(style.overflowY)) {
+                return curr;
+            }
+        }
+        curr = curr.parentElement;
+    }
+    const geminiScroller = document.querySelector<HTMLElement>(
+        "chat-window chat-window-content infinite-scroller, #chat-history, .infinite-scroller",
+    );
+    if (geminiScroller) return geminiScroller;
+    return window;
+}
 
 export interface InSituCodeBlockContainerProps {
     /** Pristine raw code text from the host Data-Island */
@@ -46,6 +76,9 @@ export function InSituCodeBlockContainer({
     theme = "light",
     children,
 }: InSituCodeBlockContainerProps): JSX.Element {
+    const containerRef = useRef<HTMLDivElement | null>(null);
+    const scrollAnchorRef = useRef<{ msg: HTMLElement; initialTop: number } | null>(null);
+
     const hash = useMemo(() => computeContentHash(rawText, language), [rawText, language]);
     const cachedState = useMemo(() => cache.get(hash), [cache, hash]);
 
@@ -68,12 +101,45 @@ export function InSituCodeBlockContainer({
     );
     const [isCopied, setIsCopied] = useState<boolean>(false);
 
+    // Capture the top of the parent message before folding/collapsing
+    const captureScrollAnchor = useCallback(() => {
+        if (typeof window === "undefined" || !containerRef.current) return;
+        const msg = findParentMessage(containerRef.current);
+        if (msg && typeof msg.getBoundingClientRect === "function") {
+            scrollAnchorRef.current = {
+                msg,
+                initialTop: msg.getBoundingClientRect().top,
+            };
+        }
+    }, []);
+
+    // Ensure collapsing a block collapses upward by keeping the top of the message in place
+    useLayoutEffect(() => {
+        if (scrollAnchorRef.current) {
+            const { msg, initialTop } = scrollAnchorRef.current;
+            scrollAnchorRef.current = null;
+            if (typeof document !== "undefined" && msg && typeof msg.getBoundingClientRect === "function") {
+                const currentTop = msg.getBoundingClientRect().top;
+                const delta = currentTop - initialTop;
+                if (Math.abs(delta) > 0.5) {
+                    const scroller = findScrollContainer(containerRef.current);
+                    if (scroller && typeof (scroller as HTMLElement).scrollTop === "number") {
+                        (scroller as HTMLElement).scrollTop += delta;
+                    } else if (typeof window !== "undefined" && typeof window.scrollBy === "function") {
+                        window.scrollBy(0, delta);
+                    }
+                }
+            }
+        }
+    }, [isFolded, rootFoldState, viewMode, documentViewState]);
+
     // Synchronize view state mutations into the decoupled cache
     useEffect(() => {
         cache.set(hash, { isFolded, viewMode, documentViewState });
     }, [cache, hash, isFolded, viewMode, documentViewState]);
 
     const handleCycleFold = useCallback(() => {
+        captureScrollAnchor();
         if (hasRenderedView) {
             // 3-state outline cycling on H0: subtree -> folded -> children -> subtree
             let nextRootFoldState: "folded" | "children" | "subtree";
@@ -113,9 +179,10 @@ export function InSituCodeBlockContainer({
                 documentViewState,
             });
         }
-    }, [hasRenderedView, isFolded, rootFoldState, documentViewState, cache, hash, viewMode]);
+    }, [hasRenderedView, isFolded, rootFoldState, documentViewState, cache, hash, viewMode, captureScrollAnchor]);
 
     const handleToggleCollapse = useCallback(() => {
+        captureScrollAnchor();
         // Quick 2-state collapse/expand bypass
         const nextIsFolded = !isFolded;
         const nextRootFoldState = nextIsFolded ? "folded" : "subtree";
@@ -134,20 +201,21 @@ export function InSituCodeBlockContainer({
             viewMode,
             documentViewState: nextDocState,
         });
-    }, [isFolded, hasRenderedView, documentViewState, cache, hash, viewMode]);
+    }, [isFolded, hasRenderedView, documentViewState, cache, hash, viewMode, captureScrollAnchor]);
 
     const handleToggleViewMode = useCallback(() => {
         setViewMode((prev) => (prev === "rendered" ? "raw" : "rendered"));
     }, []);
 
     const handleSaveViewState = useCallback((newDocState: unknown) => {
+        captureScrollAnchor();
         setDocumentViewState(newDocState);
         cache.set(hash, {
             isFolded,
             viewMode,
             documentViewState: newDocState,
         });
-    }, [cache, hash, isFolded, viewMode]);
+    }, [cache, hash, isFolded, viewMode, captureScrollAnchor]);
 
     const handleCopy = useCallback(async () => {
         const success = await copyTextToClipboard(rawText, {
@@ -164,6 +232,7 @@ export function InSituCodeBlockContainer({
 
     return (
         <div
+            ref={containerRef}
             class={`ext-codeblock-container rounded-xl border border-neutral-200 dark:border-neutral-700 bg-white dark:bg-[#1e1f20] overflow-hidden text-neutral-900 dark:text-neutral-100 transition-colors duration-200 ${
                 isFolded ? "is-folded" : ""
             }`}

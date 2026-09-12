@@ -2,6 +2,12 @@
  * Centralized CSS selectors for the Google Gemini web interface.
  */
 export const GEMINI_SELECTORS = {
+    /** Left collapsible drawer navigation */
+    SIDENAV: "bard-sidenav",
+
+    /** Main chat content container hosted beside the drawer */
+    SIDENAV_CONTENT: "bard-sidenav-content",
+
     /** Scroll container holding the conversation history */
     SCROLLER: "chat-window chat-window-content infinite-scroller, #chat-history",
 

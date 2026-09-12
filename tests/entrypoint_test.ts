@@ -1,4 +1,4 @@
-import { assertEquals } from "@std/assert";
+import { assertEquals, assertNotEquals } from "@std/assert";
 import { bootstrapContentScript, type DocumentLike, type WindowLike } from "../src/entrypoints/app.ts";
 import { ChatAdapterRegistry } from "../src/chat/registry.ts";
 import type { SiteAdapter } from "../src/core/contracts/index.ts";
@@ -133,4 +133,96 @@ Deno.test("bootstrapContentScript: Teardown on pagehide cleans up adapter and gu
         (pagehideHandler as () => void)();
     }
     assertEquals(getDestroyCalls(), 1, "Destroy should be invoked on pagehide");
+});
+
+Deno.test("bootstrapContentScript: Skips initialization when tab is deactivated in bridge", async () => {
+    const registry = new ChatAdapterRegistry();
+    const { adapter, getInitCalls } = createLifecycleMockAdapter("gemini", "gemini.google.com");
+    registry.register(adapter);
+
+    const fakeWin: WindowLike = {
+        location: { href: "https://gemini.google.com/app" },
+        addEventListener: () => {},
+    };
+
+    const fakeDoc: DocumentLike = {
+        readyState: "complete",
+        addEventListener: () => {},
+    };
+
+    const mockBridge = {
+        getInitialState: () => Promise.resolve(false),
+        onToggle: () => () => {},
+    };
+
+    const res = await bootstrapContentScript({
+        registry,
+        win: fakeWin,
+        doc: fakeDoc,
+        bridge: mockBridge,
+    });
+
+    assertEquals(res.initialized, false);
+    assertEquals(getInitCalls(), 0, "Adapter should not be initialized when tab is inactive");
+});
+
+Deno.test("bootstrapContentScript: Tears down adapter on disable toggle and re-activates on enable toggle", async () => {
+    const registry = new ChatAdapterRegistry();
+    let currentAdapter: ReturnType<typeof createLifecycleMockAdapter> | null = null;
+    let factoryCount = 0;
+
+    // Factory registering fresh adapters
+    registry.registerLazy({
+        id: "gemini",
+        name: "Google Gemini",
+        matches: (url: URL) => url.hostname === "gemini.google.com",
+        load: () => {
+            factoryCount++;
+            currentAdapter = createLifecycleMockAdapter("gemini", "gemini.google.com");
+            return Promise.resolve(currentAdapter.adapter);
+        },
+    });
+
+    let toggleHandler: ((enabled: boolean) => void) | null = null;
+    const mockBridge = {
+        getInitialState: () => Promise.resolve(true),
+        onToggle: (cb: (enabled: boolean) => void) => {
+            toggleHandler = cb;
+            return () => {};
+        },
+    };
+
+    const fakeWin: WindowLike = {
+        location: { href: "https://gemini.google.com/app" },
+        addEventListener: () => {},
+    };
+
+    const fakeDoc: DocumentLike = {
+        readyState: "complete",
+        addEventListener: () => {},
+    };
+
+    const res = await bootstrapContentScript({
+        registry,
+        win: fakeWin,
+        doc: fakeDoc,
+        bridge: mockBridge,
+    });
+
+    assertEquals(res.initialized, true);
+    assertEquals(factoryCount, 1);
+    assertEquals(currentAdapter!.getInitCalls(), 1);
+    assertEquals(currentAdapter!.getDestroyCalls(), 0);
+
+    // 1. Toggle OFF via toolbar action
+    assertNotEquals(toggleHandler, null);
+    toggleHandler!(false);
+    assertEquals(currentAdapter!.getDestroyCalls(), 1, "Active adapter should be destroyed on disable");
+
+    // 2. Toggle back ON via toolbar action -> loads fresh adapter instance and initializes
+    toggleHandler!(true);
+    // Allow microtask tick for async startAdapter
+    await new Promise((resolve) => setTimeout(resolve, 10));
+    assertEquals(factoryCount, 2, "Fresh adapter instance should be loaded on re-enable");
+    assertEquals(currentAdapter!.getInitCalls(), 1, "New adapter should be initialized");
 });

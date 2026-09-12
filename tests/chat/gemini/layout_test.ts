@@ -5,6 +5,7 @@ import type { ExtensionSettings } from "../../../src/core/storage/settings.ts";
 function createMockDocument(): DocumentLike {
     const styleProperties: Record<string, string> = {};
     const classes = new Set<string>();
+    const docClasses = new Set<string>();
     const elements = new Map<string, { id: string; textContent: string; remove: () => void }>();
 
     return {
@@ -19,6 +20,21 @@ function createMockDocument(): DocumentLike {
                 getPropertyValue: (prop: string) => {
                     return styleProperties[prop] ?? "";
                 },
+            },
+            classList: {
+                add: (cls: string) => {
+                    docClasses.add(cls);
+                },
+                remove: (cls: string) => {
+                    docClasses.delete(cls);
+                },
+                toggle: (cls: string, force?: boolean) => {
+                    const shouldAdd = force !== undefined ? force : !docClasses.has(cls);
+                    if (shouldAdd) docClasses.add(cls);
+                    else docClasses.delete(cls);
+                    return docClasses.has(cls);
+                },
+                contains: (cls: string) => docClasses.has(cls),
             },
         },
         body: {
@@ -85,11 +101,13 @@ Deno.test("GeminiLayoutController: apply sets width variable and toggles body cl
     layout.apply(settings, doc);
 
     assertEquals(doc.body?.classList?.contains("ext-fullwidth-active"), true);
+    assertEquals(doc.documentElement?.classList?.contains("ext-fullwidth-active"), true);
     assertEquals(doc.documentElement?.style?.getPropertyValue?.("--ext-chat-max-width"), "90%");
 
     // Turn fullWidth off
     layout.apply({ ...settings, fullWidth: false }, doc);
     assertEquals(doc.body?.classList?.contains("ext-fullwidth-active"), false);
+    assertEquals(doc.documentElement?.classList?.contains("ext-fullwidth-active"), false);
     assertEquals(doc.documentElement?.style?.getPropertyValue?.("--ext-chat-max-width"), "90%");
 });
 
@@ -101,11 +119,13 @@ Deno.test("GeminiLayoutController: destroy cleans up style element, variable, an
     layout.apply({ fullWidth: true, widthPercent: 94, hudCollapsed: false, autoRenderOrg: true }, doc);
 
     assertEquals(doc.body?.classList?.contains("ext-fullwidth-active"), true);
+    assertEquals(doc.documentElement?.classList?.contains("ext-fullwidth-active"), true);
     assertEquals(doc.getElementById?.("ext-gemini-layout") !== null, true);
 
     layout.destroy(doc);
 
     assertEquals(doc.body?.classList?.contains("ext-fullwidth-active"), false);
+    assertEquals(doc.documentElement?.classList?.contains("ext-fullwidth-active"), false);
     assertEquals(doc.getElementById?.("ext-gemini-layout"), null);
     assertEquals(doc.documentElement?.style?.getPropertyValue?.("--ext-chat-max-width"), "");
 });

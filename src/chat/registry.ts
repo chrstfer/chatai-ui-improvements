@@ -80,18 +80,22 @@ export class ChatAdapterRegistry {
         return undefined;
     }
 
-    public async findAndLoad(url: URL | string): Promise<SiteAdapter | undefined> {
+    public unload(id: string): boolean {
+        return this.loadedInstances.delete(id);
+    }
+
+    public async findAndLoad(url: URL | string, options?: { fresh?: boolean }): Promise<SiteAdapter | undefined> {
         const parsed = typeof url === "string" ? new URL(url) : url;
 
         // Check eager adapters
         const eagerMatch = this.findMatching(parsed);
-        if (eagerMatch) return eagerMatch;
+        if (eagerMatch && !options?.fresh) return eagerMatch;
 
         // Check lazy adapters
         for (const def of this.lazyAdapters.values()) {
             try {
                 if (def.matches(parsed)) {
-                    if (!this.loadedInstances.has(def.id)) {
+                    if (options?.fresh || !this.loadedInstances.has(def.id)) {
                         const loaded = await def.load();
                         this.loadedInstances.set(def.id, loaded);
                     }

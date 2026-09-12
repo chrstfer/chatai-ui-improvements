@@ -13,6 +13,7 @@ export class GeminiInjector {
         string,
         { container: HTMLElement; shadowRoot: ShadowRoot; destroy: () => void }
     >();
+    private destroyed = false;
 
     /**
      * Injects sibling container beside <code-block>, hides native block non-destructively,
@@ -22,6 +23,7 @@ export class GeminiInjector {
         block: GeminiCodeBlockRef,
         currentTheme: "light" | "dark" = "light",
     ): void {
+        if (this.destroyed) return;
         const { hostElement, rawText, languageHint } = block;
 
         // Guard against duplicate injection
@@ -49,6 +51,7 @@ export class GeminiInjector {
         container.className = EXTENSION_INJECTED.CONTAINER_CLASS;
         container.dataset.hostId = block.id;
         container.dataset.theme = currentTheme;
+        container.classList.toggle("dark", currentTheme === "dark");
         container.dataset.extMounted = "true";
 
         // Insert as sibling immediately before native <code-block>
@@ -100,18 +103,45 @@ export class GeminiInjector {
         this.logger.debug(`Updating ${this.activeRoots.size} mounted root(s) to theme "${theme}"`);
         for (const { container, shadowRoot } of this.activeRoots.values()) {
             container.dataset.theme = theme;
+            container.classList.toggle("dark", theme === "dark");
             const innerContainer = shadowRoot.querySelector<HTMLElement>(".ext-codeblock-container");
             if (innerContainer) {
                 innerContainer.dataset.theme = theme;
+                innerContainer.classList.toggle("dark", theme === "dark");
             }
         }
     }
 
     public destroyAll(): void {
+        this.destroyed = true;
         this.logger.info(`Cleaning up ${this.activeRoots.size} active Preact root(s)`);
         for (const { destroy } of this.activeRoots.values()) {
             destroy();
         }
         this.activeRoots.clear();
+
+        // Extra safety sweep for any lingering injected elements or hidden native code-blocks
+        if (typeof document !== "undefined") {
+            const lingering = document.querySelectorAll(
+                `.${EXTENSION_INJECTED.CONTAINER_CLASS}, [data-ext-mounted="true"]`,
+            );
+            if (lingering.length > 0) {
+                this.logger.debug(`Sweeping ${lingering.length} lingering injected container(s)`);
+                lingering.forEach((el) => el.remove());
+            }
+
+            const hiddenBlocks = document.querySelectorAll<HTMLElement>("code-block");
+            hiddenBlocks.forEach((block) => {
+                if (block.style.display === "none") {
+                    block.style.display = "";
+                }
+                block.removeAttribute(EXTENSION_INJECTED.PROCESSED_ATTR);
+            });
+        }
+        this.logger.info("Injector destroyAll complete: DOM fully restored");
+    }
+
+    public reset(): void {
+        this.destroyed = false;
     }
 }

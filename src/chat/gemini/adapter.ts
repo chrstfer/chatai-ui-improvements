@@ -1,4 +1,4 @@
-import type { SiteAdapter } from "../../core/contracts/index.ts";
+import type { ChatColumnBounds, SiteAdapter } from "../../core/contracts/index.ts";
 import { GEMINI_SELECTORS } from "./selectors.ts";
 import { GeminiDOMObserver } from "./domObserver.ts";
 import { GeminiInjector } from "./injector.tsx";
@@ -12,11 +12,11 @@ export class GeminiSiteAdapter implements SiteAdapter {
     public readonly id = "gemini";
     public readonly name = "Google Gemini";
     public readonly themeAuthority: GeminiThemeAuthority;
+    public readonly layoutController: GeminiLayoutController;
 
     private logger = createLogger("Gemini");
     private domObserver: GeminiDOMObserver | null = null;
     private injector: GeminiInjector;
-    private layoutController: GeminiLayoutController;
     private store: SettingsStore;
     private hudHandle: HudMountHandle | null = null;
     private storeUnsubscribe: (() => void) | null = null;
@@ -73,6 +73,7 @@ export class GeminiSiteAdapter implements SiteAdapter {
             store: this.store,
             theme: initialTheme,
             host: "gemini",
+            getChatColumnBounds: () => this.getChatColumnBounds(),
             onWidthChange: () => {
                 this.layoutController.apply(this.store.settings);
             },
@@ -117,18 +118,83 @@ export class GeminiSiteAdapter implements SiteAdapter {
         }
     }
 
+    public getChatColumnBounds(): ChatColumnBounds | null {
+        if (typeof document === "undefined") return null;
+
+        // In Gemini, bard-sidenav is the dedicated left drawer and bard-sidenav-content is the chat area.
+        let sidebarRight = 0;
+        const sidebar = document.querySelector<HTMLElement>(GEMINI_SELECTORS.SIDENAV);
+        if (sidebar) {
+            const r = sidebar.getBoundingClientRect?.();
+            if (r && r.width > 0) {
+                sidebarRight = Math.round(r.right);
+            }
+        }
+
+        const container = document.querySelector<HTMLElement>(
+            `${GEMINI_SELECTORS.SIDENAV_CONTENT}, .conversation-container`,
+        );
+        let bounds: ChatColumnBounds;
+        if (container) {
+            const rect = container.getBoundingClientRect();
+            if (rect.width > 0 && rect.height > 0) {
+                bounds = {
+                    left: Math.max(Math.round(rect.left), sidebarRight),
+                    right: Math.round(rect.right),
+                    top: Math.round(rect.top),
+                    bottom: Math.round(rect.bottom),
+                };
+            } else {
+                bounds = {
+                    left: sidebarRight,
+                    right: typeof globalThis.innerWidth !== "undefined" ? globalThis.innerWidth : 1200,
+                    top: 0,
+                    bottom: typeof globalThis.innerHeight !== "undefined" ? globalThis.innerHeight : 800,
+                };
+            }
+        } else {
+            bounds = {
+                left: sidebarRight,
+                right: typeof globalThis.innerWidth !== "undefined" ? globalThis.innerWidth : 1200,
+                top: 0,
+                bottom: typeof globalThis.innerHeight !== "undefined" ? globalThis.innerHeight : 800,
+            };
+        }
+
+        this.logger.debug(
+            `getChatColumnBounds: left=${bounds.left} (sidebarRight=${sidebarRight}), right=${bounds.right}`,
+        );
+        return bounds;
+    }
+
     public destroy(): void {
-        this.logger.info("Destroying Gemini adapter and disconnecting observers");
-        this.storeUnsubscribe?.();
-        this.storeUnsubscribe = null;
-        this.themeUnsubscribe?.();
-        this.themeUnsubscribe = null;
-        this.hudHandle?.unmount();
-        this.hudHandle = null;
+        this.logger.info("Destroying Gemini adapter and disconnecting all observers");
+        if (this.storeUnsubscribe) {
+            this.logger.debug("Unsubscribing from settings store");
+            this.storeUnsubscribe();
+            this.storeUnsubscribe = null;
+        }
+        if (this.themeUnsubscribe) {
+            this.logger.debug("Unsubscribing from theme authority");
+            this.themeUnsubscribe();
+            this.themeUnsubscribe = null;
+        }
+        if (this.hudHandle) {
+            this.logger.info("Unmounting Floating HUD handle...");
+            this.hudHandle.unmount();
+            this.hudHandle = null;
+        }
+        this.logger.info("Destroying layout controller...");
         this.layoutController.destroy();
-        this.domObserver?.disconnect();
-        this.domObserver = null;
+        if (this.domObserver) {
+            this.logger.info("Disconnecting DOM observer...");
+            this.domObserver.disconnect();
+            this.domObserver = null;
+        }
+        this.logger.info("Calling injector.destroyAll()...");
         this.injector.destroyAll();
+        this.logger.info("Destroying theme authority...");
         this.themeAuthority.destroy();
+        this.logger.info("Gemini site adapter destroyed completely");
     }
 }

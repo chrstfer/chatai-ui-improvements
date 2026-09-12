@@ -5,39 +5,21 @@
 
 import { GEMINI_LAYOUT_CSS } from "./styles/layout.generated.ts";
 import type { ExtensionSettings } from "../../core/storage/settings.ts";
+import type {
+    ClassListLike,
+    DocumentLike,
+    HostLayoutController,
+    StyleDeclarationLike,
+} from "../../core/contracts/layout.ts";
+import { createLogger } from "../../core/logging/index.ts";
 
-export interface StyleDeclarationLike {
-    setProperty(prop: string, val: string): void;
-    removeProperty(prop: string): void;
-    getPropertyValue?(prop: string): string;
-}
-
-export interface ClassListLike {
-    add(cls: string): void;
-    remove(cls: string): void;
-    toggle(cls: string, force?: boolean): boolean;
-    contains(cls: string): boolean;
-}
-
-export interface DocumentLike {
-    documentElement?: {
-        style?: StyleDeclarationLike;
-    } | null;
-    body?: {
-        classList?: ClassListLike;
-    } | null;
-    head?: {
-        appendChild(child: unknown): unknown;
-    } | null;
-    getElementById?(id: string): unknown;
-    createElement?(tag: string): unknown;
-    adoptedStyleSheets?: unknown[];
-}
+export type { ClassListLike, DocumentLike, HostLayoutController, StyleDeclarationLike };
 
 declare const document: DocumentLike | undefined;
 declare const CSSStyleSheet: { new (): { replaceSync(css: string): void } } | undefined;
 
-export class GeminiLayoutController {
+export class GeminiLayoutController implements HostLayoutController {
+    private logger = createLogger("Gemini > Layout");
     private sheet: unknown = null;
     private styleElement: { remove(): void } | null = null;
 
@@ -47,6 +29,7 @@ export class GeminiLayoutController {
     public initialize(targetDoc?: DocumentLike): void {
         const doc = targetDoc ?? (typeof document !== "undefined" ? (document as unknown as DocumentLike) : undefined);
         if (!doc) return;
+        this.logger.info("Initializing GeminiLayoutController (injecting host widening stylesheet)");
 
         // Try standard adoptedStyleSheets on the host document
         if (typeof CSSStyleSheet !== "undefined" && doc.adoptedStyleSheets) {
@@ -58,6 +41,7 @@ export class GeminiLayoutController {
                 }
                 if (!doc.adoptedStyleSheets.includes(this.sheet)) {
                     doc.adoptedStyleSheets.push(this.sheet);
+                    this.logger.debug("Gemini layout CSS adopted via document.adoptedStyleSheets");
                 }
                 return;
             } catch {
@@ -76,6 +60,7 @@ export class GeminiLayoutController {
             style.textContent = GEMINI_LAYOUT_CSS;
             doc.head.appendChild(style);
             this.styleElement = style;
+            this.logger.debug("Gemini layout CSS injected via <style id='ext-gemini-layout'>");
         }
     }
 
@@ -86,7 +71,11 @@ export class GeminiLayoutController {
         const doc = targetDoc ?? (typeof document !== "undefined" ? (document as unknown as DocumentLike) : undefined);
         if (!doc) return;
 
+        this.logger.info(
+            `Applying layout settings: fullWidth=${settings.fullWidth}, widthPercent=${settings.widthPercent}%`,
+        );
         doc.documentElement?.style?.setProperty("--ext-chat-max-width", `${settings.widthPercent}%`);
+        doc.documentElement?.classList?.toggle("ext-fullwidth-active", settings.fullWidth);
         doc.body?.classList?.toggle("ext-fullwidth-active", settings.fullWidth);
     }
 
@@ -97,7 +86,9 @@ export class GeminiLayoutController {
         const doc = targetDoc ?? (typeof document !== "undefined" ? (document as unknown as DocumentLike) : undefined);
         if (!doc) return;
 
+        this.logger.info("Destroying GeminiLayoutController: cleaning up CSS variables, body classes, and stylesheets");
         doc.documentElement?.style?.removeProperty("--ext-chat-max-width");
+        doc.documentElement?.classList?.remove("ext-fullwidth-active");
         doc.body?.classList?.remove("ext-fullwidth-active");
 
         if (this.sheet && doc.adoptedStyleSheets) {
@@ -106,14 +97,17 @@ export class GeminiLayoutController {
                 doc.adoptedStyleSheets.splice(idx, 1);
             }
             this.sheet = null;
+            this.logger.debug("Removed sheet from doc.adoptedStyleSheets");
         }
 
         if (this.styleElement) {
             this.styleElement.remove();
             this.styleElement = null;
+            this.logger.debug("Removed styleElement");
         } else {
             const el = doc.getElementById?.("ext-gemini-layout") as { remove(): void } | null;
             el?.remove?.();
         }
+        this.logger.info("GeminiLayoutController destroyed cleanly");
     }
 }

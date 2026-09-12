@@ -3,20 +3,26 @@
 }
 
 /* Gemini conversation stream widening when full-width mode is active */
-body.ext-fullwidth-active {
-    /* Conversation stream containers */
+:is(html, body).ext-fullwidth-active {
+    /* Conversation stream containers: widen and disable browser scroll anchoring jumps */
+    & chat-window chat-window-content infinite-scroller,
+    & #chat-history,
     & chat-window .conversation-container,
     & .chat-window .conversation-container,
     & .conversation-container,
     & .conversation-content,
     & chat-history,
     & .chat-history,
+    & response-element,
+    & .response-container,
+    & .orgmod-rendered-container,
     & div[class*="conversation-container"]:not(side-navigation-v2 *):not(nav *) {
         max-width: var(--ext-chat-max-width, 94%) !important;
         width: 100% !important;
         margin-left: auto !important;
         margin-right: auto !important;
         box-sizing: border-box !important;
+        overflow-anchor: none !important;
     }
 
     /* Ensure navigation sidebars and drawers are never squished */
@@ -31,34 +37,83 @@ body.ext-fullwidth-active {
         margin-right: 0 !important;
     }
 
-    /* Response message bodies expand cleanly */
+    /* Response message bodies & action footers expand cleanly & override Gemini's scoped 708px ceiling */
+    & .enable-extended-and-xl-grid .md-content > :not(#_),
+    & .enable-extended-and-xl-grid .conversation-container .md-content > :not(#_),
+    & .enable-extended-and-xl-grid .response-container .response-container-header,
+    & .enable-extended-and-xl-grid .response-container .response-container-footer,
+    & .enable-extended-and-xl-grid .response-footer,
+    & .enable-extended-and-xl-grid message-actions,
+    & .md-content,
+    & .md-content > :not(#_),
     & response-element,
+    & response-element > :not(#_),
     & message-content,
+    & message-content > :not(#_),
     & .response-container,
     & .response-container-content,
+    & .response-content,
     & .model-response-text,
     & .content-wrapper,
+    & .response-container-header,
+    & .response-container-header > :not(#_),
+    & .response-container-footer,
+    & .response-container-footer > :not(#_),
+    & .response-footer,
+    & .response-footer > :not(#_),
+    & message-actions,
+    & message-actions > :not(#_),
+    & message-actions .actions-container,
+    & message-actions .actions-container-v2,
+    & message-actions .buttons-container-v2,
+    & message-actions [class*="actions"],
+    & message-actions [class*="buttons"],
+    & .response-container-footer [class*="actions"],
+    & model-response-footer,
+    & model-response-footer > :not(#_),
     & div[class*="response-container"],
-    & div[class*="presented-content"] {
+    & div[class*="presented-content"],
+    & div[class*="message-actions"],
+    & div[class*="actions-container"] {
         max-width: 100% !important;
         width: 100% !important;
         box-sizing: border-box !important;
     }
 
-    /* User query container anchored to the right */
+    /* Override Gemini's scoped calc(-6px + max(0px, 50% - 354px)) centering margin so buttons re-align with widened messages */
+    & .response-container-footer message-actions,
+    & message-actions,
+    & model-response-footer message-actions {
+        margin-left: 0 !important;
+        margin-right: auto !important;
+    }
+
+    /* User query container spans full width of conversation column */
+    & .enable-extended-and-xl-grid .conversation-container user-query,
     & .conversation-container user-query,
     & user-query,
     & user-query-item,
-    & .user-query-container,
+    & user-query-content,
+    & user-query .user-query-container,
     & div[class*="user-query-container"],
     & div[class*="user-query"] {
         display: flex !important;
         flex-direction: column !important;
         align-items: flex-end !important;
-        margin-left: auto !important;
-        margin-right: 0 !important;
-        max-width: 92% !important;
-        width: auto !important;
+        max-width: 100% !important;
+        width: 100% !important;
+        box-sizing: border-box !important;
+    }
+
+    /* Stable 90% max-width cap for read mode and edit mode bubbles */
+    & user-query .query-content,
+    & user-query .user-query-bubble-with-background,
+    & user-query .horizontal-container,
+    & user-query .query-text,
+    & user-query .edit-mode,
+    & user-query div[class*="edit-box"],
+    & user-query .user-query-container:has(textarea) {
+        max-width: 90% !important;
         box-sizing: border-box !important;
     }
 
@@ -76,10 +131,20 @@ body.ext-fullwidth-active {
     }
 
     & .text-input-field,
+    & .simplified-input-area,
     & rich-textarea,
     & div[class*="text-input-field"],
-    & div[class*="input-box"] {
+    & div[class*="input-box"],
+    & div[class*="simplified-input-area"] {
         max-width: 100% !important;
         width: 100% !important;
+        box-sizing: border-box !important;
+    }
+
+    & .trailing-actions-wrapper,
+    & .persistent-mic,
+    & .persistent-mic > .mic-button-container,
+    & .mic-button-container {
+        box-sizing: border-box !important;
     }
 }

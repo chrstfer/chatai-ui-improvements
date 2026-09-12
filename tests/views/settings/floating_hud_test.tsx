@@ -244,7 +244,7 @@ Deno.test("FloatingHud: Clicking preset button activates fullWidth and updates w
 Deno.test("mountHud: mounts inside dedicated container, handles theme updates, and unmounts cleanly", () => {
     const { doc, cleanup } = setupDom();
     try {
-        const store = new SettingsStore({ fullWidth: true, widthPercent: 94 });
+        const store = new SettingsStore({ fullWidth: true, widthPercent: 94, hudCollapsed: false });
 
         let widthChanged: { fullWidth: boolean; widthPercent: number } | null = null;
 
@@ -279,6 +279,47 @@ Deno.test("mountHud: mounts inside dedicated container, handles theme updates, a
         // Unmount removes container cleanly
         handle?.unmount();
         assertEquals(doc.getElementById("ext-ai-chat-hud-root"), null);
+    } finally {
+        cleanup();
+    }
+});
+
+Deno.test("FloatingHud: clamps within chat column bounds and determines bilateral anchor", () => {
+    const { root, cleanup } = setupDom();
+    try {
+        let updatedSettings: Partial<ExtensionSettings> = {};
+        const settings: ExtensionSettings = {
+            fullWidth: true,
+            widthPercent: 94,
+            hudCollapsed: true,
+            autoRenderOrg: true,
+            hudPosition: { x: 500, y: 300, anchor: "right" },
+        };
+
+        const mockBounds = {
+            left: 200,
+            right: 1000,
+            top: 50,
+            bottom: 800,
+        };
+
+        render(
+            <FloatingHud
+                settings={settings}
+                onUpdateSettings={(partial) => {
+                    updatedSettings = { ...updatedSettings, ...partial };
+                }}
+                getChatColumnBounds={() => mockBounds}
+                theme="light"
+            />,
+            root,
+        );
+
+        const hudEl = root.querySelector(".ext-hud-collapsed");
+        assertNotEquals(hudEl, null);
+
+        const style = (hudEl as unknown as { style: Record<string, string> }).style;
+        assertNotEquals(style.right, undefined);
     } finally {
         cleanup();
     }

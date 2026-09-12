@@ -150,6 +150,14 @@ try {
     console.warn("Notice: stylesheet copy skipped:", e);
 }
 
+try {
+    await Deno.mkdir(`${outDir}/assets`, { recursive: true });
+    await Deno.copyFile("src/assets/icon.svg", `${outDir}/assets/icon.svg`);
+    console.log(`✓ Copied extension icon into ${outDir}/assets/icon.svg`);
+} catch (e) {
+    console.warn("Notice: assets copy skipped:", e);
+}
+
 // 6. Compile Host-Specific Gemini Layout CSS via Tailwind
 try {
     const rawGeminiLayoutCss = await Deno.readTextFile("src/chat/gemini/styles/layout.css");
@@ -191,6 +199,7 @@ if (isDev) {
 }
 
 bundleArgs.push("src/entrypoints/app.ts");
+bundleArgs.push("src/entrypoints/background.ts");
 
 const bundleCmd = new Deno.Command("deno", {
     args: bundleArgs,
@@ -203,12 +212,16 @@ if (bundleOutput.code !== 0) {
     Deno.exit(bundleOutput.code);
 }
 
-console.log(`✓ Successfully bundled app.js and split chunks into ${outDir}`);
+console.log(`✓ Successfully bundled app.js, background.js, and split chunks into ${outDir}`);
 
 // 7. Enumerate Explicit Chunks & Generate Manifest (No Wildcards)
 const generatedChunks: string[] = [];
 for await (const entry of Deno.readDir(outDir)) {
-    if (entry.isFile && entry.name.endsWith(".js") && entry.name !== "content.js") {
+    if (
+        entry.isFile && entry.name.endsWith(".js") &&
+        entry.name !== "content.js" &&
+        entry.name !== "background.js"
+    ) {
         generatedChunks.push(entry.name);
     }
 }
@@ -216,6 +229,28 @@ generatedChunks.sort();
 
 manifest.version = baseVersion;
 manifest.description = isDev ? `[DEV ${buildTimestamp}] ${manifest.description}` : manifest.description;
+
+manifest.action = {
+    default_title: "AI Chat UI Improvements",
+    default_icon: "assets/icon.svg",
+};
+
+manifest.icons = {
+    "48": "assets/icon.svg",
+    "96": "assets/icon.svg",
+    "128": "assets/icon.svg",
+};
+
+manifest.background = {
+    scripts: ["background.js"],
+    type: "module",
+};
+
+manifest.permissions = [
+    "storage",
+    "activeTab",
+    "tabs",
+];
 
 manifest.content_scripts = [
     {

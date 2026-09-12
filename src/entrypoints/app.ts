@@ -1,5 +1,6 @@
 import type { SiteAdapter } from "../core/contracts/index.ts";
 import { type ChatAdapterRegistry, defaultChatRegistry } from "../chat/registry.ts";
+import { defaultTabStateBridge, type TabStateBridge } from "../core/rpc/index.ts";
 import { __BUILD_VERSION__, __DEV__ } from "../env.ts";
 import {
     createLogger,
@@ -27,6 +28,7 @@ export interface BootstrapOptions {
     currentUrl?: URL | string;
     win?: WindowLike;
     doc?: DocumentLike;
+    bridge?: TabStateBridge;
 }
 
 export interface BootstrapResult {
@@ -49,6 +51,7 @@ export async function bootstrapContentScript(options: BootstrapOptions = {}): Pr
     const win = options.win ?? (typeof window !== "undefined" ? (window as unknown as WindowLike) : undefined);
     const doc = options.doc ?? (typeof document !== "undefined" ? (document as unknown as DocumentLike) : undefined);
     const registry = options.registry ?? defaultChatRegistry;
+    const bridge = options.bridge ?? defaultTabStateBridge;
 
     if (!win || !doc) {
         return { initialized: false, reason: "no_matching_adapter" };
@@ -72,25 +75,85 @@ export async function bootstrapContentScript(options: BootstrapOptions = {}): Pr
     const preactSub = installPreactHooks(logger);
     installConsoleApi(win);
 
-    const adapter = await registry.findAndLoad(url);
-    if (!adapter) {
-        logger.warn(`Failed to resolve or load adapter for ${url}`);
-        browserSub.uninstall();
-        preactSub.uninstall();
-        delete win[EXPANDO_GUARD];
-        return { initialized: false, reason: "no_matching_adapter" };
+    const isTabActive = await bridge.getInitialState();
+
+    let activeAdapter: SiteAdapter | null = null;
+    let isDOMReady = false;
+
+    const startAdapter = async () => {
+        logger.info(`startAdapter called (activeAdapter currently exists: ${!!activeAdapter})`);
+        if (activeAdapter) return;
+        logger.info(`Requesting fresh adapter instance for ${url} from registry...`);
+        const loaded = await registry.findAndLoad(url, { fresh: true });
+        if (!loaded) {
+            logger.error(`Failed to load fresh adapter for ${url}`);
+            return;
+        }
+        activeAdapter = loaded;
+        logger.info(`Fresh adapter loaded: ${activeAdapter.name} (id: ${activeAdapter.id}), isDOMReady: ${isDOMReady}`);
+        if (isDOMReady) {
+            logger.info(`DOM ready, initializing site adapter: ${activeAdapter.name}`);
+            activeAdapter.initialize();
+            logger.info(`Site adapter ${activeAdapter.name} initialized successfully`);
+        }
+    };
+
+    const stopAdapter = () => {
+        logger.info(`stopAdapter called (activeAdapter currently exists: ${!!activeAdapter})`);
+        if (!activeAdapter) return;
+        const id = activeAdapter.id;
+        const name = activeAdapter.name;
+        logger.info(`Invoking destroy on site adapter: ${name} (${id})`);
+        activeAdapter.destroy();
+        activeAdapter = null;
+        logger.info(`Unloading adapter id ${id} from registry...`);
+        const unloaded = registry.unload?.(id);
+        logger.info(`Adapter ${name} destroyed and unloaded (unloaded: ${unloaded})`);
+    };
+
+    if (isTabActive) {
+        logger.info(`Initial state active, finding and loading adapter for ${url}`);
+        const loaded = await registry.findAndLoad(url);
+        if (!loaded) {
+            logger.warn(`Failed to resolve or load adapter for ${url}`);
+            browserSub.uninstall();
+            preactSub.uninstall();
+            delete win[EXPANDO_GUARD];
+            return { initialized: false, reason: "no_matching_adapter" };
+        }
+        activeAdapter = loaded;
+
+        logger.info(`Activated site adapter: ${activeAdapter.name} (${activeAdapter.id})`);
+
+        onDOMReady(doc, () => {
+            isDOMReady = true;
+            if (activeAdapter) {
+                logger.debug("DOM ready, initializing adapter");
+                activeAdapter.initialize();
+            }
+        });
+    } else {
+        logger.info(`Initial state inactive (tab disabled), skipping adapter initialization`);
+        onDOMReady(doc, () => {
+            isDOMReady = true;
+        });
     }
 
-    logger.info(`Activated site adapter: ${adapter.name} (${adapter.id})`);
-
-    onDOMReady(doc, () => {
-        logger.debug("DOM ready, initializing adapter");
-        adapter.initialize();
+    const unsubToggle = bridge.onToggle(async (enabled) => {
+        logger.info(`onToggle listener invoked with enabled = ${enabled}`);
+        if (enabled) {
+            logger.info("Enabling extension via toolbar action toggle");
+            await startAdapter();
+        } else {
+            logger.info("Disabling extension via toolbar action toggle");
+            stopAdapter();
+        }
     });
 
     const cleanup = () => {
-        logger.info(`Tearing down adapter (${adapter.id}) on pagehide`);
-        adapter.destroy();
+        logger.info("Tearing down adapter on pagehide");
+        unsubToggle();
+        stopAdapter();
         browserSub.uninstall();
         preactSub.uninstall();
         delete win[EXPANDO_GUARD];
@@ -99,8 +162,8 @@ export async function bootstrapContentScript(options: BootstrapOptions = {}): Pr
     win.addEventListener("pagehide", cleanup, { once: true });
 
     return {
-        initialized: true,
-        adapter,
+        initialized: isTabActive,
+        adapter: activeAdapter ?? undefined,
         reason: "success",
     };
 }

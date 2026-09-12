@@ -7,6 +7,8 @@ import { render } from "preact";
 import { FloatingHud } from "./FloatingHud.tsx";
 import type { SettingsStore } from "../../core/storage/settings.ts";
 import { getAdoptedStyleSheets } from "../../styles/adoptedStyleSheets.ts";
+import type { ChatColumnBounds } from "../../core/contracts/index.ts";
+import { createLogger } from "../../core/logging/index.ts";
 
 export interface HudMountHandle {
     unmount: () => void;
@@ -17,21 +19,25 @@ export interface HudMountOptions {
     store: SettingsStore;
     theme?: "light" | "dark";
     host?: string;
+    getChatColumnBounds?: () => ChatColumnBounds | null;
     onWidthChange?: (fullWidth: boolean, widthPercent: number) => void;
 }
 
 const HUD_CONTAINER_ID = "ext-ai-chat-hud-root";
+const logger = createLogger("HUD > Mount");
 
 export function mountHud(options: HudMountOptions): HudMountHandle | null {
     if (typeof document === "undefined") return null;
 
-    // Check if HUD already mounted
-    let container = document.getElementById(HUD_CONTAINER_ID);
-    if (container) {
-        return null;
+    // Check if HUD already mounted - if stale container exists, remove it cleanly
+    const existing = document.getElementById(HUD_CONTAINER_ID);
+    if (existing) {
+        logger.warn("Found pre-existing HUD container element in DOM, cleaning up before re-mount");
+        existing.remove();
     }
 
-    container = document.createElement("div");
+    logger.info("Mounting Floating HUD into document.body");
+    const container = document.createElement("div");
     container.id = HUD_CONTAINER_ID;
     container.dataset.theme = options.theme ?? "light";
     document.body.appendChild(container);
@@ -46,6 +52,7 @@ export function mountHud(options: HudMountOptions): HudMountHandle | null {
             <FloatingHud
                 settings={options.store.settings}
                 theme={currentTheme}
+                getChatColumnBounds={options.getChatColumnBounds}
                 onUpdateSettings={(partial) => {
                     options.store.update(partial);
                     if (
@@ -67,19 +74,24 @@ export function mountHud(options: HudMountOptions): HudMountHandle | null {
     });
 
     renderHud();
+    logger.info("Floating HUD rendered and attached to DOM");
 
     return {
         unmount: () => {
+            logger.info("Unmounting Floating HUD and tearing down shadow root");
             unsubscribe();
             render(null, shadowRoot);
-            container?.remove();
-            container = null;
+            container.remove();
+            const lingering = document.getElementById(HUD_CONTAINER_ID);
+            if (lingering) {
+                lingering.remove();
+            }
+            logger.info("Floating HUD unmounted and removed from DOM");
         },
         updateTheme: (theme: "light" | "dark") => {
+            logger.debug(`Updating Floating HUD mount theme to "${theme}"`);
             currentTheme = theme;
-            if (container) {
-                container.dataset.theme = theme;
-            }
+            container.dataset.theme = theme;
             renderHud();
         },
     };

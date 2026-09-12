@@ -13,8 +13,23 @@
             }
         }
     },
+    "action": {
+        "default_title": "AI Chat UI Improvements",
+        "default_icon": "assets/icon.svg"
+    },
+    "icons": {
+        "48": "assets/icon.svg",
+        "96": "assets/icon.svg",
+        "128": "assets/icon.svg"
+    },
+    "background": {
+        "scripts": ["src/entrypoints/background.ts"],
+        "type": "module"
+    },
     "permissions": [
-        "storage"
+        "storage",
+        "activeTab",
+        "tabs"
     ],
     "host_permissions": [
         "https://gemini.google.com/*",

@@ -7,13 +7,13 @@ export interface ExtensionSettings {
     widthPercent: number;
     hudCollapsed: boolean;
     autoRenderOrg: boolean;
-    hudPosition?: { x: number; y: number };
+    hudPosition?: { x: number; y: number; anchor?: "left" | "right"; rightOffset?: number };
 }
 
 export const DEFAULT_SETTINGS: Readonly<ExtensionSettings> = {
     fullWidth: true,
     widthPercent: 94,
-    hudCollapsed: false,
+    hudCollapsed: true,
     autoRenderOrg: true,
 };
 

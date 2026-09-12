@@ -3,5 +3,6 @@
 /* Scan all extension component source files for utility classes */
 @source "../**/*.{tsx,ts,html}";
 
-/* Support dark: variant both on host element (:host([data-theme="dark"])) and internal wrapper ([data-theme="dark"]) */
-@variant dark (:where(:host([data-theme="dark"]) &, [data-theme="dark"] &));
+/* Support dark: variant on shadow host (:host([data-theme="dark"])), wrapper ([data-theme="dark"]), self (&[data-theme="dark"]), and .dark */
+@variant dark (:is(:host([data-theme="dark"]) &, [data-theme="dark"] &, &[data-theme="dark"], :host(.dark) &, .dark &,
+    .dark));

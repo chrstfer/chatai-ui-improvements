@@ -153,3 +153,57 @@ Deno.test("GeminiSiteAdapter: theme change notifies HUD and updates dataset them
         cleanup();
     }
 });
+
+Deno.test("GeminiSiteAdapter: exposes layoutController and computes chat column bounds", () => {
+    const { doc, cleanup } = setupDom();
+    try {
+        const adapter = new GeminiSiteAdapter();
+        assertNotEquals(adapter.layoutController, undefined);
+
+        // Without container element in mock doc, returns viewport fallback
+        const fallbackBounds = adapter.getChatColumnBounds();
+        assertNotEquals(fallbackBounds, null);
+        assertEquals(typeof fallbackBounds?.right, "number");
+        assertEquals(typeof fallbackBounds?.left, "number");
+
+        // With conversation container
+        const convEl = doc.createElement("div");
+        convEl.className = "conversation-container";
+        (convEl as unknown as { getBoundingClientRect: () => DOMRect }).getBoundingClientRect = () => ({
+            left: 200,
+            right: 1200,
+            top: 50,
+            bottom: 800,
+            width: 1000,
+            height: 750,
+            x: 200,
+            y: 50,
+            toJSON: () => {},
+        });
+        doc.body.appendChild(convEl);
+
+        const bounds = adapter.getChatColumnBounds();
+        assertEquals(bounds?.left, 200);
+        assertEquals(bounds?.right, 1200);
+
+        // When collapsible sidebar is expanded to right: 288, left bound respects sidebar
+        const sidebarEl = doc.createElement("bard-sidenav");
+        (sidebarEl as unknown as { getBoundingClientRect: () => DOMRect }).getBoundingClientRect = () => ({
+            left: 0,
+            right: 288,
+            top: 0,
+            bottom: 800,
+            width: 288,
+            height: 800,
+            x: 0,
+            y: 0,
+            toJSON: () => {},
+        });
+        doc.body.appendChild(sidebarEl);
+
+        const boundsWithSidebar = adapter.getChatColumnBounds();
+        assertEquals(boundsWithSidebar?.left, 288);
+    } finally {
+        cleanup();
+    }
+});

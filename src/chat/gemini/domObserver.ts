@@ -16,6 +16,7 @@ export class GeminiDOMObserver {
     private callbacks: ObserverCallbacks;
     private pendingDebounceTimers = new Map<string, ReturnType<typeof setTimeout>>();
     private settledBlocks = new Set<string>();
+    private destroyed = false;
 
     private readonly MICRO_DEBOUNCE_MS = 200;
     private readonly MACRO_SETTLE_SILENCE_MS = 350;
@@ -26,6 +27,7 @@ export class GeminiDOMObserver {
 
     public observe(targetNode: Node = document.body): void {
         this.disconnect();
+        this.destroyed = false;
 
         if (typeof MutationObserver === "undefined") return;
 
@@ -52,6 +54,7 @@ export class GeminiDOMObserver {
     }
 
     private handleMutations(mutations: MutationRecord[]): void {
+        if (this.destroyed) return;
         for (const mutation of mutations) {
             if (mutation.type === "childList") {
                 mutation.addedNodes.forEach((node) => {
@@ -75,6 +78,7 @@ export class GeminiDOMObserver {
     }
 
     private processCodeBlockElement(el: HTMLElement): void {
+        if (this.destroyed) return;
         const block = this.scraper.parseCodeBlock(el);
         if (!block) return;
 
@@ -98,9 +102,11 @@ export class GeminiDOMObserver {
         }
 
         const timer = setTimeout(() => {
+            if (this.destroyed) return;
             this.callbacks.onBlockStreaming(block);
 
             const silenceTimer = setTimeout(() => {
+                if (this.destroyed) return;
                 this.logger.debug(
                     `Silence elapsed (${this.MACRO_SETTLE_SILENCE_MS}ms) for block #${block.id}, triggering macro-settle`,
                 );
@@ -124,6 +130,7 @@ export class GeminiDOMObserver {
     }
 
     public disconnect(): void {
+        this.destroyed = true;
         this.logger.debug("Disconnecting DOM observer and clearing debounce timers");
         this.observer?.disconnect();
         this.observer = null;

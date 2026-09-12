@@ -5,7 +5,7 @@ Deno.test("SettingsStore: initializes with DEFAULT_SETTINGS", () => {
     const store = new SettingsStore();
     assertEquals(store.settings.fullWidth, true);
     assertEquals(store.settings.widthPercent, 94);
-    assertEquals(store.settings.hudCollapsed, false);
+    assertEquals(store.settings.hudCollapsed, true);
     assertEquals(store.settings.autoRenderOrg, true);
 });
 
@@ -27,15 +27,15 @@ Deno.test("SettingsStore: updates in-memory settings and notifies subscribers", 
     assertEquals(notifications[0], {
         fullWidth: false,
         widthPercent: 80,
-        hudCollapsed: false,
+        hudCollapsed: true,
         autoRenderOrg: true,
     });
 
     unsub();
 
-    await store.update({ hudCollapsed: true });
+    await store.update({ hudCollapsed: false });
     assertEquals(notifications.length, 1); // Not notified after unsubscribe
-    assertEquals(store.settings.hudCollapsed, true);
+    assertEquals(store.settings.hudCollapsed, false);
 });
 
 Deno.test("SettingsStore: resets to defaults", () => {

@@ -1,3 +1,5 @@
+import type { HostLayoutController } from "./layout.ts";
+
 export type ThemeMode = "light" | "dark" | "auto";
 export type ThemeChangeCallback = (theme: "light" | "dark") => void;
 
@@ -14,6 +16,16 @@ export interface HostThemeAuthority {
 }
 
 /**
+ * Bounds representing the active host chat column.
+ */
+export interface ChatColumnBounds {
+    left: number;
+    right: number;
+    top: number;
+    bottom: number;
+}
+
+/**
  * Lifecycle contract implemented by host-specific site adapters.
  */
 export interface SiteAdapter {
@@ -23,6 +35,8 @@ export interface SiteAdapter {
     readonly name: string;
     /** Theme authority responsible for detecting and observing host dark/light mode */
     readonly themeAuthority: HostThemeAuthority;
+    /** Optional host layout controller for responsive width management */
+    readonly layoutController?: HostLayoutController;
 
     /** Evaluates whether this adapter handles the target browser URL */
     matches(url: URL): boolean;
@@ -32,4 +46,7 @@ export interface SiteAdapter {
 
     /** Idempotently tears down observers, removes injected containers, and restores host visibility */
     destroy(): void;
+
+    /** Retrieves the active host chat column bounding box for HUD clamping */
+    getChatColumnBounds?(): ChatColumnBounds | null;
 }
