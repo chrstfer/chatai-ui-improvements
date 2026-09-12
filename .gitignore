@@ -1,14 +1,6 @@
 # Created by https://www.toptal.com/developers/gitignore/api/typescript,deno,emacs
 # Edit at https://www.toptal.com/developers/gitignore?templates=typescript,deno,emacs
 
-docs/completed-steps/
-
-.env
-.env.development.local
-.env.test.local
-.env.production.local
-.env.local
-
 # Generated build files
 src/env.ts
 **/*.generated.ts
@@ -167,3 +159,15 @@ scripts/transcript.py
 branch-list.org
 docs/agent-skills-future-updates.org
 docs/plans-*/
+docs/org-ast
+docs/completed-steps/
+docs/suggested-code/
+
+.env
+.env.development.local
+.env.test.local
+.env.production.local
+.env.local
+
+release-archive/
+.agents/
