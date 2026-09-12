@@ -48,7 +48,7 @@ if (shouldBundleFonts) {
 // 3. Generate Typed Environment Module (src/env.ts)
 const manifestRaw = await Deno.readTextFile("src/manifest.json");
 const manifest = JSON.parse(manifestRaw);
-const baseVersion = manifest.version || "0.1.3";
+const baseVersion = manifest.version || "0.2.0";
 
 const now = new Date();
 const pad = (n: number) => String(n).padStart(2, "0");
@@ -289,10 +289,7 @@ console.log(`✓ Generated manifest.json with explicit resources (${webAccessibl
 const bootloaderCode = `// Dynamic Import Bootloader for WebExtension MV3
 (async () => {
   try {
-    const src = (typeof browser !== "undefined" && browser.runtime?.getURL)
-      ? browser.runtime.getURL("app.js")
-      : "./app.js";
-    await import(src);
+    await import(browser.runtime.getURL("app.js"));
   } catch (err) {
     console.error("[AI Chat UI] Bootloader failed to load app.js:", err);
   }
@@ -303,7 +300,8 @@ console.log(`✓ Created dynamic bootloader: ${outDir}/content.js`);
 
 // 9. Package Release Archive via 7z
 if (shouldPackage) {
-    const zipFileName = isDev ? `ai-chat-ui-${buildVersion}.zip` : `ai-chat-ui-${baseVersion}.zip`;
+    const zipBaseName = "chatai-ui-improvements";        
+    const zipFileName = isDev ? `${zipBaseName}-${buildVersion}.zip` : `${zipBaseName}-${baseVersion}.zip`;
 
     try {
         const p7zCmd = new Deno.Command("7z", {

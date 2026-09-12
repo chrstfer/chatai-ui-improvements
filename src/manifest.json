@@ -6,11 +6,14 @@
     "homepage_url": "https://www.github.com/chrstfer/gemini-org-ui",
     "browser_specific_settings": {
         "gecko": {
-            "id": "gemini-org-ui@dev",
-            "strict_min_version": "109.0",
+            "id": "chatai-ui-improvements@dev",
+            "strict_min_version": "140.0",
             "data_collection_permissions": {
                 "required": ["none"]
             }
+        },
+        "gecko_android": {
+            "strict_min_version": "142.0"
         }
     },
     "action": {
