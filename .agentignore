@@ -2,3 +2,12 @@
 
 # Explicitly allowed tools and scripts
 !scripts/transcript.py
+
+!.agents/
+!docs/agent-skills-future-updates.org
+docs/plans-prep/potential-features.org
+!docs/org-ast
+!docs/completed-steps/
+!docs/suggested-code/
+
+

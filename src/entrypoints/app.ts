@@ -1,5 +1,5 @@
-import type { SiteAdapter } from "../core/contracts/index.ts";
-import { type ChatAdapterRegistry, defaultChatRegistry } from "../chat/registry.ts";
+import type { SiteAdapter } from "../contracts/chats/index.ts";
+import { type ChatAdapterRegistry, defaultChatRegistry } from "../registries/index.ts";
 import { defaultTabStateBridge, type TabStateBridge } from "../core/rpc/index.ts";
 import { __BUILD_VERSION__, __DEV__ } from "../env.ts";
 import {

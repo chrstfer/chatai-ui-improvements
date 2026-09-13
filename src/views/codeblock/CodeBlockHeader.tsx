@@ -1,7 +1,7 @@
 import type { JSX } from "preact";
 import type { ViewMode } from "../../store/viewStateCache.ts";
 import { CheckmarkIcon, CopyIcon, ViewToggleIcon } from "./icons.tsx";
-import { defaultLanguageRegistry } from "../../languages/registry.ts";
+import { formatDisplayName } from "../../features/matchers/index.ts";
 
 export interface CodeBlockHeaderProps {
     language: string;
@@ -18,7 +18,7 @@ export interface CodeBlockHeaderProps {
 }
 
 function formatLanguage(lang: string): string {
-    return defaultLanguageRegistry.formatDisplayName(lang);
+    return formatDisplayName(lang);
 }
 
 /**

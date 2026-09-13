@@ -37,3 +37,6 @@ When conducting sequential thinking or deep analysis, calibrate thought depth dy
 - **Format In-Place Rather than Checking**: Never run `deno fmt --check`. Always apply formatting directly in-place with `deno fmt`.
 - **Silent Formatting Output**: Discard `deno fmt` output to null (`deno fmt > /dev/null 2>&1`) to avoid polluting execution logs.
 
+## Work Breakdown & Planning Labels
+- **Iteration Label Disambiguation**: The roadmap and meta-plans already define top-level **Phases** (e.g. Phase 1, Phase 2, Phase 3) and sub-milestone **Stages** (e.g. Stage 1, Stage 2). NEVER re-use "Phase" or "Stage" labels for substeps in work breakdown plans or iteration lists. Use **Step**, **Part**, or **Iteration** for execution substeps.
+

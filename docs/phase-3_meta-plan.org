@@ -1,0 +1,352 @@
+#+TITLE: Phase 3 Master Plan: Multi-Platform Core, Serialization & History Tree
+#+DATE: 2026-09-12
+#+AUTHOR: chrstfer & Antigravity
+#+OPTIONS: toc:2 num:nil
+
+:PROPERTIES:
+:STATUS: approved
+:VERSION: 0.3.0
+:MILESTONE: Phase 3
+:SUPERCEDES: docs/phase-3_meta-plan.org
+:END:
+
+* 1. Phase 3 Overview & Execution Flow
+
+Phase 3 transitions the extension from a single-platform in-situ Org-mode viewer (Gemini, v0.2.0) into a robust, multi-platform conversational workbench. It introduces native DuckDuckGo AI (=duck.ai=) support, autonomous Single Page Application (SPA) navigation resilience, a tripartite feature hierarchy (=features/ast/=, =features/renderers/=, =features/serializers/=), an abstract serialization engine with dependency injection, a JSON AST Intermediate Representation (IR), and tree-structured conversation backup with multi-path selection and local file saving.
+
+Every stage in Phase 3 is executed under a strict protocol: developing an individual stage implementation plan, reviewing existing codebase usage and seams, and stress-testing decisions via =/grill-with-docs= prior to code modification.
+
+#+BEGIN_SRC mermaid
+flowchart TD
+    subgraph FOUNDATION["Completed Foundation (v0.2.0)"]
+        F1["v0.2.0 Production Release (838c526)"]
+        F2["Toolbar Action, Bilateral HUD, Widescreen Layout"]
+        F1 --- F2
+    end
+
+    subgraph PHASE3["Phase 3: Core Delivery Stages"]
+        S1["Stage 1: Contracts Hierarchy & Dependency Injection Registries"]
+        S2["Stage 2: Duck.ai Site Adapter & SPA Navigation Resilience"]
+        S3["Stage 3: Two-Phase Math & Tripartite AST Foundation (Org, GFM, JSON IR)"]
+        S4["Stage 4: Headless Serializers (Org, Markdown, JSON) & Test Suite"]
+        S5["Stage 5: Chat History Persistence, HUD Tree Flyout & File Export"]
+        S6["Stage 6: Dedicated Options Page & Storage Quota Meter"]
+        S7["Stage 7: JSON DocumentView & Toolchain Automation (kroki-cli)"]
+
+        S1 --> S2 --> S3 --> S4 --> S5 --> S6 --> S7
+    end
+
+    subgraph DEFERRED["Deferred to Phase 3.5 & Beyond"]
+        D1["Phase 3.5: GFM In-Situ Document View Canvas"]
+        D2["Phase 3.5: Scoped Multi-Format Subtree Copying"]
+        D3["Phase 4: Universal Task Management & Prompt Re-Injection"]
+        D4["Phase 4: Full Turn Response Bubble Replacement"]
+        D5["Backlog: Universal Syntax Highlighting Module"]
+        D6["Backlog: Local API & org-protocol.el Bridge"]
+    end
+
+    F2 --> S1
+    S7 --> D1
+#+END_SRC
+
+/Note on Charts: Mermaid diagrams can be compiled into vector (.svg) and bitmap (.png) assets using kroki-cli (=uv run --project /home/chrstfer/devel/utils/kroki-cli kroki=) with outputs placed in =docs/charts/=.
+
+* 2. Architectural Principles & Tripartite Organization
+
+** 2.1 Role-First Tripartite Architecture
+To avoid empty stubs for asymmetric formats (e.g. diagrams that only need a renderer, or data dumps that only need a serializer), feature implementations are split into three dedicated directories:
+
+#+BEGIN_SRC text
+src/
+├── contracts/
+│   ├── core/                        # System lifecycle, storage, telemetry
+│   ├── chats/                       # SiteAdapter, SettlementObserver, themes
+│   └── features/
+│       ├── ast/                     # Generic AST node schemas & IR translation contracts
+│       ├── renderers/               # DocumentViewComponent & Shadow DOM mount contracts
+│       └── serializers/             # ConversationSerializer & registry contracts
+│
+├── features/
+│   ├── ast/                         # 100% Headless Pure Domain
+│   │   ├── org/                     # Emacs org-element AST & inline tokenizers
+│   │   ├── markdown/                # Shared CommonMark + GFM AST
+│   │   └── json/                    # Canonical Intermediate Representation (IR)
+│   │
+│   ├── renderers/                   # Presentation Layer (Preact + Shadow DOM)
+│   │   ├── org/                     # OrgDocumentView (H1-H6, 3-state cycling)
+│   │   ├── json/                    # Collapsible JSON Tree Inspector
+│   │   └── diagram/                 # Kroki-backed SVG/image diagram view
+│   │
+│   ├── serializers/                 # 100% Headless Pure Domain
+│   │   ├── handler.ts               # Abstract SerializerHandler & DI Registry
+│   │   ├── org/                     # OrgSerializer (Headlines, drawers, fences)
+│   │   ├── markdown/                # MarkdownSerializer (Dynamic N+1 fences)
+│   │   └── json/                    # JsonSerializer (Structured turn/tree export)
+│   │
+│   ├── history/                     # ConversationTreeStore & LRU storage engine
+│   └── export/                      # Direct client-side blob download & clipboard
+│
+└── chat/                            # Host Site Adapters (gemini, duckai)
+#+END_SRC
+
+** 2.2 Strict Directional Dependencies
+- =contracts/= depends on nothing outside itself.
+- =features/ast/= depends only on =contracts/=. Zero Preact, zero DOM, zero CSS.
+- =features/serializers/= depends on =features/ast/= and =contracts/=. Zero Preact, zero DOM.
+- =features/renderers/= depends on =features/ast/=, =contracts/=, and Preact.
+- =chat/= (host adapters) depends on =contracts/= and provides injection targets for renderers.
+
+** 2.3 JSON AST as Intermediate Representation (IR)
+The JSON AST under =src/features/ast/json/= serves a dual role:
+1. An authentic AST for rendering arbitrary JSON code blocks via =features/renderers/json/=.
+2. A canonical Intermediate Representation (IR) for conversational turns and markup conversions, enabling an O(M + N) conversion pipeline rather than point-to-point transpilers.
+
+** 2.4 Dependency Injection via Lazy Factories
+Registries (=ChatAdapterRegistry=, =RendererRegistry=, =SerializerRegistry=) use the factory-provider Dependency Injection pattern:
+- The registry maintains a map of string keys to factory functions: =() => Promise<T> | T=.
+- The production composition root (=src/index.ts=) registers dynamic import factories, preserving Deno 2 code-splitting chunks (=dist/dev/duckai-*.js=).
+- Headless unit tests inject synchronous mock instances directly, eliminating dynamic import or bundler complexity.
+
+* 3. Stage 1: Contracts Hierarchy & Dependency Injection Registries
+
+** 1.1 Objective
+Restructure the contract boundaries into modular namespaces and implement decoupled Dependency Injection registries for chat adapters, renderers, and serializers.
+
+** 1.2 Architectural Specifications
+- *Contracts Directory Split*:
+  - =src/contracts/core/=: Runtime lifecycle, runlevel presets, and platform storage contracts.
+  - =src/contracts/chats/=: =SiteAdapter=, =SettlementObserver=, theme authority, and layout controllers.
+  - =src/contracts/features/ast/=: Generic AST node schemas and IR translation interfaces.
+  - =src/contracts/features/renderers/=: =DocumentViewComponent= and Shadow DOM mount contracts.
+  - =src/contracts/features/serializers/=: =ConversationSerializer= interface and registry contracts.
+- *Simplified Serializer Contract* (=src/contracts/features/serializers/serializer.ts=):
+  Serializers operate on linear sequences of turns; tree-resolution is handled upstream.
+
+#+BEGIN_SRC typescript
+export interface ConversationMetadata {
+    readonly title: string;
+    readonly exportedAt: number;
+    readonly chatSlug: string;
+}
+
+export interface ConversationSerializer {
+    readonly formatId: string; // "org" | "markdown" | "json"
+    readonly label: string;
+    readonly fileExtension: string;
+    readonly outputMimetype: string;
+    serializeTurn(node: ConversationTurnNode): string;
+    serializeConversation(nodes: readonly ConversationTurnNode[], metadata?: ConversationMetadata): string;
+}
+#+END_SRC
+
+- *DI Registries*:
+  Implement =ChatAdapterRegistry=, =RendererRegistry=, and =SerializerRegistry= with =register(id, factory: () => Promise<T> | T)=.
+
+** 1.3 Completion Criteria
+- [ ] Contract directories restructured into =core/=, =chats/=, and =features/=.
+- [ ] Existing codebase references updated cleanly without broken imports.
+- [ ] Unit tests verify synchronous mock injection into registries without bundler dependencies.
+
+* 4. Stage 2: Duck.ai Site Adapter & SPA Navigation Resilience
+
+/Reference: [[file:../.scratch/duck-ai-adapter/spec.org][.scratch/duck-ai-adapter/spec.org]] | Effort: Large (7 child issues)/
+
+** 2.1 Objective
+Deliver full platform support for DuckDuckGo AI (=https://duck.ai/= and =https://duckduckgo.com/chat=) with complete functional parity to Gemini, and implement autonomous Single Page Application (SPA) navigation resilience across all supported chat hosts.
+
+** 2.2 Existing Codebase Usage Review
+Between Stage 1 and Stage 2, review existing adapter implementations (=src/chat/gemini/=) to identify reusable seams:
+- Extract shared Shadow Root mounting and Tailwind adoption logic into =src/views/common/=.
+- Align settlement observer patterns across Gemini and Duck.ai.
+
+** 2.3 Duck.ai Implementation Details
+- *DOM Selectors & Types* (=src/chat/duckai/selectors.ts=, =types.ts=): Strictly bound to semantic =data-streamdown= hierarchy (=div[data-streamdown="code-block"]=, =div[data-streamdown="code-block-body"]=, =pre > code=). Absolute prohibition of generated React hash classes.
+- *Pristine Code Extraction* (=src/chat/duckai/scraper.ts=): Extract code from =pre > code.textContent= without regex stripping (CSS pseudo-element line numbers require zero cleaning). Extract clean LaTeX from MathML =annotation[encoding="application/x-tex"]=.
+- *Mutation & Settlement Observer* (=src/chat/duckai/domObserver.ts=): Monitor =button[aria-label="Stop generating"]= (in-flight) and finalization via =div[data-message-actions="true"]= with a 300ms macro-settle debounce window.
+- *Non-Destructive Sibling Injector* (=src/chat/duckai/injector.tsx=): Mount adjacent sibling container inside an open Shadow Root; hide native block body with =display: none= maintaining the Data-Island pattern.
+- *Host Theme & Layout* (=src/chat/duckai/theme.ts=, =layout.ts=): Synchronize with =document.documentElement[data-theme]= and manage =--duckai-chat-max-width= layout overrides.
+
+** 2.4 SPA In-Session Chat Switch Observer Resilience
+- =SiteAdapter.initialize()= hooks window =popstate= and wraps =history.pushState= / =history.replaceState=.
+- Differentiates in-chat prompt submissions from true thread switches by comparing thread ID URL pathnames and root container DOM identity.
+- On thread switch: synchronously destroys mounted Preact roots and disconnected observers for the old chat, flushes active turn contexts, and binds observers to the newly mounted stream container.
+
+** 2.5 Child Issues
+1. [[file:../.scratch/duck-ai-adapter/issues/01-duckai-dom-selectors-and-types.org][Issue 01: Duck.ai DOM Selectors & Typed Reference Models]]
+2. [[file:../.scratch/duck-ai-adapter/issues/02-duckai-scraper-and-static-fixture.org][Issue 02: Duck.ai Scraper & Headless Static HTML Fixture]]
+3. [[file:../.scratch/duck-ai-adapter/issues/03-duckai-dom-observer-and-settlement.org][Issue 03: Duck.ai DOM Mutation Observer & Stream Settlement Machine]]
+4. [[file:../.scratch/duck-ai-adapter/issues/04-duckai-injector-and-shadow-dom-mounting.org][Issue 04: Duck.ai Non-Destructive Shadow Root Injector]]
+5. [[file:../.scratch/duck-ai-adapter/issues/05-duckai-theme-authority-and-layout-controller.org][Issue 05: Duck.ai Theme Authority & Widescreen Layout Controller]]
+6. [[file:../.scratch/duck-ai-adapter/issues/06-duckai-site-adapter-hud-and-registry.org][Issue 06: DuckAiSiteAdapter Orchestration, Floating HUD & Lazy Registry]]
+7. [[file:../.scratch/duck-ai-adapter/issues/07-build-toolchain-manifest-and-browser-verification.org][Issue 07: Build Toolchain, Manifest Permissions & Live Browser Verification]]
+
+** 2.6 Completion Criteria
+- [ ] Headless unit tests pass with static Duck.ai fixtures (=tests/chat/duckai_test.ts=).
+- [ ] Code block headers mount in Shadow DOM on =https://duck.ai/= with 3-state outline cycling and copy parity.
+- [ ] In-session thread switches and "New Chat" route changes cleanly re-bind observers without page reloads.
+- [ ] Zero generated hash classes referenced in =selectors.ts=.
+- [ ] Code-split chunk verified in =dist/dev/=.
+
+* 5. Stage 3: Two-Phase Math & Tripartite AST Foundation
+
+** 3.1 Objective
+Shield LaTeX mathematical expressions from prose entity expansion and establish pure, headless AST engines for CommonMark/GFM and JSON IR.
+
+** 3.2 Two-Phase LaTeX Math Tokenization
+- *Files*: =src/features/ast/org/inlineParser.ts=
+- *Phase 1 (Delimiting & Shielding)*: Delimit inline ($...$, \(...\)) and display ($$...$$, \begin{equation}...\end{equation}) math fragments into immutable AST tokens /first/.
+- *Phase 2 (Selective Entity Expansion)*: Perform Greek entity expansion strictly on non-math prose text runs. Untouched LaTeX ASCII syntax is delivered directly to KaTeX for native typesetting.
+
+** 3.3 CommonMark + GFM Pure AST Engine
+- *Files*: =src/features/ast/markdown/=
+- Implement headless block and inline parsers assembling a pure AST hierarchy:
+  - Document root and ATX headings (H1-H6) with hierarchical section nesting.
+  - GitHub Alert callouts (=[!NOTE]=, =[!TIP]=, =[!IMPORTANT]=, =[!WARNING]=, =[!CAUTION]=).
+  - Pipe tables with alignment colons, task lists (=- [ ]= / =- [x]=), and code fences.
+
+** 3.4 JSON AST Intermediate Representation (IR)
+- *Files*: =src/features/ast/json/=
+- Build pure JSON AST parser assembling a deterministic node tree representing objects, arrays, and primitives.
+- Provides standard conversion primitives allowing conversational turns to be represented as structured JSON data.
+
+** 3.5 Completion Criteria
+- [ ] Math expressions render cleanly in KaTeX without character corruption from premature Greek entity expansion.
+- [ ] CommonMark and GFM AST parsers produce deterministic ASTs with 100% headless test coverage.
+- [ ] JSON AST parser accurately parses arbitrary JSON payloads.
+
+* 6. Stage 4: Headless Serializers & Comprehensive Test Suite
+
+** 4.1 Objective
+Construct the headless serialization engine implementing =ConversationSerializer= for Org-mode, Markdown, and JSON, validated by an exhaustive edge-case test suite.
+
+** 4.2 Serializer Implementations
+- *OrgSerializer* (=src/features/serializers/org/orgSerializer.ts=):
+  - Emits top-level frontmatter (#+TITLE:, #+DATE:, #+OPTIONS:).
+  - Emits turn headlines (* User: <prompt>, ** Assistant) with property drawers (:PROPERTIES: :TURN_ID: ... :END:).
+  - Wraps code blocks in column 0 #+BEGIN_SRC <lang> and math in \begin{equation}.
+- *MarkdownSerializer* (=src/features/serializers/markdown/markdownSerializer.ts=):
+  - Emits H1 title or frontmatter, User prompt blockquotes, and assistant prose.
+  - Implements dynamic code fence sizing: detects inner backtick sequences and wraps outer fences in N + 1 backticks (````) or tildes (~~~).
+- *JsonSerializer* (=src/features/serializers/json/jsonSerializer.ts=):
+  - Serializes conversation turns into a structured JSON document holding complete turn metadata, segments, and timestamps.
+- *SerializerHandler* (=src/features/serializers/handler.ts=):
+  - Centralized dispatcher coordinating serializer selection and delegating linear turn sequences.
+
+** 4.3 Comprehensive Serializer Test Suite
+- *Files*: =tests/serializers/serializer_test.ts=
+- Exhaustive verification across extreme syntax fixtures:
+  - Nested code blocks containing raw backticks and tildes.
+  - Multiline LaTeX math equations with sub/superscripts.
+  - Pipe tables with escaped pipe characters and unicode content.
+  - Multi-turn conversation sequences.
+
+** 4.4 Completion Criteria
+- [ ] =OrgSerializer=, =MarkdownSerializer=, and =JsonSerializer= satisfy =ConversationSerializer=.
+- [ ] 100% test pass rate across serializer edge-case fixtures in =deno task test=.
+
+* 7. Stage 5: Chat History Persistence, HUD Tree Flyout & File Export
+
+/Reference: [[file:../.scratch/conversation-history/spec.org][.scratch/conversation-history/spec.org]], Issues 01 & 02/
+
+** 5.1 Objective
+Provide persistent, tree-structured conversation backup in =browser.storage.local=, an interactive tree visualizer in the Floating HUD with multi-branch selection, and direct client-side file saving.
+
+** 5.2 Subsystem Architecture
+1. *Tree Storage Engine* (=src/features/history/conversationStore.ts=):
+   - Appends completed turns upon macro-settlement.
+   - Computes deterministic node hashes (=FNV-1a(parentTurnId + userQuery + turnIndex)=) to fork branches upon prompt edits or regenerations.
+   - Zero-permission LRU eviction: Automatically purges oldest conversations when usage exceeds 8MB, remaining safely within the default 10MB quota without requiring =unlimitedStorage=.
+2. *Interactive HUD Tree Flyout* (=src/views/history/ConversationTreeFlyout.tsx=):
+   - Rendered inside Floating HUD Shadow Root as a smooth leftward drawer.
+   - Interactive hierarchical tree diagram visualizing turn nodes with prompt summaries.
+   - Path selection logic: Selecting a leaf node automatically computes and highlights the continuous root-to-leaf branch path; supports selecting multiple divergent branch paths concurrently.
+   - Resolves selected paths into an ordered linear array =readonly ConversationTurnNode[]=.
+   - Action bar: "Select All", "Select Active Branch", "Clear Selection", Format Toggle (=.org= vs =.md= vs =.json=).
+3. *Direct Client-Side File Saving* (=src/features/export/fileSave.ts=):
+   - Creates browser blob URI (=URL.createObjectURL(new Blob([content], { type: serializer.outputMimetype }))=) and triggers download.
+   - Clean auto-generated filenames based on configurable pattern (default: =<chat-slug>-<YYYYMMDD-HHMMSS>.<ext>=).
+   - Fallback "Copy to Clipboard" action with checkmark confirmation.
+
+** 5.3 Completion Criteria
+- [ ] All completed turns persist to =browser.storage.local= upon settlement.
+- [ ] Prompt edits and response regenerations fork distinct branches in storage.
+- [ ] HUD flyout visualizes branch tree and computes valid multi-path linear arrays.
+- [ ] Direct blob download exports complete multi-turn documents in =.org=, =.md=, or =.json=.
+
+* 8. Stage 6: Dedicated Options Page & Storage Quota Meter
+
+/Reference: [[file:../.scratch/settings-panel/spec.org][.scratch/settings-panel/spec.org]]/
+
+** 6.1 Objective
+Deliver a dedicated WebExtension options page (=options.html=) with real-time storage quota visualization and user preference synchronization.
+
+** 6.2 Implementation Details
+- *Manifest Registration*: Registered under =options_ui= in =src/manifest.json= (=open_in_tab: true=) and accessible via =browser.runtime.openOptionsPage()=.
+- *Declarative Preact UI*: Standalone Preact application styled with Tailwind CSS v4.
+- *Storage & Settings Schema* (=src/contracts/core/settings.ts=):
+
+#+BEGIN_SRC typescript
+export interface UserSettings {
+    themeLock: "system" | "dark" | "light";
+    chatMaxWidthPreset: "80%" | "90%" | "94%" | "100%";
+    defaultExportFormat: "org" | "markdown" | "json";
+    defaultFilenamePattern: string; // default: "{chat-slug}-{timestamp}"
+    historyAutoPruneThresholdMB: number; // default: 8
+    initialCodeBlockFoldState: "folded" | "children" | "subtree";
+}
+#+END_SRC
+
+- *Communication Architecture*:
+  - Direct read/write to =browser.storage.local= with =browser.storage.onChanged= listeners in active content scripts for real-time layout updates.
+  - Background RPC messages for operational tasks: "Prune History Now" (purging down to budget) and "Clear View State Cache".
+- *UI Controls*:
+  - Real-time Storage Quota Progress Bar (bytes used vs 10MB quota with warning badge at >8MB).
+  - Theme, width, and default export format selectors.
+  - Manual storage maintenance buttons.
+
+** 6.3 Completion Criteria
+- [ ] Dedicated =options.html= page opens cleanly from browser extension management and HUD settings icon.
+- [ ] Storage quota meter updates dynamically to reflect actual usage.
+- [ ] Settings changes propagate reactively to open chat tabs without page reloads.
+
+* 9. Stage 7: JSON DocumentView & Toolchain Automation
+
+** 7.1 JSON In-Situ Document View
+- *Files*: =src/features/renderers/json/JsonDocumentView.tsx=
+- Interactive, collapsible tree visualizer for structured JSON code blocks mounted inside Shadow Roots.
+- Supports node folding, type chips (string, number, boolean, array, object), key search, and path copying.
+- Consumes =src/features/ast/json/= with 0ms hydration from =AstCache=.
+
+** 7.2 Toolchain & Capability Automation
+- *Living Capability Lists* (=docs/capabilities/=): Document supported host selectors, renderers, serializers, and formatting conventions for each chat platform, establishing the authoritative source of truth for Phase 4 prompt injection.
+- *Diagram Generation with kroki-cli*: Automate rendering Mermaid source diagrams into SVG and PNG assets using =kroki-cli= (=/home/chrstfer/devel/utils/kroki-cli=), storing outputs in =docs/charts/=.
+- *High-Fidelity Telemetry Logging*: Structured logging via =CoreLogger= across all mutation observers, settlement transitions, and storage operations to make in-browser testing transparent.
+
+** 7.3 Completion Criteria
+- [ ] JSON code blocks render as interactive collapsible tree cards.
+- [ ] Capability matrices documented in =docs/capabilities/=.
+- [ ] Mermaid diagrams compiled into =docs/charts/=.
+- [ ] Full suite passes cleanly in =deno task test=, =deno task lint=, and =deno task build:dev=.
+
+* 10. Deferred Milestones (Phase 3.5 & Beyond)
+
+1. *Phase 3.5: GFM In-Situ Document View Canvas*: Interactive Preact rendering for markdown code blocks (H1-H6 folding, alerts, tables).
+2. *Phase 3.5: Scoped Multi-Format Subtree Copying*: Granular subtree/section clipboard copy actions.
+3. *Phase 4: Universal Task Management & Prompt Re-Injection*: Centralized task state machine (=src/features/todo/=) and prompt re-injection.
+4. *Phase 4: Full Turn Response Bubble Replacement*: Opt-in replacement of native host message bubbles.
+5. *Backlog: Universal Syntax Highlighting Module*: Syntax highlighting engine in =CodeHighlighter.tsx=.
+6. *Backlog: Local API & org-protocol.el Bridge*: External local socket / Native Messaging bridge.
+
+* 11. Execution Matrix
+
+| Stage | Milestone / Track | Reference / Tickets | Key Artifacts | Verification Gate |
+| :--- | :--- | :--- | :--- | :--- |
+| *Stage 1* | *Contracts & DI Registries* | Architecture Refactor | =src/contracts/{core,chats,features}/*= | Synchronous mock injection tests |
+| *Stage 2* | *Duck.ai Adapter & SPA* | [[file:../.scratch/duck-ai-adapter/spec.org][Duck.ai Spec]] (Issues 01-07) | =src/chat/duckai/*=, =src/manifest.json= | Headless DOM fixtures + Live browser BiDi |
+| *Stage 3* | *Two-Phase Math & ASTs* | Quality & Domain Seams | =src/features/ast/{org,markdown,json}/*= | KaTeX entity & AST parser tests |
+| *Stage 4* | *Headless Serializers* | [[file:../.scratch/markdown-document-view/issues/08-full-message-gfm-serializer.org][GFM Issue 08]] + Org/JSON | =src/features/serializers/*= | Multi-format serializer edge-case tests |
+| *Stage 5* | *History Store & HUD Export* | [[file:../.scratch/conversation-history/spec.org][History Spec]] (Issues 01-02) | =src/features/history/*=, =FloatingHud.tsx= | Path selection & blob download tests |
+| *Stage 6* | *Options Page & Storage* | [[file:../.scratch/settings-panel/spec.org][Settings Spec]] | =options.html=, =src/views/options/*= | Quota meter & preference sync tests |
+| *Stage 7* | *JSON View & Toolchain* | Feature & Toolchain | =src/features/renderers/json/*=, =docs/charts/*= | JSON tree view & diagram generation |
+| *Phase 3.5*| *GFM In-Situ View* | [[file:../.scratch/markdown-document-view/spec.org][GFM Spec]] (Issues 01-07) | =src/features/renderers/markdown/*= | 3-state outline cycling tests |
+| *Phase 3.5*| *Scoped Subtree Copying* | [[file:../.scratch/scoped-copying/spec.org][Scoped Copy Spec]] | =src/features/export/clipboard.ts= | Clipboard subtree tests |

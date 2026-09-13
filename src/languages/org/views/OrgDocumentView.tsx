@@ -1,6 +1,6 @@
 import type { JSX } from "preact";
 import { useCallback, useEffect, useMemo, useState } from "preact/hooks";
-import type { DocumentViewProps } from "../../../core/contracts/documentView.ts";
+import type { DocumentViewProps } from "../../../contracts/features/renderers/index.ts";
 import { defaultAstCache } from "../../../store/astCache.ts";
 import { computeContentHash } from "../../../core/utils/contentHash.ts";
 import type { OrgDocumentElement } from "../ast/types.ts";

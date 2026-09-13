@@ -7,7 +7,7 @@ import { render } from "preact";
 import { FloatingHud } from "./FloatingHud.tsx";
 import type { SettingsStore } from "../../core/storage/settings.ts";
 import { getAdoptedStyleSheets } from "../../styles/adoptedStyleSheets.ts";
-import type { ChatColumnBounds } from "../../core/contracts/index.ts";
+import type { ChatColumnBounds } from "../../contracts/chats/index.ts";
 import { createLogger } from "../../core/logging/index.ts";
 
 export interface HudMountHandle {

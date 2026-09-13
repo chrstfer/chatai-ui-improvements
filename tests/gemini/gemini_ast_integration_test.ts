@@ -1,9 +1,9 @@
 import { assertEquals, assertExists, assertFalse } from "@std/assert";
 import { DOMParser } from "@b-fuze/deno-dom";
 import { render } from "preact";
-import { GeminiInjector } from "../../src/chat/gemini/injector.tsx";
-import type { GeminiCodeBlockRef } from "../../src/chat/gemini/types.ts";
-import { defaultLanguageRegistry } from "../../src/languages/registry.ts";
+import { GeminiInjector } from "../../src/features/chats/gemini/injector.tsx";
+import type { GeminiCodeBlockRef } from "../../src/features/chats/gemini/types.ts";
+import { defaultParserRegistry } from "../../src/registries/parserRegistry.ts";
 import { defaultAstCache } from "../../src/store/astCache.ts";
 import { computeContentHash } from "../../src/core/utils/contentHash.ts";
 import type { OrgDocumentElement } from "../../src/languages/org/ast/types.ts";
@@ -67,9 +67,8 @@ function setupDom() {
     };
 }
 
-Deno.test("LanguageRegistry.settleContent: Parses and caches Org block AST", async () => {
+Deno.test("ParserRegistry.settleContent: Parses and caches Org block AST", async () => {
     defaultAstCache.clear();
-    await defaultLanguageRegistry.loadLanguage("org");
 
     const rawOrg = [
         "* Project Planning",
@@ -83,12 +82,12 @@ Deno.test("LanguageRegistry.settleContent: Parses and caches Org block AST", asy
     assertFalse(defaultAstCache.has(hash, "org"));
 
     // First settlement: cache miss, parses AST
-    const { langDef, hash: returnedHash, ast } = defaultLanguageRegistry.settleContent<OrgDocumentElement>(
+    const { parser, hash: returnedHash, ast } = await defaultParserRegistry.settleContent<OrgDocumentElement>(
         rawOrg,
         "org",
     );
 
-    assertEquals(langDef?.id, "org");
+    assertEquals(parser?.id, "org");
     assertEquals(returnedHash, hash);
     assertExists(ast);
     assertEquals(ast.type, "document");
@@ -99,7 +98,7 @@ Deno.test("LanguageRegistry.settleContent: Parses and caches Org block AST", asy
     assertEquals(defaultAstCache.has(hash, "org"), true);
 
     // Second settlement: cache hit, returns same parsed instance
-    const cachedResult = defaultLanguageRegistry.settleContent<OrgDocumentElement>(
+    const cachedResult = await defaultParserRegistry.settleContent<OrgDocumentElement>(
         rawOrg,
         "org",
     );
@@ -109,7 +108,6 @@ Deno.test("LanguageRegistry.settleContent: Parses and caches Org block AST", asy
 Deno.test("GeminiInjector: Injects Org block, populates AstCache, and supports 0ms recycling", async () => {
     const { hostEl, cleanup } = setupDom();
     defaultAstCache.clear();
-    await defaultLanguageRegistry.loadLanguage("org");
 
     try {
         const injector = new GeminiInjector();
@@ -124,6 +122,9 @@ Deno.test("GeminiInjector: Injects Org block, populates AstCache, and supports 0
             codeContentElement: hostEl,
             isSettled: true,
         };
+
+        // Background settlement coordinates AST pre-parsing
+        await defaultParserRegistry.settleContent(rawOrg, "org");
 
         // 1. Initial injection
         injector.inject(blockRef, "light");

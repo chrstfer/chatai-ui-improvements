@@ -1,37 +1,18 @@
-#+TITLE: AI Chat UI Improvements — Unified Roadmap & Feature Architecture
-#+DATE: 2026-09-09
+#+TITLE: AI Chat UI Improvements — Unified Hierarchical Roadmap & Architecture
+#+DATE: 2026-09-12
 #+OPTIONS: toc:2 num:nil
 
-* Pre-Phase 3: v0.2.0 Release Readiness [0/3]
-- [ ] Browser Action Toolbar Toggle :: Clean activate/deactivate state machine with non-destructive DOM teardown. See [[file:../.scratch/pre-phase-3-v0.2.0/spec.org][Pre-Phase 3 Spec]] and [[file:../.scratch/pre-phase-3-v0.2.0/issues/01-browser-action-toolbar-toggle.org][Issue 01]].
-- [ ] HUD Bilateral Edge Snapping & Adaptive Expansion :: Snaps ~1em from horizontal margins; adapts expansion direction (leftwards if on right half, rightwards if on left half). See [[file:../.scratch/pre-phase-3-v0.2.0/issues/02-hud-bilateral-edge-snapping-and-expansion.org][Issue 02]].
-- [ ] Symmetrical Conversation Width Controls :: Scale user query bubbles symmetrically with model responses. See [[file:../.scratch/pre-phase-3-v0.2.0/issues/03-message-width-user-query-expansion.org][Issue 03]].
+* Part I: Completed Milestones (v0.1.0 – v0.2.0) [100%]
 
-* Architecture & Core Foundation [6/6]
+** Phase 1: Core Foundation & In-Situ Container (v0.1.0) [6/6]
+- [X] Universal In-Situ Code Block Container :: Universal ~InSituCodeBlockContainer~ mounted inside isolated Shadow Roots with custom toolbar, language badge, H_0 block fold cycling, 2-state collapse bypass button (+ / −), decoupled view toggling, and copy parity button per [[file:adr/0003-code-block-heading-parity.org][ADR 0003]].
 - [X] Pluggable Extensibility Contracts :: Standardized ~LanguageDefinition~, ~SiteAdapter~, and ~DocumentViewComponent~ contracts in ~src/core/contracts/~.
-- [X] Dynamic Loading & View Dispatching :: Dynamic import loading for language document views via ~DocumentViewDispatcher~ and code splitting in the build toolchain.
-- [X] Stream Settlement State Machine :: Formalized Phase A (in-flight streaming buffer) vs. Phase B (settled >300ms macro-settle) transitions with idempotent mount guards (~data-ext-processed~, ~data-ext-mounted~).
 - [X] Decoupled In-Memory Caching :: 32-bit FNV-1a content-hash indexed LRU caches (~ViewStateCache~ and ~AstCache~) surviving virtual scroller recycling with 0ms instant hydration.
-- [X] Scoped Logging & Telemetry Submodule :: Hierarchical scoped logging (~CoreLogger~), dynamic runlevels (~prod~, ~debug~, ~trace~), in-memory ring buffer, Preact lifecycle profiling hooks, and global console API (~window.__AI_CHAT_UI__~). See [[file:../.scratch/logging/spec.org][Logging Spec]].
 - [X] Tailwind CSS v4 In-Process Pipeline & Shadow DOM :: Compiled in-process at build time and injected as a singleton ~adoptedStyleSheets~ constant, eliminating runtime network overhead and memory duplication across Shadow Roots per [[file:adr/0002-tailwind-v4-shadow-dom.org][ADR 0002]]. See [[file:../.scratch/tailwind-integration/spec.org][Tailwind Integration Spec]].
+- [X] Scoped Logging & Telemetry Submodule :: Hierarchical scoped logging (~CoreLogger~), dynamic runlevels (~prod~, ~debug~, ~trace~), in-memory ring buffer, Preact lifecycle profiling hooks, and global console API (~window.__AI_CHAT_UI__~). See [[file:../.scratch/logging/spec.org][Logging Spec]].
+- [X] Multi-Target Bundle & Build Toolchain :: Modular ~build.ts~ supporting dev builds (~dist/dev/~ via ~deno task build:dev~) and production releases, manifest generation, dynamic bootloader, and code splitting.
 
-* Testing & Toolchain Improvements [3/5]
-- [X] Multi-Target Bundle Script :: Modular ~build.ts~ supporting dev builds (~dist/dev/~ via ~deno task build:dev~) and production releases, manifest generation, dynamic bootloader, and code splitting.
-- [X] Chat-Independent Mock Testing :: Static HTML chat fixtures and DOM-independent tests using ~@b-fuze/deno-dom~ for testing adapters and views without browser runtime overhead.
-- [X] Headless Domain Unit Testing :: Deterministic unit test suite testing pure AST parsing, inline tokenizing, content hashing, view state, and AST caching with zero DOM dependencies (~deno task test~).
-- [ ] Chat AI Agnostic Local Manual Test Framework :: (Deferred for deeper discussion & consideration) Standalone local HTML/TS harness (~deno task test:manual~) simulating AI chat stream responses, Phase A/B settlement transitions, theme switching, and container remounting with rich sample fixtures. See [[file:../.scratch/manual-test-framework/spec.org][Manual Test Framework Spec]] and [[file:../.scratch/manual-test-framework/issues/01-chat-ai-agnostic-local-manual-test-harness.org][Issue 01]].
-- [ ] Dedicated Preact Unit Test Library Evaluation :: Evaluate dedicated Preact testing utilities (e.g. ~preact-jsx-chai~, ~unexpected-preact~) to enhance component assertion ergonomics and DOM tree diffing.
-
-* Host Interface Extensions [4/6]
-- [X] Gemini Adapter :: Full Gemini scraper (~GeminiScraper~), DOM observer (~GeminiDOMObserver~), and shadow root injector (~GeminiInjector~) matching Gemini's custom element tree.
-- [X] Host Theme Authority :: Implemented ~theme~ and ~onThemeChange~ contracts on ~src/chat/gemini/theme.ts~ to observe host light/dark mode and synchronize Shadow Root themes.
-- [X] Host Auto-Discovery Registry :: Centralized ~ChatAdapterRegistry~ with eager and lazy resolution based on URL hostname and DOM fingerprints.
-- [X] Non-Destructive Host Isolation :: CSS hiding (~display: none~) and open Shadow Roots isolating extension styles while preserving native ~code[data-test-id='code-content']~ for host copy parity.
-- [ ] SPA In-Session Chat Switch Observer Resilience :: Strengthen DOM observers to cleanly handle in-page conversation transitions and new chat initialization without requiring page reloads. See [[file:potential-features.org][potential-features.org]].
-- [ ] Multi-Platform Chat Adapters :: Extend adapters to support ChatGPT, Claude, and DuckDuckGo AI (Duck.ai).
-
-* Rendering Capabilities & Languages [8/13]
-- [X] Universal In-Situ Code Block Container :: Universal ~InSituCodeBlockContainer~ with custom toolbar, language badge, H_0 block fold cycling, 2-state collapse bypass button (+ / −), decoupled view toggling, and copy parity button per [[file:adr/0003-code-block-heading-parity.org][ADR 0003]].
+** Phase 2: Org-Mode Headless AST & Document View Engine (v0.1.3) [8/8]
 - [X] Headless Org-Mode AST Engine :: Canonical Emacs ~org-element.el~ specification AST, O(N) streaming block parser with headline stack hierarchy, delimiter disambiguation, affiliated keywords (~#+NAME:~, ~#+CAPTION:~), tables with rules/alignment, and rich inline objects. See [[file:../.scratch/org-ast/spec.org][Org AST Spec]].
 - [X] Language Registry & AST Settlement Pipeline :: Centralized ~LanguageRegistry~ with language-agnostic ~settleContent~ coordinating pre-parsing and AST caching during turn settlement.
 - [X] In-Situ Preact Org Document View :: Rich declarative Preact view component (~OrgDocumentView~) rendering collapsible headline sections, TODO state badges, priority chips, tags, property drawers, and description lists. See [[file:../.scratch/org-document-view/spec.org][Org Document View Spec]].
@@ -39,36 +20,65 @@
 - [X] Offline KaTeX Mathematical Typography :: Bundled 100% offline KaTeX WOFF2 fonts and CSS rendering inline math, display equations, and ASCII LaTeX Greek entities into declarative JSX without ~innerHTML~ per [[file:adr/0001-katex-math-pipeline.org][ADR 0001]].
 - [X] Inline Image & Dynamic Attachment Previews :: In-situ rendering of embedded ~[[file:...]]~ and ~[[https://...]]~ image links with interactive zoom modal overlay.
 - [X] Org Document View Polish & Scoped Subtree Actions :: Compact boxed headings, row-click folding, inline chevron alignment, display LaTeX centered block rendering, and headline-scoped subtree copying via ~serializeOrgSubtree~.
-- [ ] Universal Syntax Highlighting Module :: (Deferred to Future Backlog) Decoupled syntax highlighting engine in ~src/views/common/CodeHighlighter.tsx~ with modular, code-split grammars (Python, TypeScript, Rust, Bash, SQL, JSON) mapped to Tailwind v4 theme tokens without external network requests. See [[file:../.scratch/syntax-highlighting/spec.org][Syntax Highlighting Spec]] and [[file:../.scratch/syntax-highlighting/issues/01-universal-syntax-highlighting-module.org][Issue 01]].
-- [ ] Custom Org Themes & Syntax Presets :: User-selectable color schemes (Org Modern, Doom One, Solarized, Gruvbox) for rendered headlines and code blocks.
-- [ ] LaTeX Math Pipeline Delimiter & Greek Entity Refinement :: Refine tokenizer sequencing to prevent raw Greek entity replacement from corrupting complex LaTeX math environments prior to KaTeX execution. See [[file:potential-features.org][potential-features.org]].
-- [ ] GitHub Flavored Markdown (GFM) Document View & AST Engine :: Complete feature parity with the Org engine: pure headless AST parser, outline visibility cycling (folded/children/subtree), H_0 heading parity, GitHub alerts ([!NOTE], [!TIP], etc.), GFM pipe tables with alignment, interactive task lists, KaTeX math, scoped subtree copying, and full-message GFM serialization. See [[file:../.scratch/markdown-document-view/spec.org][GFM Document View Spec]].
-- [ ] Additional DocumentViews :: Pluggable DocumentViews for JSON tree structure and Mermaid diagram rendering.
-
-* HUD, Layout & User Controls [3/6]
-- [X] Moveable Floating HUD :: Ultra-responsive 1:1 pointer dragging without motion lag, persistent position caching in ~SettingsStore~, and boundary clamping within viewport. See [[file:../.scratch/hud/spec.org][HUD Spec]].
-- [X] Widescreen Layout Engine & Width Presets :: Surgical CSS removal of ~768px constraints, natural user bubble proportions, and quick presets (80%, 90%, 94%, 100%) backed by typed WebExtension storage.
-- [X] Compact Pill Mode & Rapid Hotkeys :: Collapsible 36x36px icon mode, header click toggle, and hotkey shortcuts (~Alt + W~ for full width toggle, ~Alt + O~ for global Org toggle).
-- [ ] Extension Settings Page :: Dedicated WebExtension options page (~options.html~) for managing navigation preferences (auto-scroll vs. visual pulse on internal link jumps), storage usage meter and quota warnings, default view modes, startup fold levels, and theme locks. See [[file:../.scratch/settings-panel/spec.org][Settings Page Spec]] and [[file:../.scratch/settings-panel/issues/02-storage-usage-and-quota-warnings.org][Issue 02]].
-- [ ] Universal HUD Integration & Multi-Host Origin :: Compute collision-free default HUD anchor positions across supported host platforms avoiding overlap with host toolbars.
-- [ ] Customizable Hotkeys & Keybinding Manager :: User-configurable shortcut bindings for HUD toggle, folding, font sizing, and export actions.
-
-* Workflow & Task Management [1/4]
 - [X] In-Situ Interactive Checklists & Progress Cookies :: Toggleable checkboxes (~- [ ]~ / ~- [X]~) and dynamic progress cookies (~[1/3]~, ~[33%]~) recalculating in real time.
-- [ ] Universal TODO Tracking System :: Dedicated domain module under ~src/features/todo/~ with configurable workflow state machines (~TODO -> NEXT -> DONE~, bug triaging, multi-state cancellations) and cross-document task rollups. See [[file:../.scratch/todo-tracking/spec.org][TODO Tracking Spec]] and [[file:../.scratch/todo-tracking/issues/01-universal-todo-tracking-system.org][Issue 01]].
-- [ ] Chat Context Task Re-Injection :: Mechanism to inject updated or marked TODO lists back into active chat prompts to maintain task continuity with AI models with configurable format (GFM vs Org). See [[file:potential-features.org][potential-features.org]].
-- [ ] Task Export & Agenda Synchronization :: Export active task lists and scheduled/deadline items to standalone ~.org~ agenda files.
 
-* Chat Storage, History & Export [1/7]
-- [X] Scoped Subtree Copying :: Headline-level AST export copying (~serializeOrgSubtree~) with non-destructive clipboard integration and visual feedback.
-- [ ] Multi-Format Scoped Copying :: Contextual clipboard export options ("Copy as Raw Org", "Copy as Markdown", "Copy as Plain Text") across document sections and non-Org code block functions. See [[file:../.scratch/scoped-copying/spec.org][Scoped Copying Spec]] and [[file:../.scratch/scoped-copying/issues/01-scoped-subtree-and-section-copying.org][Issue 01]].
-- [ ] Full-Message GFM Serializer :: High-fidelity serializer transforming entire message turns (prose and embedded code blocks) into valid GFM markdown with dynamic code fence sizing ($N+1$ backticks or tildes). See [[file:../.scratch/markdown-document-view/issues/08-full-message-gfm-serializer.org][GFM Issue 08]].
-- [ ] Tree-Structured Conversation Store :: Append completed streaming turns to persistent ~browser.storage.local~ in a branching tree model with automatic LRU pruning (<8MB). See [[file:../.scratch/conversation-history/spec.org][Conversation History Spec]] and [[file:../.scratch/conversation-history/issues/01-tree-structured-backup-and-previous-versions.org][Issue 01]].
-- [ ] Interactive Conversation Tree Export Flyout in HUD :: HUD-mounted tree visualizer with node checkboxes allowing users to select and export one or more root-to-leaf paths as unified ~.org~ or ~.md~ files. See [[file:../.scratch/conversation-history/issues/02-interactive-conversation-tree-export-flyout.org][Issue 02]].
-- [ ] Direct Turn & Block File Saving :: One-click file export actions for entire conversations, individual messages, or specific code blocks with AI-suggested filenames. See [[file:potential-features.org][potential-features.org]].
-- [ ] Complete Conversation Exporter :: Markdown-to-Org AST converter generating clean, annotated Org documents with metadata drawers.
+** Pre-Phase 3: Stabilization, Layout & v0.2.0 Hardening (v0.2.0) [6/6]
+- [X] Browser Action Toolbar Toggle & Clean Teardown Barrier :: Clean activate/deactivate state machine with per-tab memory in background service worker and non-destructive synchronous DOM teardown restoring native elements. See [[file:plans-archive/pre-phase-3-v0.2.0-plan.org][Pre-Phase 3 Master Plan]] and [[file:../.scratch/pre-phase-3-v0.2.0/issues/01-browser-action-toolbar-toggle.org][Issue 01]].
+- [X] Floating HUD: Chat-Column Containment & Bilateral Snapping :: Snaps ~1em (16px) from chat column boundaries; maintains pinned position when collapsing/expanding with adaptive leftward expansion when right-anchored. See [[file:../.scratch/pre-phase-3-v0.2.0/issues/02-hud-bilateral-edge-snapping-and-expansion.org][Issue 02]].
+- [X] Symmetrical Widescreen Scaling & HostLayoutController :: Standardized ~HostLayoutController~ seam in ~src/core/contracts/layout.ts~, overrides Gemini's 708px ceiling on inner model responses, and scales user query bubbles symmetrically with model responses. See [[file:../.scratch/pre-phase-3-v0.2.0/issues/03-message-width-user-query-expansion.org][Issue 03]].
+- [X] Theming Specificity & Contrasting HUD Outline :: Replaced Tailwind ~:where()~ with ~:is()~ restoring CSS specificity for dark mode utilities, added OS ~prefers-color-scheme~ detection, and applied high-contrast outline and depth box-shadow across both themes.
+- [X] Upwards Code Block Collapse Anchoring :: Synchronous ~useLayoutEffect~ scroll-anchor compensation keeping the top of the message stationary during block collapse transitions.
+- [X] Direct Sidenav Querying & Input Overflow Fix :: Eliminated 11-selector candidate search loops in favor of direct ~bard-sidenav~ and ~bard-sidenav-content~ queries, and fixed trailing actions / persistent mic overflow via strict ~border-box~ sizing.
 
-* Advanced Integrations & Extension Ecosystem [0/3]
-- [ ] Prompt Store & Dynamic Capability Injection :: Extension management view for saved prompts, URL-loaded prompts, and dynamically generated "supported capabilities" prompts that inform the AI model of available interactive renderers. See [[file:potential-features.org][potential-features.org]].
-- [ ] Local API for Software I/O :: Lightweight local bridge enabling external developer tools, scripts, and editors to interface directly with active chat sessions. See [[file:potential-features.org][potential-features.org]].
-- [ ] Background Script & Cross-Tab State Coordination :: Service worker / background script for cross-tab message passing, global settings synchronization, and export coordination.
+* Part II: Phase 3 Active Frontier (v0.3.0+) [0/7]
+
+** Stage 1: Contracts Hierarchy & Dependency Injection Registries [0/3]
+- [ ] Modular Contract Namespaces :: Split contracts into ~src/contracts/core/~, ~src/contracts/chats/~, and ~src/contracts/features/{ast,renderers,serializers}/~. See [[file:phase-3_meta-plan.org][Phase 3 Master Plan §Stage 1]].
+- [ ] Decoupled Serializer Contract :: Implement ~ConversationSerializer~ with linear turn sequence processing and ~outputMimetype~.
+- [ ] Lazy Factory DI Registries :: Implement ~ChatAdapterRegistry~, ~RendererRegistry~, and ~SerializerRegistry~ with factory provider Dependency Injection.
+
+** Stage 2: Duck.ai Site Adapter & SPA Navigation Resilience [0/5]
+- [ ] Existing Codebase Usage Review :: Review existing Gemini adapter seams to extract shared mounting and settlement patterns.
+- [ ] DuckDuckGo AI (Duck.ai) Site Adapter :: Complete Duck.ai support: semantic ~data-streamdown~ selectors, scraper, streaming settlement observer, shadow root injector, and layout controller (~--duckai-chat-max-width~). See [[file:../.scratch/duck-ai-adapter/spec.org][Duck.ai Adapter Spec]] and Issues 01–07.
+- [ ] Strict Selector Invariant :: 100% semantic attribute adherence; absolute prohibition of generated React hash classes in ~selectors.ts~.
+- [ ] SPA In-Session Chat Switch Observer Resilience :: Observe in-page conversation route transitions, thread switches, and new chat initialization via ~popstate~ and wrapped ~pushState~ without page reloads.
+- [ ] Manifest & Dynamic Code-Splitting :: Declare matches (~*://duckduckgo.com/*~, ~*://duck.ai/*~) and verify ~duckai-*.js~ chunk splitting in ~dist/dev/~.
+
+** Stage 3: Two-Phase Math & Tripartite AST Foundation [0/3]
+- [ ] Two-Phase LaTeX Math Tokenization :: Delimit math fragments into immutable AST tokens prior to non-math Greek entity expansion in ~src/features/ast/org/inlineParser.ts~.
+- [ ] CommonMark + GFM Pure AST Engine :: Assembly of ATX headings (H1–H6), GitHub alerts (~[!NOTE]~, ~[!TIP]~, etc.), pipe tables, and task lists in ~src/features/ast/markdown/~.
+- [ ] JSON AST Intermediate Representation (IR) :: Pure JSON AST in ~src/features/ast/json/~ acting as canonical IR for cross-markup conversions and JSON code block parsing.
+
+** Stage 4: Headless Serializers & Comprehensive Test Suite [0/4]
+- [ ] Headless Org Serializer :: Canonical Org headlines, property drawers, ~#+BEGIN_SRC~ blocks, and math equations in ~src/features/serializers/org/~.
+- [ ] CommonMark / GFM Serializer :: High-fidelity serializer with dynamic code fence sizing ($N+1$ backticks/tildes) in ~src/features/serializers/markdown/~.
+- [ ] JSON Serializer :: Structured turn and tree JSON export in ~src/features/serializers/json/~.
+- [ ] Comprehensive Serializer Test Suite :: Exhaustive verification across extreme syntax edge cases in ~tests/serializers/serializer_test.ts~.
+
+** Stage 5: Chat History Persistence, HUD Tree Flyout & File Export [0/4]
+- [ ] Tree-Structured Storage Engine :: Append completed turns to ~browser.storage.local~ with deterministic parent-hash lineage and 8MB LRU budget in ~src/features/history/conversationStore.ts~. See [[file:../.scratch/conversation-history/spec.org][Conversation History Spec]] and Issue 01.
+- [ ] Interactive HUD Tree Flyout :: Visual tree representation in Floating HUD with multi-branch checkbox selection and linear path extraction. See [[file:../.scratch/conversation-history/issues/02-interactive-conversation-tree-export-flyout.org][Issue 02]].
+- [ ] Direct Client-Side File Saving :: Blob download export with configurable ~defaultFilenamePattern~ and clipboard fallback in ~src/features/export/fileSave.ts~.
+
+** Stage 6: Dedicated Options Page & Storage Quota Meter [0/3]
+- [ ] Dedicated Extension Options Page :: ~options.html~ registered under ~options_ui~ in ~src/manifest.json~ rendered with Preact and Tailwind v4. See [[file:../.scratch/settings-panel/spec.org][Settings Page Spec]].
+- [ ] Storage Quota Progress Meter :: Real-time progress bar displaying bytes used against 10MB quota with warning badge at >8MB.
+- [ ] Preference Synchronization :: Direct ~browser.storage.local~ reactivity with ~browser.storage.onChanged~ listeners in active tabs.
+
+** Stage 7: JSON DocumentView & Toolchain Automation [0/3]
+- [ ] Interactive JSON DocumentView :: Collapsible tree inspector view component for JSON code blocks in ~src/features/renderers/json/~.
+- [ ] Living Capability Lists :: Document supported selectors, renderers, and conventions across chat hosts in ~docs/capabilities/~.
+- [ ] Diagram Automation with kroki-cli :: Automate compiling Mermaid source diagrams to SVG/PNG in ~docs/charts/~.
+
+* Part III: Advanced Horizons & Extension Ecosystem [0/4]
+- [ ] Prompt Store & Dynamic Capability Injection :: Extension management view for saved prompts, URL-loaded prompts, and dynamically generated "supported capabilities" prompts that inform the AI model of available interactive renderers. See [[file:plans-prep/potential-features.org][potential-features.org]].
+- [ ] Local API for Software I/O & org-protocol Integration :: Lightweight local bridge enabling external developer tools, scripts, and editors (~org-protocol.el~) to interface directly with active chat sessions. See [[file:plans-prep/potential-features.org][potential-features.org]].
+- [ ] Additional DocumentViews (JSON & Mermaid) :: Pluggable DocumentViews for interactive JSON tree inspection and declarative Mermaid diagram rendering inside Shadow Roots.
+- [ ] Universal Syntax Highlighting Module :: (Deferred to Future Backlog) Decoupled syntax highlighting engine in ~src/views/common/CodeHighlighter.tsx~ with modular, code-split grammars (Python, TypeScript, Rust, Bash, SQL, JSON) mapped to Tailwind v4 theme tokens without external network requests. See [[file:../.scratch/syntax-highlighting/spec.org][Syntax Highlighting Spec]].
+
+* Part IV: Testing, Toolchain & Quality Assurance
+- [X] Multi-Target Bundle Script :: Modular ~build.ts~ supporting dev builds (~dist/dev/~ via ~deno task build:dev~) and production releases, manifest generation, dynamic bootloader, and code splitting.
+- [X] Chat-Independent Mock Testing :: Static HTML chat fixtures and DOM-independent tests using ~@b-fuze/deno-dom~ for testing adapters and views without browser runtime overhead.
+- [X] Headless Domain Unit Testing :: Deterministic unit test suite testing pure AST parsing, inline tokenizing, content hashing, view state, and AST caching with zero DOM dependencies (~deno task test~, 138 passing tests).
+- [ ] Test Assertion Audit & Reality Checks :: Audit existing test cases to ensure assertions verify actual DOM mutations and settlement behaviors rather than superficial mock execution. See [[file:plans-prep/phase-3-prep.org][phase-3-prep.org]].
+- [ ] Dedicated Preact Unit Test Library Evaluation :: Evaluate dedicated Preact testing utilities (e.g. ~preact-jsx-chai~, ~unexpected-preact~) to enhance component assertion ergonomics and DOM tree diffing.

@@ -1,9 +1,9 @@
 import { assertEquals, assertNotEquals } from "@std/assert";
 import { DOMParser } from "@b-fuze/deno-dom";
-import { GEMINI_SELECTORS } from "../../src/chat/gemini/selectors.ts";
-import { GeminiScraper } from "../../src/chat/gemini/scraper.ts";
-import { GeminiSiteAdapter } from "../../src/chat/gemini/adapter.ts";
-import { GeminiThemeAuthority } from "../../src/chat/gemini/theme.ts";
+import { GEMINI_SELECTORS } from "../../src/features/chats/gemini/selectors.ts";
+import { GeminiScraper } from "../../src/features/chats/gemini/scraper.ts";
+import { GeminiSiteAdapter } from "../../src/features/chats/gemini/adapter.ts";
+import { GeminiThemeAuthority } from "../../src/features/chats/gemini/theme.ts";
 
 const FIXTURES_DIR = new URL("./html/", import.meta.url).pathname;
 
