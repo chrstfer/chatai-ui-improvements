@@ -3,7 +3,7 @@
  * Manages conversation format serializers and dynamic export loading.
  */
 
-import type { ConversationSerializer, LazySerializerDefinition } from "../contracts/features/serializers/index.ts";
+import type { ConversationSerializer, LazySerializerDefinition } from "@internal/contracts/features/serializers";
 
 export class SerializerRegistry {
     private serializers = new Map<string, ConversationSerializer>();

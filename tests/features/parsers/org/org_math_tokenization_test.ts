@@ -1,6 +1,6 @@
 import { assertEquals } from "@std/assert";
-import { parseOrgInline } from "../../../../src/features/parsers/org/inlineParser.ts";
-import type { OrgLatexFragmentObject, OrgTextObject } from "../../../../src/features/parsers/org/types.ts";
+import { parseOrgInline } from "@internal/features/parsers/org";
+import type { OrgLatexFragmentObject, OrgTextObject } from "@internal/features/parsers/org";
 
 Deno.test("unit: OrgMathTokenizer: isolates inline dollar math token before entity expansion", () => {
     const text = "Expression $E = mc^2$ in physics.";

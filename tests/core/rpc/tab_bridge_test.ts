@@ -1,10 +1,6 @@
 import { assertEquals } from "@std/assert";
-import { BrowserTabStateBridge, type WebExtensionNamespaceLike } from "../../../src/core/rpc/index.ts";
-import type {
-    GetTabStateRequest,
-    GetTabStateResponse,
-    ToggleActiveNotification,
-} from "../../../src/core/rpc/messages.ts";
+import { BrowserTabStateBridge, type WebExtensionNamespaceLike } from "@internal/core/rpc";
+import type { GetTabStateRequest, GetTabStateResponse, ToggleActiveNotification } from "@internal/core/rpc";
 
 Deno.test("unit: BrowserTabStateBridge: defaults to true when extension API is unavailable", async () => {
     // Arrange

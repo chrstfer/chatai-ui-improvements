@@ -1,5 +1,5 @@
 import { assertEquals } from "@std/assert";
-import { type MathSpanSlice, type ProseSlice, tokenizeMathSpans } from "../../../../src/features/parsers/math/index.ts";
+import { type MathSpanSlice, type ProseSlice, tokenizeMathSpans } from "@internal/features/parsers/math";
 
 Deno.test("unit: MathTokenizer: isolates inline dollar math token", () => {
     const text = "Formula $E = mc^2$ in relativity.";

@@ -1,8 +1,8 @@
 import { DUCKAI_SELECTORS } from "./selectors.ts";
 import type { DuckAiCodeBlockRef } from "./types.ts";
-import type { ResponseSegment } from "../../../contracts/core/index.ts";
-import { defaultMatcherRegistry } from "../../../registries/matcherRegistry.ts";
-import { createLogger } from "../../../core/logging/index.ts";
+import type { ResponseSegment } from "@internal/contracts/core";
+import { defaultMatcherRegistry } from "@internal/registries";
+import { createLogger } from "@internal/core/logging";
 
 export class DuckAiScraper {
     private logger = createLogger("DuckAi > Scraper");

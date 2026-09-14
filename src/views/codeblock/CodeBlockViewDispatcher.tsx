@@ -1,7 +1,7 @@
 import type { JSX } from "preact";
 import { useEffect, useMemo, useState } from "preact/hooks";
-import type { DocumentViewComponent } from "../../contracts/features/renderers/index.ts";
-import { defaultRendererRegistry, type RendererRegistry } from "../../registries/index.ts";
+import type { DocumentViewComponent } from "@internal/contracts/features/renderers";
+import { defaultRendererRegistry, type RendererRegistry } from "@internal/registries";
 import { RawSourceView } from "./RawSourceView.tsx";
 
 export interface CodeBlockViewDispatcherProps {

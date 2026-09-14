@@ -32,3 +32,5 @@ export type {
 } from "./types.ts";
 
 export { parseMarkdownDocument } from "./parser.ts";
+export { parseMarkdownBlocks } from "./blockParser.ts";
+export { parseMarkdownInline } from "./inlineParser.ts";

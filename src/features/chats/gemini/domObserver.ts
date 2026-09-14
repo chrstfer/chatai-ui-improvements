@@ -1,7 +1,7 @@
 import { EXTENSION_INJECTED, GEMINI_SELECTORS } from "./selectors.ts";
 import { GeminiScraper } from "./scraper.ts";
 import type { GeminiCodeBlockRef } from "./types.ts";
-import { createLogger } from "../../../core/logging/index.ts";
+import { createLogger } from "@internal/core/logging";
 
 export interface ObserverCallbacks {
     onBlockDiscovered: (block: GeminiCodeBlockRef) => void;

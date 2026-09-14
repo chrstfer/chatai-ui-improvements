@@ -1,7 +1,7 @@
 import type { JSX } from "preact";
-import type { OrgObject } from "../../parsers/org/index.ts";
-import { LatexMathView } from "../../../views/common/LatexMathView.tsx";
-import { InlineImageView } from "../../../views/common/InlineImageView.tsx";
+import type { OrgObject } from "@internal/features/parsers/org";
+import { LatexMathView } from "@internal/views/common";
+import { InlineImageView } from "@internal/views/common";
 
 export interface OrgObjectRendererProps {
     readonly objects?: readonly OrgObject[] | OrgObject | null;

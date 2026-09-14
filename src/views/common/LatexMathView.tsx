@@ -1,7 +1,7 @@
 import type { JSX } from "preact";
 import { useLayoutEffect, useRef } from "preact/hooks";
 import katex from "katex";
-import { getKatexStyleSheet } from "../../styles/adoptedStyleSheets.ts";
+import { getKatexStyleSheet } from "@internal/styles";
 
 export interface LatexMathViewProps {
     readonly value: string;

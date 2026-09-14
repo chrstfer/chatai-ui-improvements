@@ -5,7 +5,7 @@
  * and ConversationTurnNode contracts in src/contracts/core/.
  */
 
-import type { AstLeafNode, AstNode, AstParentNode, AstRootNode } from "../../../contracts/features/parsers/index.ts";
+import type { AstLeafNode, AstNode, AstParentNode, AstRootNode } from "@internal/contracts/features/parsers";
 
 export type JsonPrimitiveValue = string | number | boolean | null;
 

@@ -1,7 +1,7 @@
 import { assertEquals, assertNotEquals } from "@std/assert";
 import { cleanup, render } from "@testing-library/preact";
-import { setupTestDom, triggerClick } from "../../fixtures/dom_fixture.ts";
-import { InlineImageView } from "../../../src/views/common/InlineImageView.tsx";
+import { setupTestDom, triggerClick } from "@internal/tests/fixtures";
+import { InlineImageView } from "@internal/views/common";
 
 const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
 

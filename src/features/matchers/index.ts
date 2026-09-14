@@ -2,7 +2,7 @@
  * Eager Format Matchers Catalog & Utilities.
  */
 
-import type { FormatMatcher } from "../../contracts/features/matchers/index.ts";
+import type { FormatMatcher } from "@internal/contracts/features/matchers";
 import { orgMatcher } from "./org.ts";
 import { markdownMatcher } from "./markdown.ts";
 import { jsonMatcher } from "./json.ts";

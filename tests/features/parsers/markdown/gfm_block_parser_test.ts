@@ -1,5 +1,5 @@
 import { assertEquals } from "@std/assert";
-import { parseMarkdownBlocks } from "../../../../src/features/parsers/markdown/blockParser.ts";
+import { parseMarkdownBlocks } from "@internal/features/parsers/markdown";
 import type {
     MarkdownCodeBlockNode,
     MarkdownHeadingNode,
@@ -8,7 +8,7 @@ import type {
     MarkdownParagraphNode,
     MarkdownSectionNode,
     MarkdownThematicBreakNode,
-} from "../../../../src/features/parsers/markdown/types.ts";
+} from "@internal/features/parsers/markdown";
 
 Deno.test("unit: MarkdownBlockParser: constructs heading node with depth and slug", () => {
     const md = "# Getting Started\nProse text.";

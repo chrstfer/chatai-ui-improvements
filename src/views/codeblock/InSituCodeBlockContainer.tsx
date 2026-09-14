@@ -1,9 +1,9 @@
 import type { ComponentChildren, JSX } from "preact";
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "preact/hooks";
-import { computeContentHash } from "../../core/utils/contentHash.ts";
-import { copyTextToClipboard } from "../../core/utils/clipboard.ts";
-import { defaultViewStateCache, type ViewMode, type ViewStateCache } from "../../store/viewStateCache.ts";
-import { type AstCache, defaultAstCache } from "../../store/astCache.ts";
+import { computeContentHash } from "@internal/core/utils";
+import { copyTextToClipboard } from "@internal/core/utils";
+import { defaultViewStateCache, type ViewMode, type ViewStateCache } from "@internal/store";
+import { type AstCache, defaultAstCache } from "@internal/store";
 import { CodeBlockHeader } from "./CodeBlockHeader.tsx";
 import { RawSourceView } from "./RawSourceView.tsx";
 import { CodeBlockViewDispatcher } from "./CodeBlockViewDispatcher.tsx";
@@ -23,8 +23,8 @@ function findScrollContainer(el: HTMLElement | null): HTMLElement | Window {
     const host = (root instanceof ShadowRoot) ? (root.host as HTMLElement) : el;
     let curr: HTMLElement | null = host;
     while (curr && curr !== document.body && curr !== document.documentElement) {
-        if (typeof window.getComputedStyle === "function") {
-            const style = window.getComputedStyle(curr);
+        if (typeof globalThis.getComputedStyle === "function") {
+            const style = globalThis.getComputedStyle(curr);
             if (/(auto|scroll)/.test(style.overflowY)) {
                 return curr;
             }
@@ -125,8 +125,8 @@ export function InSituCodeBlockContainer({
                     const scroller = findScrollContainer(containerRef.current);
                     if (scroller && typeof (scroller as HTMLElement).scrollTop === "number") {
                         (scroller as HTMLElement).scrollTop += delta;
-                    } else if (typeof window !== "undefined" && typeof window.scrollBy === "function") {
-                        window.scrollBy(0, delta);
+                    } else if (typeof window !== "undefined" && typeof globalThis.scrollBy === "function") {
+                        globalThis.scrollBy(0, delta);
                     }
                 }
             }

@@ -1,5 +1,5 @@
-import type { GetTabStateRequest, GetTabStateResponse, ToggleActiveNotification } from "../core/rpc/messages.ts";
-import { createLogger } from "../core/logging/index.ts";
+import type { GetTabStateRequest, GetTabStateResponse, ToggleActiveNotification } from "@internal/core/rpc";
+import { createLogger } from "@internal/core/logging";
 
 export interface WebExtensionTab {
     id?: number;

@@ -7,8 +7,8 @@
  * - Serializes branching conversations into linear chat histories along active paths or target leaf IDs.
  */
 
-import type { ConversationTurnNode, ResponseSegment } from "../../../contracts/core/index.ts";
-import type { AstIrTranslator } from "../../../contracts/features/parsers/index.ts";
+import type { ConversationTurnNode, ResponseSegment } from "@internal/contracts/core";
+import type { AstIrTranslator } from "@internal/contracts/features/parsers";
 import type { JsonSegmentIr, JsonTurnIr } from "./types.ts";
 
 /**

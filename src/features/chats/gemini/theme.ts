@@ -1,6 +1,6 @@
-import type { HostThemeAuthority, ThemeChangeCallback, ThemeMode } from "../../../contracts/chats/index.ts";
+import type { HostThemeAuthority, ThemeChangeCallback, ThemeMode } from "@internal/contracts/chats";
 import { GEMINI_SELECTORS } from "./selectors.ts";
-import { createLogger } from "../../../core/logging/index.ts";
+import { createLogger } from "@internal/core/logging";
 
 export class GeminiThemeAuthority implements HostThemeAuthority {
     public readonly supportsTheming = true;
@@ -29,7 +29,7 @@ export class GeminiThemeAuthority implements HostThemeAuthority {
         ) {
             return "light";
         }
-        if (typeof window !== "undefined" && window.matchMedia?.("(prefers-color-scheme: dark)")?.matches) {
+        if (typeof window !== "undefined" && globalThis.matchMedia?.("(prefers-color-scheme: dark)")?.matches) {
             return "dark";
         }
         return "light";
@@ -59,8 +59,8 @@ export class GeminiThemeAuthority implements HostThemeAuthority {
             this.observer.observe(document.body, { attributes: true, attributeFilter: ["class"] });
         }
 
-        if (typeof window !== "undefined" && typeof window.matchMedia === "function") {
-            this.mediaQuery = window.matchMedia("(prefers-color-scheme: dark)");
+        if (typeof window !== "undefined" && typeof globalThis.matchMedia === "function") {
+            this.mediaQuery = globalThis.matchMedia("(prefers-color-scheme: dark)");
             this.mediaListener = notify;
             this.mediaQuery.addEventListener?.("change", this.mediaListener);
         }

@@ -1,5 +1,5 @@
 import type { JSX } from "preact";
-import type { OrgElement } from "../../parsers/org/index.ts";
+import type { OrgElement } from "@internal/features/parsers/org";
 import { type HeadlineFoldState, OrgHeadlineView } from "./OrgHeadlineView.tsx";
 import { OrgParagraphView } from "./OrgParagraphView.tsx";
 import { OrgBlockView } from "./OrgBlockView.tsx";

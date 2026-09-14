@@ -1,9 +1,9 @@
 import { assertEquals } from "@std/assert";
 import { cleanup as cleanupRtl, render } from "@testing-library/preact";
-import { setupTestDom, triggerClick } from "../../../fixtures/dom_fixture.ts";
-import { OrgDocumentView } from "../../../../src/features/renderers/org/OrgDocumentView.tsx";
-import { defaultAstCache } from "../../../../src/store/astCache.ts";
-import { computeContentHash } from "../../../../src/core/utils/contentHash.ts";
+import { setupTestDom, triggerClick } from "@internal/tests/fixtures";
+import { OrgDocumentView } from "@internal/features/renderers/org";
+import { defaultAstCache } from "@internal/store";
+import { computeContentHash } from "@internal/core/utils";
 
 Deno.test("unit: OrgDocumentView: renders document title in header", () => {
     const { cleanup } = setupTestDom();

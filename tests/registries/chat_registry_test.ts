@@ -3,8 +3,8 @@
  */
 
 import { assertEquals } from "@std/assert";
-import { ChatAdapterRegistry, defaultChatRegistry } from "../../src/registries/chatRegistry.ts";
-import type { SiteAdapter } from "../../src/contracts/chats/index.ts";
+import { ChatAdapterRegistry, defaultChatRegistry } from "@internal/registries";
+import type { SiteAdapter } from "@internal/contracts/chats";
 
 function createMockSiteAdapter(id: string, hostname: string): SiteAdapter {
     return {

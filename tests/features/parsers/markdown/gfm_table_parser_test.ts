@@ -1,6 +1,6 @@
 import { assertEquals } from "@std/assert";
-import { parseMarkdownBlocks } from "../../../../src/features/parsers/markdown/blockParser.ts";
-import type { MarkdownTableNode, MarkdownTextNode } from "../../../../src/features/parsers/markdown/types.ts";
+import { parseMarkdownBlocks } from "@internal/features/parsers/markdown";
+import type { MarkdownTableNode, MarkdownTextNode } from "@internal/features/parsers/markdown";
 
 Deno.test("unit: MarkdownTableParser: parses table header columns", () => {
     const md = "| A | B |\n| --- | --- |\n| 1 | 2 |";

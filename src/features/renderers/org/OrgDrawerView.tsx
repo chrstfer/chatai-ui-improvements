@@ -1,6 +1,6 @@
 import type { JSX } from "preact";
 import { useState } from "preact/hooks";
-import type { OrgDrawerElement, OrgPropertyDrawerElement } from "../../parsers/org/index.ts";
+import type { OrgDrawerElement, OrgPropertyDrawerElement } from "@internal/features/parsers/org";
 
 export interface OrgDrawerViewProps {
     readonly drawer: OrgPropertyDrawerElement | OrgDrawerElement;

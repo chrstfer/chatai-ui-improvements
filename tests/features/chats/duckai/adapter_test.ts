@@ -1,7 +1,7 @@
 import { assertEquals, assertNotEquals } from "@std/assert";
-import { DuckAiSiteAdapter } from "../../../../src/features/chats/duckai/index.ts";
-import { SettingsStore } from "../../../../src/core/storage/settings.ts";
-import { setupTestDom } from "../../../fixtures/dom_fixture.ts";
+import { DuckAiSiteAdapter } from "@internal/features/chats/duckai";
+import { SettingsStore } from "@internal/core/storage";
+import { setupTestDom } from "@internal/tests/fixtures";
 
 Deno.test("unit: DuckAiSiteAdapter: has correct adapter id", () => {
     const adapter = new DuckAiSiteAdapter();

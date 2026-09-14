@@ -1,4 +1,4 @@
-import type { ConversationTurnNode } from "../../../contracts/core/index.ts";
+import type { ConversationTurnNode } from "@internal/contracts/core";
 
 export interface GeminiCodeBlockRef {
     /** ID generated for tracking in-flight debouncing */

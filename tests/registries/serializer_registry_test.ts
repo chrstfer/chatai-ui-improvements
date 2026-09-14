@@ -3,8 +3,8 @@
  */
 
 import { assertEquals } from "@std/assert";
-import { SerializerRegistry } from "../../src/registries/serializerRegistry.ts";
-import type { ConversationSerializer } from "../../src/contracts/features/serializers/index.ts";
+import { SerializerRegistry } from "@internal/registries";
+import type { ConversationSerializer } from "@internal/contracts/features/serializers";
 
 const mockSerializer: ConversationSerializer = {
     formatId: "org",

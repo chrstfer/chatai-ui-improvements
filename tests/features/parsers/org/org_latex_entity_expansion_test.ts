@@ -1,6 +1,6 @@
 import { assertEquals } from "@std/assert";
-import { parseOrgInline } from "../../../../src/features/parsers/org/inlineParser.ts";
-import type { OrgEntityObject, OrgLatexFragmentObject } from "../../../../src/features/parsers/org/types.ts";
+import { parseOrgInline } from "@internal/features/parsers/org";
+import type { OrgEntityObject, OrgLatexFragmentObject } from "@internal/features/parsers/org";
 
 Deno.test("unit: OrgEntityExpander: expands Greek entities in prose while leaving shielded math untouched", () => {
     const text = "Let \\alpha be the parameter in $\\alpha + \\beta = 1$.";

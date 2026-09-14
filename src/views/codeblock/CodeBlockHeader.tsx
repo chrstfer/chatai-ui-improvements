@@ -1,7 +1,7 @@
 import type { JSX } from "preact";
-import type { ViewMode } from "../../store/viewStateCache.ts";
+import type { ViewMode } from "@internal/store";
 import { CheckmarkIcon, CopyIcon, ViewToggleIcon } from "./icons.tsx";
-import { formatDisplayName } from "../../features/matchers/index.ts";
+import { formatDisplayName } from "@internal/features/matchers";
 
 export interface CodeBlockHeaderProps {
     language: string;

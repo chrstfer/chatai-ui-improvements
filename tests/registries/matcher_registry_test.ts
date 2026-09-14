@@ -3,8 +3,8 @@
  */
 
 import { assertEquals } from "@std/assert";
-import { defaultMatcherRegistry, MatcherRegistry } from "../../src/registries/matcherRegistry.ts";
-import type { FormatMatcher } from "../../src/contracts/features/matchers/index.ts";
+import { defaultMatcherRegistry, MatcherRegistry } from "@internal/registries";
+import type { FormatMatcher } from "@internal/contracts/features/matchers";
 
 Deno.test("unit: MatcherRegistry: registers and retrieves format matcher by ID", () => {
     // Arrange

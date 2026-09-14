@@ -1,3 +1,9 @@
+/**
+ * Stylesheet Manager and Cache.
+ * Provides pre-parsed CSSStyleSheet singletons adopted by open Shadow Roots.
+ * 100% synchronous in-memory with zero network requests and 0ms hydration overhead.
+ */
+
 import { TAILWIND_CSS } from "./tailwind.generated.ts";
 import { KATEX_CSS } from "./katex.generated.ts";
 
@@ -7,90 +13,103 @@ declare const browser: {
     };
 } | undefined;
 
-let sharedTailwindSheet: CSSStyleSheet | null = null;
-let sharedKatexSheet: CSSStyleSheet | null = null;
-const hostStyleSheets = new Map<string, CSSStyleSheet>();
-const hostThemeRegistry = new Map<string, string>();
+export class StyleSheetManager {
+    private sharedTailwindSheet: CSSStyleSheet | null = null;
+    private sharedKatexSheet: CSSStyleSheet | null = null;
+    private hostStyleSheets = new Map<string, CSSStyleSheet>();
+    private hostThemeRegistry = new Map<string, string>();
 
-/**
- * Registers optional host-specific CSS strings (e.g. custom theme tokens or host overrides).
- */
-export function registerHostTheme(host: string, cssText: string): void {
-    hostThemeRegistry.set(host, cssText);
-    hostStyleSheets.delete(host);
-}
-
-/**
- * Returns a cached list of pre-parsed CSSStyleSheet singletons to be adopted by open Shadow Roots.
- * Operates 100% synchronously in memory with zero network requests and 0ms hydration overhead.
- */
-export function getAdoptedStyleSheets(host?: string): CSSStyleSheet[] {
-    if (typeof CSSStyleSheet === "undefined") {
-        return [];
+    /**
+     * Registers optional host-specific CSS strings (e.g. custom theme tokens or host overrides).
+     */
+    public registerHostTheme(host: string, cssText: string): void {
+        this.hostThemeRegistry.set(host, cssText);
+        this.hostStyleSheets.delete(host);
     }
 
-    if (!sharedTailwindSheet) {
-        sharedTailwindSheet = new CSSStyleSheet();
-        try {
-            sharedTailwindSheet.replaceSync(TAILWIND_CSS);
-        } catch (err) {
-            console.warn("[AdoptedStyleSheets] Failed to parse inlined Tailwind CSS:", err);
+    /**
+     * Returns a cached list of pre-parsed CSSStyleSheet singletons to be adopted by open Shadow Roots.
+     */
+    public getAdoptedStyleSheets(host?: string): CSSStyleSheet[] {
+        if (typeof CSSStyleSheet === "undefined") {
+            return [];
         }
-    }
 
-    const sheets: CSSStyleSheet[] = [sharedTailwindSheet];
-
-    if (host && hostThemeRegistry.has(host)) {
-        let hostSheet = hostStyleSheets.get(host);
-        if (!hostSheet) {
-            hostSheet = new CSSStyleSheet();
+        if (!this.sharedTailwindSheet) {
+            this.sharedTailwindSheet = new CSSStyleSheet();
             try {
-                hostSheet.replaceSync(hostThemeRegistry.get(host)!);
-                hostStyleSheets.set(host, hostSheet);
+                this.sharedTailwindSheet.replaceSync(TAILWIND_CSS);
             } catch (err) {
-                console.warn(`[AdoptedStyleSheets] Failed to parse host theme CSS for "${host}":`, err);
+                console.warn("[AdoptedStyleSheets] Failed to parse inlined Tailwind CSS:", err);
             }
         }
-        if (hostSheet) {
-            sheets.push(hostSheet);
+
+        const sheets: CSSStyleSheet[] = [this.sharedTailwindSheet];
+
+        if (host && this.hostThemeRegistry.has(host)) {
+            let hostSheet = this.hostStyleSheets.get(host);
+            if (!hostSheet) {
+                hostSheet = new CSSStyleSheet();
+                try {
+                    hostSheet.replaceSync(this.hostThemeRegistry.get(host)!);
+                    this.hostStyleSheets.set(host, hostSheet);
+                } catch (err) {
+                    console.warn(`[AdoptedStyleSheets] Failed to parse host theme CSS for "${host}":`, err);
+                }
+            }
+            if (hostSheet) {
+                sheets.push(hostSheet);
+            }
         }
+
+        return sheets;
     }
 
-    return sheets;
+    /**
+     * Returns a cached CSSStyleSheet singleton containing inlined KaTeX CSS.
+     */
+    public getKatexStyleSheet(): CSSStyleSheet | null {
+        if (typeof CSSStyleSheet === "undefined") {
+            return null;
+        }
+
+        if (!this.sharedKatexSheet) {
+            this.sharedKatexSheet = new CSSStyleSheet();
+            try {
+                const fontBase = typeof browser !== "undefined" && browser?.runtime?.getURL
+                    ? browser.runtime.getURL("vendor/fonts")
+                    : "vendor/fonts";
+                const resolvedCss = KATEX_CSS.replaceAll("__KATEX_FONTS_ROOT__", fontBase);
+                this.sharedKatexSheet.replaceSync(resolvedCss);
+            } catch (err) {
+                console.warn("[AdoptedStyleSheets] Failed to parse inlined KaTeX CSS:", err);
+            }
+        }
+
+        return this.sharedKatexSheet;
+    }
+
+    /**
+     * Clears all cached stylesheets and theme registrations.
+     */
+    public clear(): void {
+        this.sharedTailwindSheet = null;
+        this.sharedKatexSheet = null;
+        this.hostStyleSheets.clear();
+        this.hostThemeRegistry.clear();
+    }
 }
 
-/**
- * Returns a cached CSSStyleSheet singleton containing inlined KaTeX CSS.
- * Dynamically resolves bundled font URLs to the extension's runtime location.
- * Used on-demand by math-rendering components (e.g. LatexMathView).
- */
+export const defaultStyleSheetManager = new StyleSheetManager();
+
+export function registerHostTheme(host: string, cssText: string): void {
+    defaultStyleSheetManager.registerHostTheme(host, cssText);
+}
+
+export function getAdoptedStyleSheets(host?: string): CSSStyleSheet[] {
+    return defaultStyleSheetManager.getAdoptedStyleSheets(host);
+}
+
 export function getKatexStyleSheet(): CSSStyleSheet | null {
-    if (typeof CSSStyleSheet === "undefined") {
-        return null;
-    }
-
-    if (!sharedKatexSheet) {
-        sharedKatexSheet = new CSSStyleSheet();
-        try {
-            const fontBase = typeof browser !== "undefined" && browser?.runtime?.getURL
-                ? browser.runtime.getURL("vendor/fonts")
-                : "vendor/fonts";
-            const resolvedCss = KATEX_CSS.replaceAll("__KATEX_FONTS_ROOT__", fontBase);
-            sharedKatexSheet.replaceSync(resolvedCss);
-        } catch (err) {
-            console.warn("[AdoptedStyleSheets] Failed to parse inlined KaTeX CSS:", err);
-        }
-    }
-
-    return sharedKatexSheet;
-}
-
-/**
- * Testing-only utility to reset singleton stylesheet caches.
- */
-export function _resetStyleSheetCacheForTesting(): void {
-    sharedTailwindSheet = null;
-    sharedKatexSheet = null;
-    hostStyleSheets.clear();
-    hostThemeRegistry.clear();
+    return defaultStyleSheetManager.getKatexStyleSheet();
 }

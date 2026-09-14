@@ -1,8 +1,8 @@
 import { assertEquals } from "@std/assert";
 import { cleanup as cleanupRtl, render } from "@testing-library/preact";
-import { setupTestDom, triggerClick } from "../../../fixtures/dom_fixture.ts";
-import { OrgElementRenderer } from "../../../../src/features/renderers/org/OrgElementRenderer.tsx";
-import { parseOrgDocument } from "../../../../src/features/parsers/org/index.ts";
+import { setupTestDom, triggerClick } from "@internal/tests/fixtures";
+import { OrgElementRenderer } from "@internal/features/renderers/org";
+import { parseOrgDocument } from "@internal/features/parsers/org";
 
 Deno.test("unit: OrgElementRenderer: renders H1 tag with headline title", () => {
     const { cleanup } = setupTestDom();

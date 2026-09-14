@@ -3,12 +3,7 @@
  */
 
 import { assertEquals } from "@std/assert";
-import {
-    findMatchingFormat,
-    formatDisplayName,
-    markdownMatcher,
-    orgMatcher,
-} from "../../../src/features/matchers/index.ts";
+import { findMatchingFormat, formatDisplayName, markdownMatcher, orgMatcher } from "@internal/features/matchers";
 
 Deno.test("unit: FormatMatchers: orgMatcher and markdownMatcher cross-reject each other's hints", () => {
     // Arrange & Act

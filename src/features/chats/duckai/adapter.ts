@@ -1,4 +1,4 @@
-import type { ChatColumnBounds, SiteAdapter } from "../../../contracts/chats/index.ts";
+import type { ChatColumnBounds, SiteAdapter } from "@internal/contracts/chats";
 import { DUCKAI_SELECTORS } from "./selectors.ts";
 import { DuckAiDomObserver } from "./domObserver.ts";
 import { DuckAiInjector } from "./injector.tsx";
@@ -6,9 +6,9 @@ import { DuckAiScraper } from "./scraper.ts";
 import { DuckAiThemeAuthority } from "./theme.ts";
 import { DuckAiLayoutController } from "./layout.ts";
 import type { DuckAiResponseRef } from "./types.ts";
-import { type ExtensionSettings, SettingsStore } from "../../../core/storage/settings.ts";
-import { type HudMountHandle, mountHud } from "../../../views/settings/index.ts";
-import { createLogger } from "../../../core/logging/index.ts";
+import { type ExtensionSettings, SettingsStore } from "@internal/core/storage";
+import { type HudMountHandle, mountHud } from "@internal/views/settings";
+import { createLogger } from "@internal/core/logging";
 
 /**
  * Host Site Adapter for DuckDuckGo AI (https://duck.ai/ and https://duckduckgo.com/chat).
@@ -159,7 +159,7 @@ export class DuckAiSiteAdapter implements SiteAdapter {
     private installSpaNavigationHooks(): void {
         if (typeof window === "undefined" || typeof history === "undefined") return;
 
-        this.currentUrl = window.location.href;
+        this.currentUrl = globalThis.location.href;
 
         // Wrap pushState
         this.origPushState = history.pushState.bind(history);
@@ -177,13 +177,13 @@ export class DuckAiSiteAdapter implements SiteAdapter {
 
         // Listen for popstate and hashchange
         this.popstateListener = () => this.checkUrlChange();
-        window.addEventListener("popstate", this.popstateListener);
-        window.addEventListener("hashchange", this.popstateListener);
+        globalThis.addEventListener("popstate", this.popstateListener);
+        globalThis.addEventListener("hashchange", this.popstateListener);
     }
 
     private checkUrlChange(): void {
         if (typeof window === "undefined") return;
-        const newUrl = window.location.href;
+        const newUrl = globalThis.location.href;
         if (newUrl !== this.currentUrl) {
             this.logger.info(`SPA navigation detected: ${this.currentUrl} -> ${newUrl}`);
             this.currentUrl = newUrl;
@@ -265,8 +265,8 @@ export class DuckAiSiteAdapter implements SiteAdapter {
             this.origReplaceState = null;
         }
         if (this.popstateListener && typeof window !== "undefined") {
-            window.removeEventListener("popstate", this.popstateListener);
-            window.removeEventListener("hashchange", this.popstateListener);
+            globalThis.removeEventListener("popstate", this.popstateListener);
+            globalThis.removeEventListener("hashchange", this.popstateListener);
             this.popstateListener = null;
         }
 

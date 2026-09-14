@@ -1,9 +1,9 @@
 import { assertEquals, assertNotEquals } from "@std/assert";
 import { cleanup, render } from "@testing-library/preact";
-import { setupTestDom, triggerClick } from "../../fixtures/dom_fixture.ts";
-import { CodeBlockHeader, InSituCodeBlockContainer, RawSourceView } from "../../../src/views/codeblock/index.ts";
-import { ViewStateCache } from "../../../src/store/viewStateCache.ts";
-import { computeContentHash } from "../../../src/core/utils/contentHash.ts";
+import { setupTestDom, triggerClick } from "@internal/tests/fixtures";
+import { CodeBlockHeader, InSituCodeBlockContainer, RawSourceView } from "@internal/views/codeblock";
+import { ViewStateCache } from "@internal/store";
+import { computeContentHash } from "@internal/core/utils";
 
 const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
 

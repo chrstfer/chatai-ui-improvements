@@ -1,13 +1,13 @@
 import { render } from "preact";
 import { EXTENSION_INJECTED } from "./selectors.ts";
 import type { GeminiCodeBlockRef } from "./types.ts";
-import { InSituCodeBlockContainer } from "../../../views/codeblock/index.ts";
-import { createLogger } from "../../../core/logging/index.ts";
-import { defaultMatcherRegistry } from "../../../registries/matcherRegistry.ts";
-import { defaultRendererRegistry } from "../../../registries/rendererRegistry.ts";
-import { defaultAstCache } from "../../../store/astCache.ts";
-import { computeContentHash } from "../../../core/utils/contentHash.ts";
-import { getAdoptedStyleSheets } from "../../../styles/adoptedStyleSheets.ts";
+import { InSituCodeBlockContainer } from "@internal/views/codeblock";
+import { createLogger } from "@internal/core/logging";
+import { defaultMatcherRegistry } from "@internal/registries";
+import { defaultRendererRegistry } from "@internal/registries";
+import { defaultAstCache } from "@internal/store";
+import { computeContentHash } from "@internal/core/utils";
+import { getAdoptedStyleSheets } from "@internal/styles";
 import "./styles/tokens.ts";
 
 export class GeminiInjector {

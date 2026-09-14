@@ -1,6 +1,6 @@
-import type { HostThemeAuthority, ThemeChangeCallback, ThemeMode } from "../../../contracts/chats/index.ts";
+import type { HostThemeAuthority, ThemeChangeCallback, ThemeMode } from "@internal/contracts/chats";
 import { DUCKAI_SELECTORS } from "./selectors.ts";
-import { createLogger } from "../../../core/logging/index.ts";
+import { createLogger } from "@internal/core/logging";
 
 /**
  * Host Theme Authority for DuckDuckGo AI (duck.ai).
@@ -37,7 +37,7 @@ export class DuckAiThemeAuthority implements HostThemeAuthority {
         }
 
         // Fall back to system preference
-        if (typeof window !== "undefined" && window.matchMedia?.("(prefers-color-scheme: dark)")?.matches) {
+        if (typeof window !== "undefined" && globalThis.matchMedia?.("(prefers-color-scheme: dark)")?.matches) {
             return "dark";
         }
         return "light";
@@ -73,8 +73,8 @@ export class DuckAiThemeAuthority implements HostThemeAuthority {
             });
         }
 
-        if (typeof window !== "undefined" && typeof window.matchMedia === "function") {
-            this.mediaQuery = window.matchMedia("(prefers-color-scheme: dark)");
+        if (typeof window !== "undefined" && typeof globalThis.matchMedia === "function") {
+            this.mediaQuery = globalThis.matchMedia("(prefers-color-scheme: dark)");
             this.mediaListener = notify;
             this.mediaQuery.addEventListener?.("change", this.mediaListener);
         }

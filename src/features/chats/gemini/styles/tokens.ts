@@ -1,4 +1,4 @@
-import { registerHostTheme } from "../../../../styles/adoptedStyleSheets.ts";
+import { registerHostTheme } from "@internal/styles";
 
 /**
  * Host-specific styling and font inheritance tokens for Google Gemini.

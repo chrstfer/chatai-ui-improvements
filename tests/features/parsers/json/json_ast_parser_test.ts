@@ -1,11 +1,11 @@
 import { assertEquals, assertThrows } from "@std/assert";
-import { parseJsonDocument } from "../../../../src/features/parsers/json/parser.ts";
+import { parseJsonDocument } from "@internal/features/parsers/json";
 import type {
     JsonArrayNode,
     JsonObjectNode,
     JsonPrimitiveNode,
     JsonPropertyNode,
-} from "../../../../src/features/parsers/json/types.ts";
+} from "@internal/features/parsers/json";
 
 Deno.test("unit: JsonAstParser: parses json object into JsonObjectNode", () => {
     const raw = '{"key": "value"}';

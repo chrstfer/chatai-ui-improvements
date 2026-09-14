@@ -1,11 +1,7 @@
 import { assertEquals } from "@std/assert";
-import {
-    serializeOrgElement,
-    serializeOrgObjects,
-    serializeOrgSubtree,
-} from "../../../../src/features/parsers/org/serializer.ts";
-import { parseOrgDocument } from "../../../../src/features/parsers/org/parser.ts";
-import type { OrgHeadlineElement, OrgParagraphElement } from "../../../../src/features/parsers/org/types.ts";
+import { serializeOrgElement, serializeOrgObjects, serializeOrgSubtree } from "@internal/features/parsers/org";
+import { parseOrgDocument } from "@internal/features/parsers/org";
+import type { OrgHeadlineElement, OrgParagraphElement } from "@internal/features/parsers/org";
 
 Deno.test("unit: OrgSerializer: serializeOrgObjects round-trips inline formatting and links to raw string", () => {
     const raw = "Sample with *bold*, /italic/, ~code~, [[https://example.com][link]], and $E = mc^2$.";

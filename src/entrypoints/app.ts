@@ -1,6 +1,6 @@
-import type { SiteAdapter } from "../contracts/chats/index.ts";
-import { type ChatAdapterRegistry, defaultChatRegistry } from "../registries/index.ts";
-import { defaultTabStateBridge, type TabStateBridge } from "../core/rpc/index.ts";
+import type { SiteAdapter } from "@internal/contracts/chats";
+import { type ChatAdapterRegistry, defaultChatRegistry } from "@internal/registries";
+import { defaultTabStateBridge, type TabStateBridge } from "@internal/core/rpc";
 import { __BUILD_VERSION__, __DEV__ } from "../env.ts";
 import {
     createLogger,
@@ -8,7 +8,7 @@ import {
     installConsoleApi,
     installPreactHooks,
     type WindowTarget,
-} from "../core/logging/index.ts";
+} from "@internal/core/logging";
 
 export interface WindowLike {
     location: { href: string };

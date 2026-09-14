@@ -5,10 +5,10 @@
 
 import { render } from "preact";
 import { FloatingHud } from "./FloatingHud.tsx";
-import type { SettingsStore } from "../../core/storage/settings.ts";
-import { getAdoptedStyleSheets } from "../../styles/adoptedStyleSheets.ts";
-import type { ChatColumnBounds } from "../../contracts/chats/index.ts";
-import { createLogger } from "../../core/logging/index.ts";
+import type { SettingsStore } from "@internal/core/storage";
+import { getAdoptedStyleSheets } from "@internal/styles";
+import type { ChatColumnBounds } from "@internal/contracts/chats";
+import { createLogger } from "@internal/core/logging";
 
 export interface HudMountHandle {
     unmount: () => void;

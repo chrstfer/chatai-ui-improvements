@@ -2,7 +2,7 @@
  * Eager Format Matcher for Markdown / CommonMark / GFM.
  */
 
-import type { FormatMatcher } from "../../contracts/features/matchers/index.ts";
+import type { FormatMatcher } from "@internal/contracts/features/matchers";
 
 export const markdownMatcher: FormatMatcher = {
     id: "markdown",

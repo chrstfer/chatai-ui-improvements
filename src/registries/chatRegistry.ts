@@ -3,7 +3,7 @@
  * Manages host-specific site adapter definitions and asynchronous dynamic loading.
  */
 
-import type { ChatAdapterDefinition, SiteAdapter } from "../contracts/chats/index.ts";
+import type { ChatAdapterDefinition, SiteAdapter } from "@internal/contracts/chats";
 
 export class ChatAdapterRegistry {
     private definitions = new Map<string, ChatAdapterDefinition>();

@@ -1,12 +1,12 @@
-import type { ChatColumnBounds, SiteAdapter } from "../../../contracts/chats/index.ts";
+import type { ChatColumnBounds, SiteAdapter } from "@internal/contracts/chats";
 import { GEMINI_SELECTORS } from "./selectors.ts";
 import { GeminiDOMObserver } from "./domObserver.ts";
 import { GeminiInjector } from "./injector.tsx";
 import { GeminiThemeAuthority } from "./theme.ts";
 import { GeminiLayoutController } from "./layout.ts";
-import { type ExtensionSettings, SettingsStore } from "../../../core/storage/settings.ts";
-import { type HudMountHandle, mountHud } from "../../../views/settings/index.ts";
-import { createLogger } from "../../../core/logging/index.ts";
+import { type ExtensionSettings, SettingsStore } from "@internal/core/storage";
+import { type HudMountHandle, mountHud } from "@internal/views/settings";
+import { createLogger } from "@internal/core/logging";
 
 export class GeminiSiteAdapter implements SiteAdapter {
     public readonly id = "gemini";

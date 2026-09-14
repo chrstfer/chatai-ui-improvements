@@ -4,9 +4,9 @@
  * Indexed by canonical formatId.
  */
 
-import type { LazyParserDefinition, Parser } from "../contracts/features/parsers/index.ts";
-import { computeContentHash } from "../core/utils/contentHash.ts";
-import { type AstCache, defaultAstCache } from "../store/astCache.ts";
+import type { LazyParserDefinition, Parser } from "@internal/contracts/features/parsers";
+import { computeContentHash } from "@internal/core/utils";
+import { type AstCache, defaultAstCache } from "@internal/store";
 
 export class ParserRegistry {
     private definitions = new Map<string, Parser>();

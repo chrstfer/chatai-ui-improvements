@@ -1,4 +1,5 @@
 import { DOMParser } from "@b-fuze/deno-dom";
+import { resetStyleSheetCache } from "./stylesheet_fixture.ts";
 
 /**
  * Polyfills / shims :has() selector query support onto a DOMParser Document.
@@ -101,6 +102,8 @@ export function setupTestDom(options: SetupDomOptions = {}): SetupDomResult {
         ShadowRoot?: unknown;
         history?: unknown;
         MutationObserver?: unknown;
+        matchMedia?: unknown;
+        location?: unknown;
     }
     const scope = globalThis as unknown as GlobalScope;
     const origDoc = scope.document;
@@ -111,6 +114,8 @@ export function setupTestDom(options: SetupDomOptions = {}): SetupDomResult {
     const origShadowRoot = scope.ShadowRoot;
     const origHistory = scope.history;
     const origMO = scope.MutationObserver;
+    const origMatchMedia = scope.matchMedia;
+    const origLocation = scope.location;
 
     scope.MutationObserver = MockMutationObserver;
     MockMutationObserver.instances = [];
@@ -207,6 +212,8 @@ export function setupTestDom(options: SetupDomOptions = {}): SetupDomResult {
         }),
     };
     scope.window = mockWindow;
+    scope.matchMedia = mockWindow.matchMedia;
+    scope.location = mockWindow.location;
     (doc as unknown as { defaultView?: unknown }).defaultView = mockWindow;
 
     if (typeof localStorage !== "undefined") {
@@ -232,7 +239,10 @@ export function setupTestDom(options: SetupDomOptions = {}): SetupDomResult {
             scope.ShadowRoot = origShadowRoot;
             scope.history = origHistory;
             scope.MutationObserver = origMO;
+            scope.matchMedia = origMatchMedia;
+            scope.location = origLocation;
             MockMutationObserver.instances = [];
+            resetStyleSheetCache();
         },
     };
 }

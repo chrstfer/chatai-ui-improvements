@@ -1,6 +1,6 @@
 import { assertEquals } from "@std/assert";
 import { DuckAiThemeAuthority } from "../../../../src/features/chats/duckai/theme.ts";
-import { MockMutationObserver, setupTestDom } from "../../../fixtures/dom_fixture.ts";
+import { MockMutationObserver, setupTestDom } from "@internal/tests/fixtures";
 
 Deno.test("unit: DuckAiThemeAuthority: resolves theme from data-theme attribute on documentElement", () => {
     const { cleanup } = setupTestDom({

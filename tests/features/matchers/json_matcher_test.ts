@@ -1,5 +1,5 @@
 import { assertEquals } from "@std/assert";
-import { jsonMatcher } from "../../../src/features/matchers/json.ts";
+import { jsonMatcher } from "@internal/features/matchers";
 
 Deno.test("unit: JsonMatcher: matches json and jsonc language hints", () => {
     // Arrange & Act

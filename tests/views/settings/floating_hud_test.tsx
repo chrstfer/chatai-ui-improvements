@@ -1,8 +1,8 @@
 import { assertEquals, assertNotEquals } from "@std/assert";
 import { cleanup, render } from "@testing-library/preact";
-import { setupTestDom, triggerClick } from "../../fixtures/dom_fixture.ts";
-import { FloatingHud, mountHud } from "../../../src/views/settings/index.ts";
-import { type ExtensionSettings, SettingsStore } from "../../../src/core/storage/settings.ts";
+import { setupTestDom, triggerClick } from "@internal/tests/fixtures";
+import { FloatingHud, mountHud } from "@internal/views/settings";
+import { type ExtensionSettings, SettingsStore } from "@internal/core/storage";
 
 Deno.test("unit: FloatingHud: renders title with AI Chat UI brand", () => {
     const { cleanup: domCleanup } = setupTestDom();

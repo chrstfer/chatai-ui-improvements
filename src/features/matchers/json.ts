@@ -2,7 +2,7 @@
  * Eager Format Matcher for JSON.
  */
 
-import type { FormatMatcher } from "../../contracts/features/matchers/index.ts";
+import type { FormatMatcher } from "@internal/contracts/features/matchers";
 
 export const jsonMatcher: FormatMatcher = {
     id: "json",

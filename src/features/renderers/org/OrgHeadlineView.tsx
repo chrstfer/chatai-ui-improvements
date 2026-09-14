@@ -5,7 +5,7 @@ import {
     type OrgHeadlineElement,
     type OrgObject,
     serializeOrgSubtree,
-} from "../../parsers/org/index.ts";
+} from "@internal/features/parsers/org";
 import { OrgObjectRenderer } from "./OrgObjectRenderer.tsx";
 import { OrgDrawerView } from "./OrgDrawerView.tsx";
 

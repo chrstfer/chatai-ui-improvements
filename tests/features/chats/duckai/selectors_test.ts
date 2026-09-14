@@ -1,7 +1,7 @@
 import { assertEquals, assertNotEquals } from "@std/assert";
 import { DOMParser, Element } from "@b-fuze/deno-dom";
 import { DUCKAI_EXTENSION_INJECTED, DUCKAI_SELECTORS } from "../../../../src/features/chats/duckai/selectors.ts";
-import { loadHtmlFixture } from "../../../fixtures/fixture_loader.ts";
+import { loadHtmlFixture } from "@internal/tests/fixtures";
 
 function loadDuckDoc(file: string) {
     const html = loadHtmlFixture("duckai", file);

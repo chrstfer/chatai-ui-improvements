@@ -1,8 +1,8 @@
 import { assertEquals, assertNotEquals } from "@std/assert";
 import { cleanup, render } from "@testing-library/preact";
-import { setupTestDom } from "../../fixtures/dom_fixture.ts";
-import { LatexMathView } from "../../../src/views/common/LatexMathView.tsx";
-import { _resetStyleSheetCacheForTesting, getKatexStyleSheet } from "../../../src/styles/adoptedStyleSheets.ts";
+import { resetStyleSheetCache, setupTestDom } from "@internal/tests/fixtures";
+import { LatexMathView } from "@internal/views/common";
+import { getKatexStyleSheet } from "@internal/styles";
 
 Deno.test("unit: LatexMathView: renders container with latex-math class for inline expression", () => {
     const { cleanup: domCleanup } = setupTestDom();
@@ -135,7 +135,7 @@ Deno.test("unit: LatexMathView: renders fallback element when expression contain
 });
 
 Deno.test("unit: LatexMathView: adopts KaTeX stylesheet when mounted inside ShadowRoot", () => {
-    _resetStyleSheetCacheForTesting();
+    resetStyleSheetCache();
     const origSheet = globalThis.CSSStyleSheet;
 
     class MockCSSStyleSheet {
@@ -167,6 +167,6 @@ Deno.test("unit: LatexMathView: adopts KaTeX stylesheet when mounted inside Shad
         domCleanup();
     } finally {
         globalThis.CSSStyleSheet = origSheet;
-        _resetStyleSheetCacheForTesting();
+        resetStyleSheetCache();
     }
 });

@@ -1,9 +1,9 @@
 import type { JSX } from "preact";
 import { useCallback, useEffect, useMemo, useState } from "preact/hooks";
-import type { DocumentViewProps } from "../../../contracts/features/renderers/index.ts";
-import { defaultAstCache } from "../../../store/astCache.ts";
-import { computeContentHash } from "../../../core/utils/contentHash.ts";
-import { type OrgDocumentElement, parseOrgDocument } from "../../parsers/org/index.ts";
+import type { DocumentViewProps } from "@internal/contracts/features/renderers";
+import { defaultAstCache } from "@internal/store";
+import { computeContentHash } from "@internal/core/utils";
+import { type OrgDocumentElement, parseOrgDocument } from "@internal/features/parsers/org";
 import { OrgElementRenderer } from "./OrgElementRenderer.tsx";
 
 import type { HeadlineFoldState } from "./OrgHeadlineView.tsx";

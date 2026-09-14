@@ -1,6 +1,6 @@
 import { assertEquals } from "@std/assert";
 import { type DocumentLike, GeminiLayoutController } from "../../../../src/features/chats/gemini/layout.ts";
-import type { ExtensionSettings } from "../../../../src/contracts/core/index.ts";
+import type { ExtensionSettings } from "@internal/contracts/core";
 
 function createMockDocument(): DocumentLike {
     const styleProperties: Record<string, string> = {};

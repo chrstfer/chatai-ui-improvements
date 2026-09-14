@@ -4,7 +4,7 @@
  * Indexed by canonical formatId.
  */
 
-import type { LazyRendererDefinition, Renderer } from "../contracts/features/renderers/index.ts";
+import type { LazyRendererDefinition, Renderer } from "@internal/contracts/features/renderers";
 import { defaultMatcherRegistry } from "./matcherRegistry.ts";
 
 export class RendererRegistry {

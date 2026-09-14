@@ -10,8 +10,8 @@ import {
     LogLevel,
     LogRingBuffer,
     RunlevelManager,
-} from "../../../src/core/logging/index.ts";
-import { setupTestDom } from "../../fixtures/dom_fixture.ts";
+} from "@internal/core/logging";
+import { setupTestDom } from "@internal/tests/fixtures";
 
 Deno.test("unit: RunlevelManager: defaults to DEBUG level in dev mode", () => {
     // Arrange & Act

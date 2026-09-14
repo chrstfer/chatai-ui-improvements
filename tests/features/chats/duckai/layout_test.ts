@@ -1,6 +1,6 @@
 import { assertEquals } from "@std/assert";
 import { type DocumentLike, DuckAiLayoutController } from "../../../../src/features/chats/duckai/layout.ts";
-import type { ExtensionSettings } from "../../../../src/contracts/core/index.ts";
+import type { ExtensionSettings } from "@internal/contracts/core";
 
 function createMockDocument(): DocumentLike {
     const styleProperties: Record<string, string> = {};

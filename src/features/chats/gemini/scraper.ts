@@ -1,6 +1,6 @@
 import { GEMINI_SELECTORS } from "./selectors.ts";
 import type { GeminiCodeBlockRef } from "./types.ts";
-import { createLogger } from "../../../core/logging/index.ts";
+import { createLogger } from "@internal/core/logging";
 
 export class GeminiScraper {
     private logger = createLogger("Gemini > Scraper");

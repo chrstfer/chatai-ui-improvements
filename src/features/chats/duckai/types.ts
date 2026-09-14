@@ -1,5 +1,5 @@
-import type { ConversationTurnNode } from "../../../contracts/core/index.ts";
-import type { DiscoveredResponseRef } from "../../../contracts/chats/index.ts";
+import type { ConversationTurnNode } from "@internal/contracts/core";
+import type { DiscoveredResponseRef } from "@internal/contracts/chats";
 
 export interface DuckAiResponseRef extends DiscoveredResponseRef {
     /** Unique identifier of the assistant response message element */

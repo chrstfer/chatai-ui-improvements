@@ -1,5 +1,5 @@
 import { assertEquals } from "@std/assert";
-import { markdownMatcher } from "../../../src/features/matchers/markdown.ts";
+import { markdownMatcher } from "@internal/features/matchers";
 
 Deno.test("unit: MarkdownMatcher: matches md and gfm language hints", () => {
     // Arrange & Act

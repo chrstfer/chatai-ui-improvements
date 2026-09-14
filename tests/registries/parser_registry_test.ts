@@ -3,9 +3,9 @@
  */
 
 import { assertEquals } from "@std/assert";
-import { defaultParserRegistry, ParserRegistry } from "../../src/registries/parserRegistry.ts";
-import type { Parser } from "../../src/contracts/features/parsers/index.ts";
-import { AstCache } from "../../src/store/astCache.ts";
+import { defaultParserRegistry, ParserRegistry } from "@internal/registries";
+import type { Parser } from "@internal/contracts/features/parsers";
+import { AstCache } from "@internal/store";
 
 Deno.test("unit: ParserRegistry: has returns false for unregistered format", () => {
     // Arrange

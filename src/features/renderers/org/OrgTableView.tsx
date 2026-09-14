@@ -1,5 +1,5 @@
 import type { JSX } from "preact";
-import type { OrgTableColumnAlignment, OrgTableElement } from "../../parsers/org/index.ts";
+import type { OrgTableColumnAlignment, OrgTableElement } from "@internal/features/parsers/org";
 import { OrgObjectRenderer } from "./OrgObjectRenderer.tsx";
 
 export interface OrgTableViewProps {

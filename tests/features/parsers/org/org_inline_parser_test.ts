@@ -1,5 +1,5 @@
 import { assertEquals } from "@std/assert";
-import { parseOrgInline } from "../../../../src/features/parsers/org/inlineParser.ts";
+import { parseOrgInline } from "@internal/features/parsers/org";
 import type {
     OrgBoldObject,
     OrgCodeObject,
@@ -13,7 +13,7 @@ import type {
     OrgTextObject,
     OrgUnderlineObject,
     OrgVerbatimObject,
-} from "../../../../src/features/parsers/org/types.ts";
+} from "@internal/features/parsers/org";
 
 Deno.test("unit: OrgInlineParser: parseOrgInline creates single text object for plain text", () => {
     const nodes = parseOrgInline("Hello, this is pure text.");

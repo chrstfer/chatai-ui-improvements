@@ -1,5 +1,5 @@
 import { assertEquals } from "@std/assert";
-import { orgMatcher } from "../../../src/features/matchers/org.ts";
+import { orgMatcher } from "@internal/features/matchers";
 
 Deno.test("unit: OrgMatcher: matches org language hints case-insensitively", () => {
     // Arrange & Act

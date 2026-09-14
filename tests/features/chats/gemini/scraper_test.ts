@@ -3,7 +3,7 @@ import { DOMParser } from "@b-fuze/deno-dom";
 import { GEMINI_SELECTORS } from "../../../../src/features/chats/gemini/selectors.ts";
 import { GeminiScraper } from "../../../../src/features/chats/gemini/scraper.ts";
 import { GeminiThemeAuthority } from "../../../../src/features/chats/gemini/theme.ts";
-import { loadHtmlFixture } from "../../../fixtures/fixture_loader.ts";
+import { loadHtmlFixture } from "@internal/tests/fixtures";
 
 function loadRawFixture(filename: string) {
     const html = loadHtmlFixture("gemini", filename);

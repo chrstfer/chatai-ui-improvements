@@ -2,8 +2,8 @@ import { assertEquals } from "@std/assert";
 import { DOMParser, Element } from "@b-fuze/deno-dom";
 import { DuckAiDomObserver } from "../../../../src/features/chats/duckai/domObserver.ts";
 import type { DuckAiResponseRef } from "../../../../src/features/chats/duckai/types.ts";
-import { loadHtmlFixture } from "../../../fixtures/fixture_loader.ts";
-import { MockMutationObserver, setupTestDom } from "../../../fixtures/dom_fixture.ts";
+import { loadHtmlFixture } from "@internal/tests/fixtures";
+import { MockMutationObserver, setupTestDom } from "@internal/tests/fixtures";
 
 Deno.test("integration: DuckAiDomObserver: initial scan discovers pre-existing settled responses in fixture", () => {
     const { cleanup } = setupTestDom();

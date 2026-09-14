@@ -1,5 +1,5 @@
 import { assertEquals, assertFalse, assertNotEquals } from "@std/assert";
-import { AstCache, defaultAstCache } from "../../src/store/astCache.ts";
+import { AstCache, defaultAstCache } from "@internal/store";
 
 Deno.test("unit: AstCache: stores and verifies entry existence", () => {
     const cache = new AstCache(10);

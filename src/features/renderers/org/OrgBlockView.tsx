@@ -5,7 +5,7 @@ import type {
     OrgDynamicBlockElement,
     OrgFixedWidthElement,
     OrgObject,
-} from "../../parsers/org/index.ts";
+} from "@internal/features/parsers/org";
 import { OrgObjectRenderer } from "./OrgObjectRenderer.tsx";
 
 export interface OrgBlockViewProps {

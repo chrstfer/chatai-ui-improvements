@@ -1,5 +1,5 @@
 import type { JSX } from "preact";
-import type { OrgElement, OrgListElement, OrgListItemElement, OrgObject } from "../../parsers/org/index.ts";
+import type { OrgElement, OrgListElement, OrgListItemElement, OrgObject } from "@internal/features/parsers/org";
 import { OrgObjectRenderer } from "./OrgObjectRenderer.tsx";
 
 export interface OrgListViewProps {

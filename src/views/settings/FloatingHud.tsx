@@ -1,8 +1,8 @@
 import type { JSX } from "preact";
 import { useCallback, useEffect, useRef, useState } from "preact/hooks";
-import type { ExtensionSettings } from "../../contracts/core/index.ts";
-import type { ChatColumnBounds } from "../../contracts/chats/index.ts";
-import { createLogger } from "../../core/logging/index.ts";
+import type { ExtensionSettings } from "@internal/contracts/core";
+import type { ChatColumnBounds } from "@internal/contracts/chats";
+import { createLogger } from "@internal/core/logging";
 
 export interface FloatingHudProps {
     settings: ExtensionSettings;

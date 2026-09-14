@@ -1,4 +1,4 @@
-import { CoreLogger, createLogger } from "../../../src/core/logging/index.ts";
+import { CoreLogger, createLogger } from "@internal/core/logging";
 
 const originalConsole = {
     debug: console.debug,

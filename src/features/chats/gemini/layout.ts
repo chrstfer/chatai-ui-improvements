@@ -4,14 +4,14 @@
  */
 
 import { GEMINI_LAYOUT_CSS } from "./styles/layout.generated.ts";
-import type { ExtensionSettings } from "../../../contracts/core/index.ts";
+import type { ExtensionSettings } from "@internal/contracts/core";
 import type {
     ClassListLike,
     DocumentLike,
     HostLayoutController,
     StyleDeclarationLike,
-} from "../../../contracts/chats/index.ts";
-import { createLogger } from "../../../core/logging/index.ts";
+} from "@internal/contracts/chats";
+import { createLogger } from "@internal/core/logging";
 
 export type { ClassListLike, DocumentLike, HostLayoutController, StyleDeclarationLike };
 

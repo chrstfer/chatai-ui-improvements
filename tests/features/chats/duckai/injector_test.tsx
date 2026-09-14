@@ -1,5 +1,5 @@
 import { assertEquals, assertNotEquals } from "@std/assert";
-import { setupTestDom } from "../../../fixtures/dom_fixture.ts";
+import { setupTestDom } from "@internal/tests/fixtures";
 import { DuckAiInjector } from "../../../../src/features/chats/duckai/injector.tsx";
 import { DUCKAI_EXTENSION_INJECTED } from "../../../../src/features/chats/duckai/selectors.ts";
 import type { DuckAiCodeBlockRef } from "../../../../src/features/chats/duckai/types.ts";

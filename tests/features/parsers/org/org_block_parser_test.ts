@@ -1,5 +1,5 @@
 import { assertEquals } from "@std/assert";
-import { parseOrgDocument } from "../../../../src/features/parsers/org/parser.ts";
+import { parseOrgDocument } from "@internal/features/parsers/org";
 import type {
     OrgBlockElement,
     OrgDynamicBlockElement,
@@ -9,7 +9,7 @@ import type {
     OrgListElement,
     OrgPropertyDrawerElement,
     OrgTableElement,
-} from "../../../../src/features/parsers/org/types.ts";
+} from "@internal/features/parsers/org";
 
 Deno.test("unit: OrgBlockParser: parseOrgBlocks extracts document title property", () => {
     const input = "#+TITLE: Disambiguation Test\n#+AUTHOR: DeepMind\n";

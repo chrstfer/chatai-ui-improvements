@@ -1,11 +1,7 @@
 import { assertEquals } from "@std/assert";
-import type { ConversationTurnNode } from "../../../../src/contracts/core/index.ts";
-import {
-    buildTurnTree,
-    createJsonTurnIrTranslator,
-    serializeLinearChat,
-} from "../../../../src/features/parsers/json/translator.ts";
-import type { JsonTurnIr } from "../../../../src/features/parsers/json/types.ts";
+import type { ConversationTurnNode } from "@internal/contracts/core";
+import { buildTurnTree, createJsonTurnIrTranslator, serializeLinearChat } from "@internal/features/parsers/json";
+import type { JsonTurnIr } from "@internal/features/parsers/json";
 
 const sampleTurn: ConversationTurnNode = {
     id: "turn-1",

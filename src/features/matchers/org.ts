@@ -2,7 +2,7 @@
  * Eager Format Matcher for Emacs Org-Mode.
  */
 
-import type { FormatMatcher } from "../../contracts/features/matchers/index.ts";
+import type { FormatMatcher } from "@internal/contracts/features/matchers";
 
 export const orgMatcher: FormatMatcher = {
     id: "org",

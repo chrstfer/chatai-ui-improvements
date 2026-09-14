@@ -1,5 +1,5 @@
-import { createLogger } from "../../../core/logging/index.ts";
-import type { SettlementObserver, SettlementObserverCallbacks } from "../../../contracts/chats/index.ts";
+import { createLogger } from "@internal/core/logging";
+import type { SettlementObserver, SettlementObserverCallbacks } from "@internal/contracts/chats";
 import { DUCKAI_SELECTORS } from "./selectors.ts";
 import type { DuckAiObserverOptions, DuckAiResponseRef } from "./types.ts";
 

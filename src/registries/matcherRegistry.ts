@@ -3,8 +3,8 @@
  * Manages eager format matchers for fast, synchronous language detection.
  */
 
-import type { FormatMatcher } from "../contracts/features/matchers/index.ts";
-import { ALL_FORMAT_MATCHERS } from "../features/matchers/index.ts";
+import type { FormatMatcher } from "@internal/contracts/features/matchers";
+import { ALL_FORMAT_MATCHERS } from "@internal/features/matchers";
 
 export class MatcherRegistry {
     private matchers = new Map<string, FormatMatcher>();

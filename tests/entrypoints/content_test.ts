@@ -1,7 +1,7 @@
 import { assertEquals } from "@std/assert";
 import { bootstrapContentScript, type DocumentLike, type WindowLike } from "../../src/entrypoints/app.ts";
-import { ChatAdapterRegistry } from "../../src/registries/index.ts";
-import type { SiteAdapter } from "../../src/contracts/chats/index.ts";
+import { ChatAdapterRegistry } from "@internal/registries";
+import type { SiteAdapter } from "@internal/contracts/chats";
 
 function createLifecycleMockAdapter(id: string, hostname: string) {
     let initCalls = 0;

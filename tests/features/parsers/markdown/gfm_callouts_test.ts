@@ -1,6 +1,6 @@
 import { assertEquals } from "@std/assert";
-import { parseMarkdownBlocks } from "../../../../src/features/parsers/markdown/blockParser.ts";
-import type { MarkdownAlertNode, MarkdownParagraphNode } from "../../../../src/features/parsers/markdown/types.ts";
+import { parseMarkdownBlocks } from "@internal/features/parsers/markdown";
+import type { MarkdownAlertNode, MarkdownParagraphNode } from "@internal/features/parsers/markdown";
 
 Deno.test("unit: MarkdownCalloutParser: maps NOTE variant from uppercase marker", () => {
     const md = "> [!NOTE]\n> Take this into account.";

@@ -30,6 +30,7 @@ export type {
     OrgLatexEnvironmentElement,
     OrgLatexFragmentObject,
     OrgLineBreakObject,
+    OrgLinkObject,
     OrgListElement,
     OrgListItemElement,
     OrgMacroObject,

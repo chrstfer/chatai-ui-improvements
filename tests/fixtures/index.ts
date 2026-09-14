@@ -3,6 +3,8 @@
  */
 
 export {
+    MockMutationObserver,
+    type MutationCallback,
     patchHasSelector,
     renderInShadow,
     type SetupDomOptions,
@@ -12,4 +14,5 @@ export {
     triggerClick,
 } from "./dom_fixture.ts";
 
-export { loadHtmlFixture, loadTestFixture } from "./fixture_loader.ts";
+export { loadHtmlFixture } from "./fixture_loader.ts";
+export { resetStyleSheetCache } from "./stylesheet_fixture.ts";

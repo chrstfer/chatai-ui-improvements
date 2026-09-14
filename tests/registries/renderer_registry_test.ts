@@ -3,8 +3,8 @@
  */
 
 import { assertEquals } from "@std/assert";
-import { defaultRendererRegistry, RendererRegistry } from "../../src/registries/rendererRegistry.ts";
-import type { Renderer } from "../../src/contracts/features/renderers/index.ts";
+import { defaultRendererRegistry, RendererRegistry } from "@internal/registries";
+import type { Renderer } from "@internal/contracts/features/renderers";
 
 const MockViewComponent = () => null;
 const mockRenderer: Renderer = {

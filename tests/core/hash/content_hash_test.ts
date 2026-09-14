@@ -1,6 +1,6 @@
 import { assertEquals, assertNotEquals } from "@std/assert";
-import { computeContentHash, formatHashHex } from "../../../src/core/utils/contentHash.ts";
-import { defaultViewStateCache, ViewStateCache } from "../../../src/store/viewStateCache.ts";
+import { computeContentHash, formatHashHex } from "@internal/core/utils";
+import { defaultViewStateCache, ViewStateCache } from "@internal/store";
 
 Deno.test("unit: ContentHash: produces identical uint32 hashes for identical inputs", () => {
     // Arrange

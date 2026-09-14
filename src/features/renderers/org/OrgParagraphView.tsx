@@ -1,5 +1,5 @@
 import type { JSX } from "preact";
-import type { OrgParagraphElement } from "../../parsers/org/index.ts";
+import type { OrgParagraphElement } from "@internal/features/parsers/org";
 import { OrgObjectRenderer } from "./OrgObjectRenderer.tsx";
 
 export interface OrgParagraphViewProps {

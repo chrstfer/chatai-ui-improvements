@@ -5,7 +5,7 @@
  * and Phase 3 Stage 3 specifications.
  */
 
-import type { AstLeafNode, AstNode, AstParentNode, AstRootNode } from "../../../contracts/features/parsers/index.ts";
+import type { AstLeafNode, AstNode, AstParentNode, AstRootNode } from "@internal/contracts/features/parsers";
 
 export type MarkdownAlertVariant = "NOTE" | "TIP" | "IMPORTANT" | "WARNING" | "CAUTION";
 

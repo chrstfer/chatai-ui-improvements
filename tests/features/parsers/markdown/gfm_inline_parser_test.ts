@@ -1,5 +1,5 @@
 import { assertEquals } from "@std/assert";
-import { parseMarkdownInline } from "../../../../src/features/parsers/markdown/inlineParser.ts";
+import { parseMarkdownInline } from "@internal/features/parsers/markdown";
 import type {
     MarkdownCodeSpanNode,
     MarkdownEmphasisNode,
@@ -7,7 +7,7 @@ import type {
     MarkdownLinkNode,
     MarkdownMathInlineNode,
     MarkdownTextNode,
-} from "../../../../src/features/parsers/markdown/types.ts";
+} from "@internal/features/parsers/markdown";
 
 Deno.test("unit: MarkdownInlineParser: parses plain text as text node", () => {
     const nodes = parseMarkdownInline("Just simple prose text.");

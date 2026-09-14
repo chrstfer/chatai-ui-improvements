@@ -1,11 +1,6 @@
 import { assertEquals, assertNotEquals } from "@std/assert";
-import {
-    _resetStyleSheetCacheForTesting,
-    getAdoptedStyleSheets,
-    getKatexStyleSheet,
-    registerHostTheme,
-} from "../../src/styles/adoptedStyleSheets.ts";
-import { KATEX_CSS } from "../../src/styles/katex.generated.ts";
+import { getAdoptedStyleSheets, getKatexStyleSheet, KATEX_CSS, registerHostTheme } from "@internal/styles";
+import { resetStyleSheetCache } from "@internal/tests/fixtures";
 
 class MockCSSStyleSheet {
     cssText = "";
@@ -15,7 +10,7 @@ class MockCSSStyleSheet {
 }
 
 Deno.test("unit: AdoptedStyleSheets: getAdoptedStyleSheets returns baseline Tailwind stylesheet", () => {
-    _resetStyleSheetCacheForTesting();
+    resetStyleSheetCache();
     const origSheet = globalThis.CSSStyleSheet;
     try {
         globalThis.CSSStyleSheet = MockCSSStyleSheet as unknown as typeof CSSStyleSheet;
@@ -23,12 +18,12 @@ Deno.test("unit: AdoptedStyleSheets: getAdoptedStyleSheets returns baseline Tail
         assertEquals(sheets.length, 1);
     } finally {
         globalThis.CSSStyleSheet = origSheet;
-        _resetStyleSheetCacheForTesting();
+        resetStyleSheetCache();
     }
 });
 
 Deno.test("unit: AdoptedStyleSheets: getAdoptedStyleSheets includes registered host theme stylesheet", () => {
-    _resetStyleSheetCacheForTesting();
+    resetStyleSheetCache();
     const origSheet = globalThis.CSSStyleSheet;
     try {
         globalThis.CSSStyleSheet = MockCSSStyleSheet as unknown as typeof CSSStyleSheet;
@@ -37,12 +32,12 @@ Deno.test("unit: AdoptedStyleSheets: getAdoptedStyleSheets includes registered h
         assertEquals(customSheets.length, 2);
     } finally {
         globalThis.CSSStyleSheet = origSheet;
-        _resetStyleSheetCacheForTesting();
+        resetStyleSheetCache();
     }
 });
 
 Deno.test("unit: AdoptedStyleSheets: getKatexStyleSheet instantiates KaTeX stylesheet singleton", () => {
-    _resetStyleSheetCacheForTesting();
+    resetStyleSheetCache();
     const origSheet = globalThis.CSSStyleSheet;
     const origBrowser = (globalThis as unknown as { browser?: unknown }).browser;
     try {
@@ -55,12 +50,12 @@ Deno.test("unit: AdoptedStyleSheets: getKatexStyleSheet instantiates KaTeX style
     } finally {
         globalThis.CSSStyleSheet = origSheet;
         (globalThis as unknown as { browser?: unknown }).browser = origBrowser;
-        _resetStyleSheetCacheForTesting();
+        resetStyleSheetCache();
     }
 });
 
 Deno.test("unit: AdoptedStyleSheets: getKatexStyleSheet reuses cached stylesheet instance on subsequent calls", () => {
-    _resetStyleSheetCacheForTesting();
+    resetStyleSheetCache();
     const origSheet = globalThis.CSSStyleSheet;
     const origBrowser = (globalThis as unknown as { browser?: unknown }).browser;
     try {
@@ -74,12 +69,12 @@ Deno.test("unit: AdoptedStyleSheets: getKatexStyleSheet reuses cached stylesheet
     } finally {
         globalThis.CSSStyleSheet = origSheet;
         (globalThis as unknown as { browser?: unknown }).browser = origBrowser;
-        _resetStyleSheetCacheForTesting();
+        resetStyleSheetCache();
     }
 });
 
 Deno.test("unit: AdoptedStyleSheets: getKatexStyleSheet replaces font root placeholder with extension URL", () => {
-    _resetStyleSheetCacheForTesting();
+    resetStyleSheetCache();
     const origSheet = globalThis.CSSStyleSheet;
     const origBrowser = (globalThis as unknown as { browser?: unknown }).browser;
     let replacedCss = "";
@@ -105,12 +100,12 @@ Deno.test("unit: AdoptedStyleSheets: getKatexStyleSheet replaces font root place
     } finally {
         globalThis.CSSStyleSheet = origSheet;
         (globalThis as unknown as { browser?: unknown }).browser = origBrowser;
-        _resetStyleSheetCacheForTesting();
+        resetStyleSheetCache();
     }
 });
 
 Deno.test("unit: AdoptedStyleSheets: getAdoptedStyleSheets returns cached sheet reference across repeated calls", () => {
-    _resetStyleSheetCacheForTesting();
+    resetStyleSheetCache();
     const origSheet = globalThis.CSSStyleSheet;
     try {
         globalThis.CSSStyleSheet = MockCSSStyleSheet as unknown as typeof CSSStyleSheet;
@@ -119,12 +114,12 @@ Deno.test("unit: AdoptedStyleSheets: getAdoptedStyleSheets returns cached sheet 
         assertEquals(second, first);
     } finally {
         globalThis.CSSStyleSheet = origSheet;
-        _resetStyleSheetCacheForTesting();
+        resetStyleSheetCache();
     }
 });
 
 Deno.test("unit: AdoptedStyleSheets: getAdoptedStyleSheets instantiates CSSStyleSheet exactly once for Tailwind", () => {
-    _resetStyleSheetCacheForTesting();
+    resetStyleSheetCache();
     const origSheet = globalThis.CSSStyleSheet;
     let count = 0;
     class CountingSheet {
@@ -144,12 +139,12 @@ Deno.test("unit: AdoptedStyleSheets: getAdoptedStyleSheets instantiates CSSStyle
         assertEquals(count, 1);
     } finally {
         globalThis.CSSStyleSheet = origSheet;
-        _resetStyleSheetCacheForTesting();
+        resetStyleSheetCache();
     }
 });
 
 Deno.test("unit: AdoptedStyleSheets: getAdoptedStyleSheets calls replaceSync once across repeated calls", () => {
-    _resetStyleSheetCacheForTesting();
+    resetStyleSheetCache();
     const origSheet = globalThis.CSSStyleSheet;
     let syncCount = 0;
     class CountingSheet {
@@ -167,12 +162,12 @@ Deno.test("unit: AdoptedStyleSheets: getAdoptedStyleSheets calls replaceSync onc
         assertEquals(syncCount, 1);
     } finally {
         globalThis.CSSStyleSheet = origSheet;
-        _resetStyleSheetCacheForTesting();
+        resetStyleSheetCache();
     }
 });
 
 Deno.test("unit: AdoptedStyleSheets: getKatexStyleSheet calls replaceSync once across repeated calls", () => {
-    _resetStyleSheetCacheForTesting();
+    resetStyleSheetCache();
     const origSheet = globalThis.CSSStyleSheet;
     const origBrowser = (globalThis as unknown as { browser?: unknown }).browser;
     let syncCount = 0;
@@ -195,12 +190,12 @@ Deno.test("unit: AdoptedStyleSheets: getKatexStyleSheet calls replaceSync once a
     } finally {
         globalThis.CSSStyleSheet = origSheet;
         (globalThis as unknown as { browser?: unknown }).browser = origBrowser;
-        _resetStyleSheetCacheForTesting();
+        resetStyleSheetCache();
     }
 });
 
 Deno.test("unit: AdoptedStyleSheets: adoptedStyleSheets deduplicates stylesheet references across multiple adoption passes", () => {
-    _resetStyleSheetCacheForTesting();
+    resetStyleSheetCache();
     const origSheet = globalThis.CSSStyleSheet;
     const origBrowser = (globalThis as unknown as { browser?: unknown }).browser;
     try {
@@ -227,6 +222,6 @@ Deno.test("unit: AdoptedStyleSheets: adoptedStyleSheets deduplicates stylesheet 
     } finally {
         globalThis.CSSStyleSheet = origSheet;
         (globalThis as unknown as { browser?: unknown }).browser = origBrowser;
-        _resetStyleSheetCacheForTesting();
+        resetStyleSheetCache();
     }
 });

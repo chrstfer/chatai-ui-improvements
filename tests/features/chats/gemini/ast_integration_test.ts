@@ -1,11 +1,11 @@
 import { assertEquals, assertFalse } from "@std/assert";
 import { GeminiInjector } from "../../../../src/features/chats/gemini/injector.tsx";
 import type { GeminiCodeBlockRef } from "../../../../src/features/chats/gemini/types.ts";
-import { defaultParserRegistry } from "../../../../src/registries/parserRegistry.ts";
-import { defaultAstCache } from "../../../../src/store/astCache.ts";
-import { computeContentHash } from "../../../../src/core/utils/contentHash.ts";
-import type { OrgDocumentElement } from "../../../../src/features/parsers/org/index.ts";
-import { setupTestDom } from "../../../fixtures/dom_fixture.ts";
+import { defaultParserRegistry } from "@internal/registries";
+import { defaultAstCache } from "@internal/store";
+import { computeContentHash } from "@internal/core/utils";
+import type { OrgDocumentElement } from "@internal/features/parsers/org";
+import { setupTestDom } from "@internal/tests/fixtures";
 
 function setupGeminiDom() {
     const res = setupTestDom({

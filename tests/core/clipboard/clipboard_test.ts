@@ -1,5 +1,5 @@
 import { assertEquals } from "@std/assert";
-import { copyTextToClipboard } from "../../../src/core/utils/clipboard.ts";
+import { copyTextToClipboard } from "@internal/core/utils";
 
 Deno.test("unit: ClipboardService: writes text directly to navigator clipboard", async () => {
     // Arrange

@@ -2,7 +2,7 @@ import { assertEquals } from "@std/assert";
 import { DOMParser, Element } from "@b-fuze/deno-dom";
 import { DuckAiScraper } from "../../../../src/features/chats/duckai/scraper.ts";
 import { DUCKAI_SELECTORS } from "../../../../src/features/chats/duckai/selectors.ts";
-import { loadHtmlFixture } from "../../../fixtures/fixture_loader.ts";
+import { loadHtmlFixture } from "@internal/tests/fixtures";
 
 function loadFixture(filename: string): Element {
     const html = loadHtmlFixture("duckai", filename);
