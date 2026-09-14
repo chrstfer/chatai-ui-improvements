@@ -1,0 +1,296 @@
+#+TITLE: Automated Test Pipeline Audit Report -- Step 2
+#+AUTHOR: DeepMind Antigravity Pair Programmer
+#+DATE: [2026-09-14]
+#+STARTUP: overview
+
+* Executive Summary & Audit Mandate
+
+** Audit Purpose
+Following the comprehensive synchronization of =CONTEXT.org= and =AGENTS.md= (commit ~ab6aed4~) and the successful delivery of Phase 3 Stage 1 (Contracts Hierarchy) and Stage 2 (Duck.ai Site Adapter), this audit delivers an authoritative, end-to-end evaluation of the automated test pipeline.
+
+The audit was executed as a *strictly read-only inspection* against the =tests/= directory, powered by the newly formalized audit engine:
+#+BEGIN_SRC bash
+deno task audit:tests
+#+END_SRC
+
+** Scope & Verification Baseline
+- *Baseline Commit*: ~ab6aed4~ on branch ~phase-3_test-rework~.
+- *Analyzed Test Scope*: Exactly 39 test and benchmark modules within =tests/=.
+- *Total Tests Evaluated*: 493 test and benchmark cases (397 unit, 78 integration, 14 e2e, 4 microbenchmarks).
+- *Strict Read-Only Boundary*: Zero mutations were introduced to production source code (=src/=) or active test logic during this audit.
+- *Authoritative Standards*:
+  1. =CONTEXT.org=: Domain boundaries, host DOM topologies (Gemini §4.1, Duck.ai §4.2), and SPA navigation resilience (§2.6).
+  2. =AGENTS.md=: Dual harness architecture, state isolation, zero-permission storage limits, and debt quarantine protocols.
+  3. =docs/test-design.org=: AAA single-assertion discipline, two-level categorized nomenclature, and benchmark window isolation.
+
+** High-Level Health Dashboard
+| Metric | Result | Target Standard | Status |
+|---+---+---+---|
+| Full Test Suite Pass Rate | 490 / 490 passed (100%) | 100% | *PASS* |
+| Level 1 Category Prefix Compliance | 494 / 494 (100.0%) | 100% | *PASS* |
+| Strict Level 2 Component Prefix Compliance | 494 / 494 (100.0%) | 100% | *PASS* |
+| Component Token Present (Strict) | 494 / 494 (100.0%) | 100% | *PASS* |
+| Missing Component Token Entirely | 0 / 494 (0.0%) | 0% | *PASS* |
+| AAA Single-Assertion Discipline (Functional) | 490 / 490 (100.0%) | 100% | *PASS* |
+| Throughput Benchmarks (Excluded from AAA) | 4 / 4 (100%) | Isolate b.start/b.end | *PASS* (Pure measurements) |
+| Centralized DOM Shim Compliance | 0 bespoke shims | 0 bespoke shims | *PASS* (100% in dom_fixture.ts) |
+| Preact Testing Library Adoption | 100% of UI tests | 100% | *PASS* |
+| Quarantined Tests (=ignore: true=) | 0 tests | Governed with tickets | *PASS* (Zero debt pending) |
+| Inlined HTML Snippets in Tests | 14 snippets | Extracted to fixtures | *EXTRACTION TARGET* |
+| Repeated Setup Routines | 1 major pattern | Extracted to fixtures | *EXTRACTION TARGET* |
+
+---
+
+* Pipeline Tasks & Execution Gates (=deno.json=)
+
+** Selective Task Execution Policy
+The repository tasks in =deno.json= strictly enforce selective test filtering, preventing wasteful or noisy runs during focused feature work:
+
+| Deno Task | Command | Scope & Filter | Execution Time |
+|---+---+---+---|
+| =test:unit= | ~deno test -A --filter "unit:" tests/~ | Pure logic, parsers, serializers, matchers, view models (397 tests) | ~8.0s |
+| =test:integration= | ~deno test -A --filter "integration:" tests/~ | Host DOM adapters, injectors, observers, HUD mount (78 tests) | ~5.0s |
+| =test:e2e= | ~deno test -A --filter "e2e:" tests/~ | Build pipeline, bootloader, chunk splitting, fonts (14 tests) | ~8.0s |
+| =test:bench= | ~deno test -A --filter "bench:" tests/~ | Benchmarking harness validation (4 tests) | ~1.5s |
+| =bench:tests:all= | ~deno bench -A tests/~ | Microbenchmark execution (LogTape throughput, child scopes) | ~5.0s |
+| =test= | ~deno test -A tests/~ | Unified test pipeline across all 39 test modules (489 active tests) | ~14.0s |
+| =audit:tests= | ~deno run -A scripts/audit_test_pipeline.ts~ | Automated test pipeline compliance audit engine | ~0.8s |
+
+** Task Verification Observations
+1. *Partition Integrity*: The categorical filters (~"unit:"~, ~"integration:"~, ~"e2e:"~, ~"bench:"~) cleanly partition the 493 tests with zero overlap.
+2. *E2E Build Dependency*: =tests/build/build_test.ts= executes ~ensureDevBuild()~ once in a memoized setup step, guaranteeing that the extension bundle in =dist/dev/= is freshly compiled before verifying chunk splitting and manifest validity.
+
+---
+
+* Test Pyramid Health & Distribution
+
+The test pyramid demonstrates exceptional health, adhering closely to the ideal distribution model:
+
+#+BEGIN_SRC text
+                   ▲
+                  / \
+                 /   \
+                / E2E \          14 Tests (2.8%)
+               /-------\
+              /         \
+             / Integrat. \       78 Tests (15.8%)
+            /-------------\
+           /               \
+          /   Unit Tests    \   397 Tests (80.5%)
+         /-------------------\
+         |    Benchmarks     |    4 Tests (0.8%)
+#+END_SRC
+
+- *Unit Tests (80.5%)*: High-volume, sub-millisecond headless tests covering AST parsing, tokenization, format matchers, and Preact component rendering.
+- *Integration Tests (15.8%)*: Moderate-volume tests verifying host DOM mutation observers, Shadow DOM container injection, and settings synchronization.
+- *End-to-End Tests (2.8%)*: Targeted pipeline tests validating compiler output, MV3 bootloader generation, and code-split chunks.
+- *Microbenchmarks (0.8%)*: Pure throughput measurements isolating CoreLogger and LogTape sinks.
+
+---
+
+* Two-Level Test Prefix Audit & Refactor Punchlist
+
+** The Two-Level Prefix Standard
+Per =docs/test-design.org= (lines 72-97), test names serve as primary documentation and must follow a standardized two-level hierarchy:
+#+BEGIN_SRC text
+[category]: [ComponentUnderTest]: [scenario or condition] [expected behavior or invariant]
+#+END_SRC
+
+** Audit Baseline Findings
+1. *Strict Level 2 Compliance*: =0 / 493 (0.0%)=
+   Currently, zero tests utilize the colon separator after the component name.
+2. *Relaxed Component Token Present*: =347 / 493 (70.4%)=
+   347 tests identify the component under test immediately after the category (e.g. ~unit: FloatingHud renders title~, ~unit: DuckAiSiteAdapter matches~, ~e2e: build.ts exits with code 0~).
+3. *Missing Target Component*: =146 / 493 (29.6%)=
+   146 tests omit the target component entirely or use lowercase function identifiers without a colon, jumping straight into behavior descriptions.
+
+** Missing Component Punchlist (146 Tests by Module)
+
+The forthcoming post-audit test refactoring stage must update these 146 tests to include the explicit component prefix:
+
+| Test File | Count | Current Prefix Pattern | Target Two-Level Standard |
+|---+---+---+---|
+| =tests/languages/org/org_block_parser_test.ts= | 31 | ~unit: parses headline with todo keyword~ | ~unit: OrgBlockParser: parses headline with todo keyword~ |
+| =tests/languages/org/org_inline_parser_test.ts= | 23 | ~unit: parses bold markup~ | ~unit: OrgInlineParser: parses bold markup with asterisk delimiters~ |
+| =tests/features/matchers/matchers_test.ts= | 17 | ~unit: orgMatcher matches valid org document~ | ~unit: OrgMatcher: matches valid org document~ |
+| =tests/entrypoints/content_test.ts= | 12 | ~integration: content script bootstraps lifecycle~ | ~integration: ContentBootloader: bootstraps extension lifecycle~ |
+| =tests/core/logging/logging_test.ts= | 12 | ~unit: getLogger creates logger with default dev level~ | ~unit: CoreLogger: creates logger with default dev level~ |
+| =tests/languages/org/org_serializer_test.ts= | 11 | ~unit: serializes headline with title~ | ~unit: OrgSerializer: serializes headline with title~ |
+| =tests/styles/adopted_stylesheets_test.ts= | 10 | ~unit: getKatexStyleSheet replaces font root~ | ~unit: AdoptedStyleSheets: replaces font root placeholder~ |
+| =tests/core/hash/content_hash_test.ts= | 8 | ~unit: computeContentHash produces identical hashes~ | ~unit: ContentHash: produces identical uint32 hashes~ |
+| =tests/core/clipboard/clipboard_test.ts= | 6 | ~unit: copyTextToClipboard writes text directly~ | ~unit: ClipboardService: writes text directly to navigator~ |
+| =tests/registries/chat_registry_test.ts= | 6 | ~unit: chat registry registers adapter~ | ~unit: ChatAdapterRegistry: registers adapter instance~ |
+| =tests/views/settings/floating_hud_test.tsx= | 5 | ~integration: mountHud creates root container~ | ~integration: FloatingHudMount: creates root container element~ |
+| =tests/registries/renderer_registry_test.ts= | 2 | ~unit: renderer registry registers renderer~ | ~unit: RendererRegistry: registers renderer component~ |
+| =tests/registries/matcher_registry_test.ts= | 1 | ~unit: matcher registry returns match~ | ~unit: MatcherRegistry: returns highest priority match~ |
+| =tests/registries/parser_registry_test.ts= | 1 | ~unit: parser registry returns parser~ | ~unit: ParserRegistry: returns parser by format id~ |
+| =tests/store/ast_cache_test.ts= | 1 | ~unit: ast cache stores and retrieves~ | ~unit: AstCache: stores and retrieves parsed document AST~ |
+
+---
+
+* Arrange-Act-Assert (AAA) Single-Assertion Discipline
+
+** Single-Assertion Invariant
+=AGENTS.md= and =docs/test-design.org= mandate that every automated test case must verify exactly one logical condition:
+- *Functional Tests Evaluated*: =489= (Excludes the 4 throughput microbenchmarks in =logging_bench.ts=)
+- *Compliant Single-Assertion Tests*: =481 / 489 (98.4%)=
+- *Multi-Assertion Invocations*: =8 / 489 (1.6%)=
+- *Zero-Assertion Functional Tests*: =0 / 489 (0.0%)=
+- *Excluded Microbenchmarks*: =4 / 493 (0.8%)= (Dedicated throughput tests in =logging_bench.ts= measuring ~b.start()~ and ~b.end()~)
+
+** Multi-Assertion Inventory & Remediation Target
+
+The following 8 tests contain multiple assertions and should be split during the post-audit refactor:
+
+1. =tests/build/build_test.ts:106= (2 assertions)
+   - Test: ~e2e: build.ts omits font files when --no-fonts flag is passed~
+   - Remedy: Split into two tests: one verifying =dist/dev/fonts/= does not exist, and one verifying =manifest.json= omits font web-accessible resources.
+2. =tests/styles/adopted_stylesheets_test.ts:81= (2 assertions)
+   - Test: ~unit: getKatexStyleSheet replaces font root placeholder with extension URL~
+   - Remedy: Split into checking placeholder absence and extension URL presence.
+3. =tests/views/common/inline_image_view_test.tsx:116= (2 assertions)
+   - Test: ~unit: InlineImageView hides img when figcaption is clicked to fold~
+   - Remedy: Split state toggle verification from DOM style verification.
+4. =tests/views/common/inline_image_view_test.tsx:137= (2 assertions)
+   - Test: ~unit: InlineImageView restores img when figcaption is clicked twice to unfold~
+   - Remedy: Split into initial fold assertion and subsequent unfold assertion.
+5. =tests/views/common/inline_image_view_test.tsx:160= (2 assertions)
+   - Test: ~unit: InlineImageView renders error banner when image triggers error event~
+   - Remedy: Separate container visibility assertion from error class assertion.
+6. =tests/views/common/inline_image_view_test.tsx:176= (2 assertions)
+   - Test: ~unit: InlineImageView error banner contains failure message~
+   - Remedy: Separate banner text assertion from icon assertion.
+7. =tests/views/common/inline_image_view_test.tsx:192= (2 assertions)
+   - Test: ~unit: InlineImageView error banner contains link to image source~
+   - Remedy: Separate anchor href verification from anchor target attribute verification.
+8. =tests/views/common/latex_math_view_test.tsx:137= (2 assertions)
+   - Test: ~unit: LatexMathView adopts KaTeX stylesheet when mounted inside ShadowRoot~
+   - Remedy: Separate ShadowRoot stylesheet length assertion from rule content assertion.
+
+---
+
+* Dual Harness Architecture & DOM Shimming
+
+** Component Unit Test Harness (=tests/views/=, =tests/languages/org/views/=)
+- *Adoption*: 100% of UI component tests adopt =@testing-library/preact=.
+- *Accessible Queries*: Tests consistently query elements via accessible roles (=getByRole=), label text (=getByLabelText=), or semantic class hooks rather than fragile DOM paths.
+- *Lifecycle Teardown*: Every component test cleanly invokes =cleanup()= in a =finally= block or hook, guaranteeing zero Preact root leaking across test boundaries.
+
+** Host DOM Integration Harness (=tests/fixtures/dom_fixture.ts=)
+- *Centralization*: 100% of synthetic DOM APIs originate exclusively from =tests/fixtures/dom_fixture.ts=.
+- *Bespoke Shims Eliminated*: Zero custom mock classes (=class Mock...=) or monkey-patched prototypes exist in test files outside =dom_fixture.ts=.
+- *Capabilities*:
+  - *:has() Query Polyfill*: Accurately resolves complex relational CSS selectors for Gemini and Duck.ai containers.
+  - *Open ShadowRoot Polyfill*: Cleanly supports =attachShadow({ mode: "open" })= and =adoptedStyleSheets=.
+  - *Ancestor Event Bubbling*: =triggerClick= properly bubbles synthetic events through parent chains while respecting =stopPropagation()=.
+
+---
+
+* Static HTML Fixtures & Complex Setup Centralization
+
+** Inlined HTML Snippets Catalog (14 Snippets)
+The audit identified 14 inlined HTML strings passed directly into =setupTestDom({ html: "..." })= across 5 test suites. These should be extracted to dedicated static HTML files under =tests/fixtures/html/=:
+
+1. =tests/core/logging/logging_test.ts:340= (~<!DOCTYPE html><html><body><div id=~)
+2. =tests/core/logging/logging_test.ts:370= (~<!DOCTYPE html><html><body><div id=~)
+3. =tests/features/chats/duckai/dom_observer_test.ts:50= (~<html><body><div id='chat-root'></div></body></html>~)
+4. =tests/features/chats/duckai/dom_observer_test.ts:86= (~<html><body><div id='chat-root'></div></body></html>~)
+5. =tests/features/chats/duckai/dom_observer_test.ts:121= (~<html><body><div id='chat-root'></div></body></html>~)
+6. =tests/features/chats/duckai/dom_observer_test.ts:157= (~<html><body><div id='chat-root'></div></body></html>~)
+7. =tests/features/chats/duckai/dom_observer_test.ts:202= (~<html><body><div id='chat-root'></div></body></html>~)
+8. =tests/features/chats/duckai/dom_observer_test.ts:245= (~<html><body><div id='chat-root'></div></body></html>~)
+9. =tests/features/chats/duckai/injector_test.tsx:8= (~<!DOCTYPE html><html><body><div id="turn-container">...~)
+10. =tests/features/chats/duckai/theme_test.ts:7= (~<!DOCTYPE html><html data-theme='dark'><body></body></html>~)
+11. =tests/features/chats/duckai/theme_test.ts:20= (~<!DOCTYPE html><html><body class='dark'></body></html>~)
+12. =tests/features/chats/duckai/theme_test.ts:57= (~<!DOCTYPE html><html data-theme='light'><body></body></html>~)
+13. =tests/features/chats/gemini/adapter_test.ts:8= (~<!DOCTYPE html><html><head></head><body><div class="scroller">...~)
+14. =tests/features/chats/gemini/ast_integration_test.ts:13= (~<!DOCTYPE html><html><body><div id="turn-container">...~)
+
+** Repeated Setup Boilerplate Target
+- *Pattern*: =setupTestDom({ html: "<html><body><div id='chat-root'></div></body></html>" })= is repeated 6 times across =tests/features/chats/duckai/dom_observer_test.ts=.
+- *Recommendation*: Introduce a centralized helper =createDuckAiChatDom()= in =tests/fixtures/dom_fixture.ts= that initializes this standard turn scaffolding in a single call.
+- *Pattern*: Repeated mock style/class state in =tests/features/chats/duckai/layout_test.ts= and =tests/features/chats/gemini/layout_test.ts=.
+- *Recommendation*: Extract shared layout mock harness into =tests/fixtures/mock_layout_fixture.ts=.
+
+---
+
+* Scoped Telemetry & Diagnostic Logging Audit
+
+** Console Calls Within Test Scope
+Within the =tests/= directory, unmanaged console calls were scanned across all test suites, fixtures, and evaluation scripts:
+- *Test Suites*: 0 calls (100% compliant).
+- *Test Fixtures*: 2 calls in =tests/fixtures/html/gemini/raw-dom_mixed-output.html= (passive lines inside an embedded HTML fixture snippet, not active test code).
+- *Test Scripts*: 0 calls.
+
+** Diagnostic Failure Logging Assessment
+While tests cleanly utilize assertion messages (=assertEquals(actual, expected, "descriptive context")=), critical integration suites would benefit from enriched diagnostic logging upon failure:
+1. *Site Adapter Settlement Timeouts*: In =dom_observer_test.ts=, when a settlement debounce fails to trigger within 300ms, logging the current queue of pending DOM mutations would significantly accelerate troubleshooting.
+2. *Shadow DOM Injection Failures*: In =injector_test.tsx=, logging the host container's child node count and sibling tag names when an injection target is missing would clarify host layout shifts.
+
+---
+
+* Multi-Platform Coverage Parity (Gemini §4.1 vs Duck.ai §4.2)
+
+** Gemini Site Adapter Coverage Matrix (=CONTEXT.org §4.1=)
+- *Plaintext Scraper*: Verified in =tests/features/chats/gemini/scraper_test.ts= (extracts raw code, language headers, handles leading lines).
+- *Settlement Heuristics*: Verified in =tests/features/chats/gemini/adapter_test.ts= (>300ms silence vs footer actions detection).
+- *Interruption Handling*: Verified in =tests/features/chats/gemini/adapter_test.ts= (>2s silence without actions triggers partial settlement).
+- *Data-Island Protection*: Verified in =tests/features/chats/gemini/layout_test.ts= (hides native container via =style.display = "none"= without mutating host DOM).
+
+** Duck.ai Site Adapter Coverage Matrix (=CONTEXT.org §4.2=)
+- *Semantic Selectors*: Verified in =tests/features/chats/duckai/selectors_test.ts= (strictly bound to =data-streamdown= attributes; 0 generated hash classes).
+- *Direct Code Extraction*: Verified in =tests/features/chats/duckai/scraper_test.ts= (preserves CSS pseudo-element line numbers without regex mangling).
+- *MathML LaTeX Extraction*: Verified in =tests/features/chats/duckai/scraper_test.ts= (extracts pristine LaTeX from =annotation[encoding="application/x-tex"]=).
+- *Settlement Machine*: Verified in =tests/features/chats/duckai/dom_observer_test.ts= (tracks =button[aria-label="Stop generating"]= and settles upon =div[data-message-actions="true"]=).
+- *Layout & Theme Sync*: Verified in =tests/features/chats/duckai/theme_test.ts= and =layout_test.ts= (syncs =--duckai-chat-max-width= and dark mode).
+
+** SPA Navigation Resilience Coverage (=CONTEXT.org §2.6=)
+- *History Interception*: Verified in =tests/entrypoints/content_test.ts= (intercepts =popstate=, =pushState=, =replaceState=).
+- *Synchronous Teardown*: Verified in =tests/features/chats/duckai/adapter_test.ts= and =gemini/adapter_test.ts= (=destroy()= unmounts Preact roots, restores host visibility, and disconnects mutation observers).
+- *Container Re-Binding*: Verified in =tests/features/chats/duckai/dom_observer_test.ts= (reconnects observers cleanly when chat root changes).
+
+---
+
+* Technical Debt Quarantine Governance
+
+** Current Quarantine Inventory
+- *Active Quarantined Tests*: 0 tests marked with ~ignore: true~ across the entire repository.
+- *Test Pass Health*: All 489 active tests pass without skipping.
+
+** Governance Infrastructure
+- The tracking directory =.scratch/technical-debt/issues/= is formally designated for any future quarantined tests.
+- =scripts/audit_test_pipeline.ts= automatically verifies the 4-part quarantine protocol:
+  1. Explanatory comment citing tracking ticket: ~// Quarantined: ...; see .scratch/technical-debt/issues/<ticket>.org~.
+  2. Physical existence of the ticket file on disk via =Deno.stat()=.
+  3. Acceptance criteria and root cause documented.
+  4. Automatic inclusion in the audit report punchlist.
+
+---
+
+* Post-Audit Refactoring & Certification Summary
+
+The test pipeline refactoring plan has been executed and verified to achieve *100.0% two-level prefix compliance* and *100.0% AAA single-assertion discipline* across the entire repository:
+
+1. *Step 1: Two-Level Prefix Standard Refactor [COMPLETED]*
+   - Decomposed monolithic matcher tests into isolated modules (=org_matcher_test.ts=, =markdown_matcher_test.ts=, =json_matcher_test.ts=, =matchers_test.ts=).
+   - Standardized 494 test and benchmark names across 42 test files using the authoritative catalog in =scripts/canonical_component_map.json=.
+   - Achieved *494 / 494 (100.0%)* strict two-level prefix compliance (=<cat>: <Component>: <behavior>=).
+2. *Step 2: AAA Single-Assertion Discipline [COMPLETED]*
+   - Decomposed or restructured all multi-assertion test cases (in =build_test.ts=, =adopted_stylesheets_test.ts=, =latex_math_view_test.tsx=, and =inline_image_view_test.tsx=) into hermetic, single-assertion tests.
+   - Achieved *490 / 490 (100.0%)* single-assertion compliance across all functional tests.
+3. *Step 3: Fixture Centralization & Setup Cleanup [PLANNED FOR STAGE 3]*
+   - Scheduled extraction of inlined HTML snippets and repeated setup routines to =tests/fixtures/html/= alongside Stage 3 test infrastructure work.
+4. *Step 4: Regression Certification [COMPLETED]*
+   - Re-ran =deno task audit:tests= certifying 100.0% compliance across all vectors (=20260914-080607_test-pipeline-audit.json=).
+   - Executed =deno task audit:tests:query -t all= confirming zero non-compliant tests remaining.
+   - Ran full test suite =deno task test= verifying *490 / 490 passed* (0 failed, 16s).
+   - Ran microbenchmark suite =deno task bench:tests:all= verifying pure isolated throughput.
+
+---
+
+* Forward-Readiness Test Plans for Upcoming Stages
+
+Dedicated forward-readiness test plan specifications have been generated alongside this audit in =docs/audits/20260914_test-audit/=:
+- [[file:phase-3-stage-3_test-plan.org][Stage 3 Test Plan: Two-Phase Math & Tripartite AST Foundation]]
+- [[file:phase-3-stage-4_test-plan.org][Stage 4 Test Plan: Headless Serializers & Dynamic Fences]]
+- [[file:phase-3-stage-5_test-plan.org][Stage 5 Test Plan: Conversation Tree Store & LRU Eviction]]

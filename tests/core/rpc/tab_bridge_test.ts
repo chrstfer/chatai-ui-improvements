@@ -6,7 +6,7 @@ import type {
     ToggleActiveNotification,
 } from "../../../src/core/rpc/messages.ts";
 
-Deno.test("unit: BrowserTabStateBridge defaults to true when extension API is unavailable", async () => {
+Deno.test("unit: BrowserTabStateBridge: defaults to true when extension API is unavailable", async () => {
     // Arrange
     const bridge = new BrowserTabStateBridge(undefined);
 
@@ -17,7 +17,7 @@ Deno.test("unit: BrowserTabStateBridge defaults to true when extension API is un
     assertEquals(initial, true);
 });
 
-Deno.test("unit: BrowserTabStateBridge sends EXT_GET_TAB_STATE message to runtime", async () => {
+Deno.test("unit: BrowserTabStateBridge: sends EXT_GET_TAB_STATE message to runtime", async () => {
     // Arrange
     let sentMessage: unknown = null;
     const mockExtensionApi: WebExtensionNamespaceLike = {
@@ -38,7 +38,7 @@ Deno.test("unit: BrowserTabStateBridge sends EXT_GET_TAB_STATE message to runtim
     assertEquals((sentMessage as GetTabStateRequest)?.type, "EXT_GET_TAB_STATE");
 });
 
-Deno.test("unit: BrowserTabStateBridge resolves tab state response boolean from runtime", async () => {
+Deno.test("unit: BrowserTabStateBridge: resolves tab state response boolean from runtime", async () => {
     // Arrange
     const mockExtensionApi: WebExtensionNamespaceLike = {
         runtime: {
@@ -57,7 +57,7 @@ Deno.test("unit: BrowserTabStateBridge resolves tab state response boolean from 
     assertEquals(state, false);
 });
 
-Deno.test("unit: BrowserTabStateBridge falls back to true when sendMessage rejects", async () => {
+Deno.test("unit: BrowserTabStateBridge: falls back to true when sendMessage rejects", async () => {
     // Arrange
     const mockExtensionApi: WebExtensionNamespaceLike = {
         runtime: {
@@ -73,7 +73,7 @@ Deno.test("unit: BrowserTabStateBridge falls back to true when sendMessage rejec
     assertEquals(state, true);
 });
 
-Deno.test("unit: BrowserTabStateBridge registers runtime message listener on onToggle subscription", () => {
+Deno.test("unit: BrowserTabStateBridge: registers runtime message listener on onToggle subscription", () => {
     // Arrange
     let registeredListener: ((msg: unknown) => void) | null = null;
     const mockExtensionApi: WebExtensionNamespaceLike = {
@@ -95,7 +95,7 @@ Deno.test("unit: BrowserTabStateBridge registers runtime message listener on onT
     assertEquals(registeredListener !== null, true);
 });
 
-Deno.test("unit: BrowserTabStateBridge dispatches toggle callback on EXT_TOGGLE_ACTIVE notification", () => {
+Deno.test("unit: BrowserTabStateBridge: dispatches toggle callback on EXT_TOGGLE_ACTIVE notification", () => {
     // Arrange
     let registeredListener: ((msg: unknown) => void) | null = null;
     const mockExtensionApi: WebExtensionNamespaceLike = {
@@ -125,7 +125,7 @@ Deno.test("unit: BrowserTabStateBridge dispatches toggle callback on EXT_TOGGLE_
     assertEquals(toggleEvents, [false]);
 });
 
-Deno.test("unit: BrowserTabStateBridge unregisters message listener upon unsubscribe", () => {
+Deno.test("unit: BrowserTabStateBridge: unregisters message listener upon unsubscribe", () => {
     // Arrange
     let registeredListener: ((msg: unknown) => void) | null = null;
     let removedListener: ((msg: unknown) => void) | null = null;

@@ -2,7 +2,7 @@ import { assertEquals } from "@std/assert";
 import { DuckAiThemeAuthority } from "../../../../src/features/chats/duckai/theme.ts";
 import { MockMutationObserver, setupTestDom } from "../../../fixtures/dom_fixture.ts";
 
-Deno.test("unit: DuckAiThemeAuthority resolves theme from data-theme attribute on documentElement", () => {
+Deno.test("unit: DuckAiThemeAuthority: resolves theme from data-theme attribute on documentElement", () => {
     const { cleanup } = setupTestDom({
         html: "<!DOCTYPE html><html data-theme='dark'><body></body></html>",
     });
@@ -15,7 +15,7 @@ Deno.test("unit: DuckAiThemeAuthority resolves theme from data-theme attribute o
     }
 });
 
-Deno.test("unit: DuckAiThemeAuthority resolves theme from body class", () => {
+Deno.test("unit: DuckAiThemeAuthority: resolves theme from body class", () => {
     const { cleanup } = setupTestDom({
         html: "<!DOCTYPE html><html><body class='dark'></body></html>",
     });
@@ -28,7 +28,7 @@ Deno.test("unit: DuckAiThemeAuthority resolves theme from body class", () => {
     }
 });
 
-Deno.test("unit: DuckAiThemeAuthority falls back to matchMedia dark preference when no attributes present", () => {
+Deno.test("unit: DuckAiThemeAuthority: falls back to matchMedia dark preference when no attributes present", () => {
     const { setMediaMatches, cleanup } = setupTestDom();
     try {
         setMediaMatches(true);
@@ -40,7 +40,7 @@ Deno.test("unit: DuckAiThemeAuthority falls back to matchMedia dark preference w
     }
 });
 
-Deno.test("unit: DuckAiThemeAuthority falls back to matchMedia light preference when no attributes present", () => {
+Deno.test("unit: DuckAiThemeAuthority: falls back to matchMedia light preference when no attributes present", () => {
     const { setMediaMatches, cleanup } = setupTestDom();
     try {
         setMediaMatches(false);
@@ -52,7 +52,7 @@ Deno.test("unit: DuckAiThemeAuthority falls back to matchMedia light preference 
     }
 });
 
-Deno.test("unit: DuckAiThemeAuthority dispatches theme change notification on data-theme attribute mutation", () => {
+Deno.test("unit: DuckAiThemeAuthority: dispatches theme change notification on data-theme attribute mutation", () => {
     const { doc, cleanup } = setupTestDom({
         html: "<!DOCTYPE html><html data-theme='light'><body></body></html>",
     });

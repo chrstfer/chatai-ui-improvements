@@ -7,7 +7,7 @@ import { computeContentHash } from "../../../src/core/utils/contentHash.ts";
 
 const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
 
-Deno.test("unit: RawSourceView renders code element within pre container", () => {
+Deno.test("unit: RawSourceView: renders code element within pre container", () => {
     const { cleanup: domCleanup } = setupTestDom();
     try {
         const { container } = render(
@@ -21,7 +21,7 @@ Deno.test("unit: RawSourceView renders code element within pre container", () =>
     }
 });
 
-Deno.test("unit: RawSourceView sets code element text content", () => {
+Deno.test("unit: RawSourceView: sets code element text content", () => {
     const { cleanup: domCleanup } = setupTestDom();
     try {
         const { container } = render(
@@ -35,7 +35,7 @@ Deno.test("unit: RawSourceView sets code element text content", () => {
     }
 });
 
-Deno.test("unit: RawSourceView sets data-language attribute on code element", () => {
+Deno.test("unit: RawSourceView: sets data-language attribute on code element", () => {
     const { cleanup: domCleanup } = setupTestDom();
     try {
         const { container } = render(
@@ -49,7 +49,7 @@ Deno.test("unit: RawSourceView sets data-language attribute on code element", ()
     }
 });
 
-Deno.test("unit: CodeBlockHeader formats language badge text in uppercase", () => {
+Deno.test("unit: CodeBlockHeader: formats language badge text in uppercase", () => {
     const { cleanup: domCleanup } = setupTestDom();
     try {
         const { container } = render(
@@ -72,7 +72,7 @@ Deno.test("unit: CodeBlockHeader formats language badge text in uppercase", () =
     }
 });
 
-Deno.test("unit: CodeBlockHeader hides view toggle button when hasRenderedView is false", () => {
+Deno.test("unit: CodeBlockHeader: hides view toggle button when hasRenderedView is false", () => {
     const { cleanup: domCleanup } = setupTestDom();
     try {
         const { container } = render(
@@ -94,7 +94,7 @@ Deno.test("unit: CodeBlockHeader hides view toggle button when hasRenderedView i
     }
 });
 
-Deno.test("unit: CodeBlockHeader triggers onToggleFold when fold button clicked", () => {
+Deno.test("unit: CodeBlockHeader: triggers onToggleFold when fold button clicked", () => {
     const { cleanup: domCleanup } = setupTestDom();
     try {
         let foldClicked = false;
@@ -121,7 +121,7 @@ Deno.test("unit: CodeBlockHeader triggers onToggleFold when fold button clicked"
     }
 });
 
-Deno.test("unit: CodeBlockHeader triggers onCopy when copy button clicked", () => {
+Deno.test("unit: CodeBlockHeader: triggers onCopy when copy button clicked", () => {
     const { cleanup: domCleanup } = setupTestDom();
     try {
         let copyClicked = false;
@@ -148,7 +148,7 @@ Deno.test("unit: CodeBlockHeader triggers onCopy when copy button clicked", () =
     }
 });
 
-Deno.test("unit: CodeBlockHeader formats org language badge as ORG MODE", () => {
+Deno.test("unit: CodeBlockHeader: formats org language badge as ORG MODE", () => {
     const { cleanup: domCleanup } = setupTestDom();
     try {
         const { container } = render(
@@ -171,7 +171,7 @@ Deno.test("unit: CodeBlockHeader formats org language badge as ORG MODE", () => 
     }
 });
 
-Deno.test("unit: CodeBlockHeader renders view toggle button when hasRenderedView is true", () => {
+Deno.test("unit: CodeBlockHeader: renders view toggle button when hasRenderedView is true", () => {
     const { cleanup: domCleanup } = setupTestDom();
     try {
         const { container } = render(
@@ -194,7 +194,7 @@ Deno.test("unit: CodeBlockHeader renders view toggle button when hasRenderedView
     }
 });
 
-Deno.test("unit: CodeBlockHeader triggers onToggleViewMode when view toggle button clicked", () => {
+Deno.test("unit: CodeBlockHeader: triggers onToggleViewMode when view toggle button clicked", () => {
     const { cleanup: domCleanup } = setupTestDom();
     try {
         let viewToggleClicked = false;
@@ -221,7 +221,7 @@ Deno.test("unit: CodeBlockHeader triggers onToggleViewMode when view toggle butt
     }
 });
 
-Deno.test("unit: CodeBlockHeader displays Copied! label when isCopied is true", () => {
+Deno.test("unit: CodeBlockHeader: displays Copied! label when isCopied is true", () => {
     const { cleanup: domCleanup } = setupTestDom();
     try {
         const { container } = render(
@@ -244,7 +244,7 @@ Deno.test("unit: CodeBlockHeader displays Copied! label when isCopied is true", 
     }
 });
 
-Deno.test("unit: CodeBlockHeader toggles fold when clicking header bar background", () => {
+Deno.test("unit: CodeBlockHeader: toggles fold when clicking header bar background", () => {
     const { cleanup: domCleanup } = setupTestDom();
     try {
         let foldCount = 0;
@@ -271,7 +271,7 @@ Deno.test("unit: CodeBlockHeader toggles fold when clicking header bar backgroun
     }
 });
 
-Deno.test("unit: CodeBlockHeader toggles fold when clicking language badge", () => {
+Deno.test("unit: CodeBlockHeader: toggles fold when clicking language badge", () => {
     const { cleanup: domCleanup } = setupTestDom();
     try {
         let foldCount = 0;
@@ -298,7 +298,7 @@ Deno.test("unit: CodeBlockHeader toggles fold when clicking language badge", () 
     }
 });
 
-Deno.test("unit: CodeBlockHeader toggles fold when clicking fold icon button", () => {
+Deno.test("unit: CodeBlockHeader: toggles fold when clicking fold icon button", () => {
     const { cleanup: domCleanup } = setupTestDom();
     try {
         let foldCount = 0;
@@ -325,7 +325,7 @@ Deno.test("unit: CodeBlockHeader toggles fold when clicking fold icon button", (
     }
 });
 
-Deno.test("unit: CodeBlockHeader does not toggle fold when clicking copy button", () => {
+Deno.test("unit: CodeBlockHeader: does not toggle fold when clicking copy button", () => {
     const { cleanup: domCleanup } = setupTestDom();
     try {
         let foldCount = 0;
@@ -352,7 +352,7 @@ Deno.test("unit: CodeBlockHeader does not toggle fold when clicking copy button"
     }
 });
 
-Deno.test("unit: InSituCodeBlockContainer renders child rendered content initially", async () => {
+Deno.test("unit: InSituCodeBlockContainer: renders child rendered content initially", async () => {
     const { cleanup: domCleanup } = setupTestDom();
     const cache = new ViewStateCache(10);
     try {
@@ -375,7 +375,7 @@ Deno.test("unit: InSituCodeBlockContainer renders child rendered content initial
     }
 });
 
-Deno.test("unit: InSituCodeBlockContainer caches initial unfolded view state", async () => {
+Deno.test("unit: InSituCodeBlockContainer: caches initial unfolded view state", async () => {
     const { cleanup: domCleanup } = setupTestDom();
     const cache = new ViewStateCache(10);
     const rawText = "* Headline 1\n** Subheadline";
@@ -402,7 +402,7 @@ Deno.test("unit: InSituCodeBlockContainer caches initial unfolded view state", a
     }
 });
 
-Deno.test("unit: InSituCodeBlockContainer first fold cycle collapses block body", async () => {
+Deno.test("unit: InSituCodeBlockContainer: first fold cycle collapses block body", async () => {
     const { cleanup: domCleanup } = setupTestDom();
     const cache = new ViewStateCache(10);
     try {
@@ -427,7 +427,7 @@ Deno.test("unit: InSituCodeBlockContainer first fold cycle collapses block body"
     }
 });
 
-Deno.test("unit: InSituCodeBlockContainer first fold cycle updates cache to folded", async () => {
+Deno.test("unit: InSituCodeBlockContainer: first fold cycle updates cache to folded", async () => {
     const { cleanup: domCleanup } = setupTestDom();
     const cache = new ViewStateCache(10);
     const rawText = "* Headline 1\n** Subheadline";
@@ -456,7 +456,7 @@ Deno.test("unit: InSituCodeBlockContainer first fold cycle updates cache to fold
     }
 });
 
-Deno.test("unit: InSituCodeBlockContainer second fold cycle expands body to children mode", async () => {
+Deno.test("unit: InSituCodeBlockContainer: second fold cycle expands body to children mode", async () => {
     const { cleanup: domCleanup } = setupTestDom();
     const cache = new ViewStateCache(10);
     try {
@@ -483,7 +483,7 @@ Deno.test("unit: InSituCodeBlockContainer second fold cycle expands body to chil
     }
 });
 
-Deno.test("unit: InSituCodeBlockContainer third fold cycle expands body to subtree mode", async () => {
+Deno.test("unit: InSituCodeBlockContainer: third fold cycle expands body to subtree mode", async () => {
     const { cleanup: domCleanup } = setupTestDom();
     const cache = new ViewStateCache(10);
     try {
@@ -512,7 +512,7 @@ Deno.test("unit: InSituCodeBlockContainer third fold cycle expands body to subtr
     }
 });
 
-Deno.test("unit: InSituCodeBlockContainer view toggle switches to raw code view", async () => {
+Deno.test("unit: InSituCodeBlockContainer: view toggle switches to raw code view", async () => {
     const { cleanup: domCleanup } = setupTestDom();
     const cache = new ViewStateCache(10);
     try {
@@ -537,7 +537,7 @@ Deno.test("unit: InSituCodeBlockContainer view toggle switches to raw code view"
     }
 });
 
-Deno.test("unit: InSituCodeBlockContainer collapse bypass button directly folds body", async () => {
+Deno.test("unit: InSituCodeBlockContainer: collapse bypass button directly folds body", async () => {
     const { cleanup: domCleanup } = setupTestDom();
     const cache = new ViewStateCache(10);
     try {
@@ -562,7 +562,7 @@ Deno.test("unit: InSituCodeBlockContainer collapse bypass button directly folds 
     }
 });
 
-Deno.test("unit: InSituCodeBlockContainer hydrates folded state from ViewStateCache on mount", () => {
+Deno.test("unit: InSituCodeBlockContainer: hydrates folded state from ViewStateCache on mount", () => {
     const { cleanup: domCleanup } = setupTestDom();
     const cache = new ViewStateCache(10);
     const rawText = "def calculate(): return 42";
@@ -586,7 +586,7 @@ Deno.test("unit: InSituCodeBlockContainer hydrates folded state from ViewStateCa
     }
 });
 
-Deno.test("unit: InSituCodeBlockContainer adds is-folded class when hydrated as folded", () => {
+Deno.test("unit: InSituCodeBlockContainer: adds is-folded class when hydrated as folded", () => {
     const { cleanup: domCleanup } = setupTestDom();
     const cache = new ViewStateCache(10);
     const rawText = "def calculate(): return 42";
@@ -611,7 +611,7 @@ Deno.test("unit: InSituCodeBlockContainer adds is-folded class when hydrated as 
     }
 });
 
-Deno.test("unit: InSituCodeBlockContainer writes raw text to clipboard on copy", async () => {
+Deno.test("unit: InSituCodeBlockContainer: writes raw text to clipboard on copy", async () => {
     const { cleanup: domCleanup } = setupTestDom();
     let written = "";
     const origClipboard = (navigator as unknown as { clipboard?: unknown }).clipboard;
@@ -649,7 +649,7 @@ Deno.test("unit: InSituCodeBlockContainer writes raw text to clipboard on copy",
     }
 });
 
-Deno.test("unit: InSituCodeBlockContainer displays Copied! feedback after copying", async () => {
+Deno.test("unit: InSituCodeBlockContainer: displays Copied! feedback after copying", async () => {
     const { cleanup: domCleanup } = setupTestDom();
     const origClipboard = (navigator as unknown as { clipboard?: unknown }).clipboard;
 
@@ -683,7 +683,7 @@ Deno.test("unit: InSituCodeBlockContainer displays Copied! feedback after copyin
     }
 });
 
-Deno.test("integration: CodeBlockViewDispatcher mounts rich Org document view for org language", async () => {
+Deno.test("integration: CodeBlockViewDispatcher: mounts rich Org document view for org language", async () => {
     const { cleanup: domCleanup } = setupTestDom();
     try {
         const { container } = render(
@@ -702,7 +702,7 @@ Deno.test("integration: CodeBlockViewDispatcher mounts rich Org document view fo
     }
 });
 
-Deno.test("integration: CodeBlockViewDispatcher renders headline inside mounted document", async () => {
+Deno.test("integration: CodeBlockViewDispatcher: renders headline inside mounted document", async () => {
     const { cleanup: domCleanup } = setupTestDom();
     try {
         const { container } = render(

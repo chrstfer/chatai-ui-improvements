@@ -28,7 +28,7 @@ function mockClipboard(): { getText: () => string; restore: () => void } {
     };
 }
 
-Deno.test("unit: OrgHeadlineView applies compact boxed card styling to H1", () => {
+Deno.test("unit: OrgHeadlineView: applies compact boxed card styling to H1", () => {
     const { cleanup } = setupTestDom();
     try {
         const headline: OrgHeadlineElement = {
@@ -47,7 +47,7 @@ Deno.test("unit: OrgHeadlineView applies compact boxed card styling to H1", () =
     }
 });
 
-Deno.test("unit: OrgHeadlineView row click invokes onToggleFold callback", () => {
+Deno.test("unit: OrgHeadlineView: row click invokes onToggleFold callback", () => {
     const { cleanup } = setupTestDom();
     try {
         let toggledId: string | null = null;
@@ -76,7 +76,7 @@ Deno.test("unit: OrgHeadlineView row click invokes onToggleFold callback", () =>
     }
 });
 
-Deno.test("unit: OrgHeadlineView clicking TODO badge triggers onCycleTodo", () => {
+Deno.test("unit: OrgHeadlineView: clicking TODO badge triggers onCycleTodo", () => {
     const { cleanup } = setupTestDom();
     try {
         let cycledStatus: string | null = null;
@@ -106,7 +106,7 @@ Deno.test("unit: OrgHeadlineView clicking TODO badge triggers onCycleTodo", () =
     }
 });
 
-Deno.test("unit: OrgHeadlineView clicking TODO badge prevents row fold toggle", () => {
+Deno.test("unit: OrgHeadlineView: clicking TODO badge prevents row fold toggle", () => {
     const { cleanup } = setupTestDom();
     try {
         let foldCount = 0;
@@ -136,7 +136,7 @@ Deno.test("unit: OrgHeadlineView clicking TODO badge prevents row fold toggle", 
     }
 });
 
-Deno.test("unit: OrgHeadlineView clicking copy button prevents row fold toggle", () => {
+Deno.test("unit: OrgHeadlineView: clicking copy button prevents row fold toggle", () => {
     const { cleanup } = setupTestDom();
     try {
         let foldCount = 0;
@@ -165,7 +165,7 @@ Deno.test("unit: OrgHeadlineView clicking copy button prevents row fold toggle",
     }
 });
 
-Deno.test("unit: OrgHeadlineView subtree copy button writes serialized Org subtree to clipboard", async () => {
+Deno.test("unit: OrgHeadlineView: subtree copy button writes serialized Org subtree to clipboard", async () => {
     const { cleanup } = setupTestDom();
     const clip = mockClipboard();
     try {
@@ -195,7 +195,7 @@ Deno.test("unit: OrgHeadlineView subtree copy button writes serialized Org subtr
     }
 });
 
-Deno.test("unit: OrgHeadlineView subtree copy button displays copied confirmation feedback", async () => {
+Deno.test("unit: OrgHeadlineView: subtree copy button displays copied confirmation feedback", async () => {
     const { cleanup } = setupTestDom();
     const clip = mockClipboard();
     try {
@@ -218,7 +218,7 @@ Deno.test("unit: OrgHeadlineView subtree copy button displays copied confirmatio
     }
 });
 
-Deno.test("unit: OrgHeadlineView displays right-arrow and hides body in folded state", () => {
+Deno.test("unit: OrgHeadlineView: displays right-arrow and hides body in folded state", () => {
     const { cleanup } = setupTestDom();
     try {
         const headline: OrgHeadlineElement = {
@@ -245,7 +245,7 @@ Deno.test("unit: OrgHeadlineView displays right-arrow and hides body in folded s
     }
 });
 
-Deno.test("unit: OrgHeadlineView renders child headline while hiding parent paragraph in children state", () => {
+Deno.test("unit: OrgHeadlineView: renders child headline while hiding parent paragraph in children state", () => {
     const { cleanup } = setupTestDom();
     try {
         const headline: OrgHeadlineElement = {
@@ -277,7 +277,7 @@ Deno.test("unit: OrgHeadlineView renders child headline while hiding parent para
     }
 });
 
-Deno.test("unit: OrgHeadlineView renders both paragraph and child headline in subtree state", () => {
+Deno.test("unit: OrgHeadlineView: renders both paragraph and child headline in subtree state", () => {
     const { cleanup } = setupTestDom();
     try {
         const headline: OrgHeadlineElement = {

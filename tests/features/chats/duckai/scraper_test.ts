@@ -11,7 +11,7 @@ function loadFixture(filename: string): Element {
     return doc.documentElement as unknown as Element;
 }
 
-Deno.test("unit: DuckAiScraper parses Org code block ref from mock turn fixture", () => {
+Deno.test("unit: DuckAiScraper: parses Org code block ref from mock turn fixture", () => {
     const root = loadFixture("mock_duckai_turn.html");
     const scraper = new DuckAiScraper();
     const orgBlock = root.querySelectorAll(DUCKAI_SELECTORS.CODE_BLOCK)[0] as Element;
@@ -19,7 +19,7 @@ Deno.test("unit: DuckAiScraper parses Org code block ref from mock turn fixture"
     assertEquals(orgRef?.rawCode.trim(), "* TODO Task");
 });
 
-Deno.test("unit: DuckAiScraper resolves canonical org formatId for Org code block", () => {
+Deno.test("unit: DuckAiScraper: resolves canonical org formatId for Org code block", () => {
     const root = loadFixture("mock_duckai_turn.html");
     const scraper = new DuckAiScraper();
     const orgBlock = root.querySelectorAll(DUCKAI_SELECTORS.CODE_BLOCK)[0] as Element;
@@ -27,7 +27,7 @@ Deno.test("unit: DuckAiScraper resolves canonical org formatId for Org code bloc
     assertEquals(orgRef?.formatId, "org");
 });
 
-Deno.test("unit: DuckAiScraper resolves display name for Org code block", () => {
+Deno.test("unit: DuckAiScraper: resolves display name for Org code block", () => {
     const root = loadFixture("mock_duckai_turn.html");
     const scraper = new DuckAiScraper();
     const orgBlock = root.querySelectorAll(DUCKAI_SELECTORS.CODE_BLOCK)[0] as Element;
@@ -35,7 +35,7 @@ Deno.test("unit: DuckAiScraper resolves display name for Org code block", () => 
     assertEquals(orgRef?.displayName, "Org Mode");
 });
 
-Deno.test("unit: DuckAiScraper parses Python code block ref from mock turn fixture", () => {
+Deno.test("unit: DuckAiScraper: parses Python code block ref from mock turn fixture", () => {
     const root = loadFixture("mock_duckai_turn.html");
     const scraper = new DuckAiScraper();
     const pyBlock = root.querySelectorAll(DUCKAI_SELECTORS.CODE_BLOCK)[1] as Element;
@@ -43,7 +43,7 @@ Deno.test("unit: DuckAiScraper parses Python code block ref from mock turn fixtu
     assertEquals(pyRef?.rawCode.trim(), 'print("Hello, world!")');
 });
 
-Deno.test("unit: DuckAiScraper falls back to raw formatId for standard Python block", () => {
+Deno.test("unit: DuckAiScraper: falls back to raw formatId for standard Python block", () => {
     const root = loadFixture("mock_duckai_turn.html");
     const scraper = new DuckAiScraper();
     const pyBlock = root.querySelectorAll(DUCKAI_SELECTORS.CODE_BLOCK)[1] as Element;
@@ -51,7 +51,7 @@ Deno.test("unit: DuckAiScraper falls back to raw formatId for standard Python bl
     assertEquals(pyRef?.formatId, "raw");
 });
 
-Deno.test("unit: DuckAiScraper detects completed assistant turn via message actions presence", () => {
+Deno.test("unit: DuckAiScraper: detects completed assistant turn via message actions presence", () => {
     const root = loadFixture("mock_duckai_turn.html");
     const scraper = new DuckAiScraper();
     const assistantMsg = root.querySelector(DUCKAI_SELECTORS.ASSISTANT_MESSAGE) as Element;
@@ -59,7 +59,7 @@ Deno.test("unit: DuckAiScraper detects completed assistant turn via message acti
     assertEquals(isCompleted, true);
 });
 
-Deno.test("unit: DuckAiScraper generates turn identifier from assistant message", () => {
+Deno.test("unit: DuckAiScraper: generates turn identifier from assistant message", () => {
     const root = loadFixture("mock_duckai_turn.html");
     const scraper = new DuckAiScraper();
     const assistantMsg = root.querySelector(DUCKAI_SELECTORS.ASSISTANT_MESSAGE) as Element;
@@ -67,7 +67,7 @@ Deno.test("unit: DuckAiScraper generates turn identifier from assistant message"
     assertEquals(turnId.includes("assistant-message"), true);
 });
 
-Deno.test("unit: DuckAiScraper extracts code block segments from assistant turn", () => {
+Deno.test("unit: DuckAiScraper: extracts code block segments from assistant turn", () => {
     const root = loadFixture("mock_duckai_turn.html");
     const scraper = new DuckAiScraper();
     const assistantMsg = root.querySelector(DUCKAI_SELECTORS.ASSISTANT_MESSAGE) as Element;
@@ -76,7 +76,7 @@ Deno.test("unit: DuckAiScraper extracts code block segments from assistant turn"
     assertEquals(codeSegments.length, 2);
 });
 
-Deno.test("unit: DuckAiScraper extracts table segments from assistant turn", () => {
+Deno.test("unit: DuckAiScraper: extracts table segments from assistant turn", () => {
     const root = loadFixture("mock_duckai_turn.html");
     const scraper = new DuckAiScraper();
     const assistantMsg = root.querySelector(DUCKAI_SELECTORS.ASSISTANT_MESSAGE) as Element;
@@ -85,7 +85,7 @@ Deno.test("unit: DuckAiScraper extracts table segments from assistant turn", () 
     assertEquals(tableSegments.length, 1);
 });
 
-Deno.test("unit: DuckAiScraper extracts MathML LaTeX annotation segments from math turn fixture", () => {
+Deno.test("unit: DuckAiScraper: extracts MathML LaTeX annotation segments from math turn fixture", () => {
     const root = loadFixture("raw_duckai_math_turn.html");
     const scraper = new DuckAiScraper();
     const assistantMsg = root.querySelector(DUCKAI_SELECTORS.ASSISTANT_MESSAGE) as Element;

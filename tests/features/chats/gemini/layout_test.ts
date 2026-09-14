@@ -75,7 +75,7 @@ function createMockDocument(): DocumentLike {
     };
 }
 
-Deno.test("unit: GeminiLayoutController initialize injects layout styles into document.head", () => {
+Deno.test("unit: GeminiLayoutController: initialize injects layout styles into document.head", () => {
     const doc = createMockDocument();
     const layout = new GeminiLayoutController();
     layout.initialize(doc);
@@ -83,7 +83,7 @@ Deno.test("unit: GeminiLayoutController initialize injects layout styles into do
     assertEquals(styleEl !== null, true);
 });
 
-Deno.test("unit: GeminiLayoutController initialize style includes ext-fullwidth-active rules", () => {
+Deno.test("unit: GeminiLayoutController: initialize style includes ext-fullwidth-active rules", () => {
     const doc = createMockDocument();
     const layout = new GeminiLayoutController();
     layout.initialize(doc);
@@ -91,7 +91,7 @@ Deno.test("unit: GeminiLayoutController initialize style includes ext-fullwidth-
     assertEquals(styleEl?.textContent.includes("ext-fullwidth-active"), true);
 });
 
-Deno.test("unit: GeminiLayoutController apply adds ext-fullwidth-active class to body when fullWidth is true", () => {
+Deno.test("unit: GeminiLayoutController: apply adds ext-fullwidth-active class to body when fullWidth is true", () => {
     const doc = createMockDocument();
     const layout = new GeminiLayoutController();
     const settings: ExtensionSettings = {
@@ -104,7 +104,7 @@ Deno.test("unit: GeminiLayoutController apply adds ext-fullwidth-active class to
     assertEquals(doc.body?.classList?.contains("ext-fullwidth-active"), true);
 });
 
-Deno.test("unit: GeminiLayoutController apply sets --ext-chat-max-width CSS variable to configured percentage", () => {
+Deno.test("unit: GeminiLayoutController: apply sets --ext-chat-max-width CSS variable to configured percentage", () => {
     const doc = createMockDocument();
     const layout = new GeminiLayoutController();
     const settings: ExtensionSettings = {
@@ -117,7 +117,7 @@ Deno.test("unit: GeminiLayoutController apply sets --ext-chat-max-width CSS vari
     assertEquals(doc.documentElement?.style?.getPropertyValue?.("--ext-chat-max-width"), "90%");
 });
 
-Deno.test("unit: GeminiLayoutController apply removes ext-fullwidth-active class when fullWidth is false", () => {
+Deno.test("unit: GeminiLayoutController: apply removes ext-fullwidth-active class when fullWidth is false", () => {
     const doc = createMockDocument();
     const layout = new GeminiLayoutController();
     const settings: ExtensionSettings = {
@@ -130,7 +130,7 @@ Deno.test("unit: GeminiLayoutController apply removes ext-fullwidth-active class
     assertEquals(doc.body?.classList?.contains("ext-fullwidth-active"), false);
 });
 
-Deno.test("unit: GeminiLayoutController destroy removes ext-fullwidth-active class from body", () => {
+Deno.test("unit: GeminiLayoutController: destroy removes ext-fullwidth-active class from body", () => {
     const doc = createMockDocument();
     const layout = new GeminiLayoutController();
     layout.initialize(doc);
@@ -139,7 +139,7 @@ Deno.test("unit: GeminiLayoutController destroy removes ext-fullwidth-active cla
     assertEquals(doc.body?.classList?.contains("ext-fullwidth-active"), false);
 });
 
-Deno.test("unit: GeminiLayoutController destroy removes injected layout style element", () => {
+Deno.test("unit: GeminiLayoutController: destroy removes injected layout style element", () => {
     const doc = createMockDocument();
     const layout = new GeminiLayoutController();
     layout.initialize(doc);
@@ -148,7 +148,7 @@ Deno.test("unit: GeminiLayoutController destroy removes injected layout style el
     assertEquals(doc.getElementById?.("ext-gemini-layout"), null);
 });
 
-Deno.test("unit: GeminiLayoutController destroy resets --ext-chat-max-width CSS variable", () => {
+Deno.test("unit: GeminiLayoutController: destroy resets --ext-chat-max-width CSS variable", () => {
     const doc = createMockDocument();
     const layout = new GeminiLayoutController();
     layout.initialize(doc);

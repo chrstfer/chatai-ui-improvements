@@ -5,7 +5,7 @@ import type { DuckAiResponseRef } from "../../../../src/features/chats/duckai/ty
 import { loadHtmlFixture } from "../../../fixtures/fixture_loader.ts";
 import { MockMutationObserver, setupTestDom } from "../../../fixtures/dom_fixture.ts";
 
-Deno.test("integration: DuckAiDomObserver initial scan discovers pre-existing settled responses in fixture", () => {
+Deno.test("integration: DuckAiDomObserver: initial scan discovers pre-existing settled responses in fixture", () => {
     const { cleanup } = setupTestDom();
     try {
         const html = loadHtmlFixture("duckai", "raw_duckai_turn.html");
@@ -24,7 +24,7 @@ Deno.test("integration: DuckAiDomObserver initial scan discovers pre-existing se
     }
 });
 
-Deno.test("integration: DuckAiDomObserver initial scan marks response with message actions as settled", () => {
+Deno.test("integration: DuckAiDomObserver: initial scan marks response with message actions as settled", () => {
     const { cleanup } = setupTestDom();
     try {
         const html = loadHtmlFixture("duckai", "raw_duckai_turn.html");
@@ -43,7 +43,7 @@ Deno.test("integration: DuckAiDomObserver initial scan marks response with messa
     }
 });
 
-Deno.test("integration: DuckAiDomObserver dynamic discovery detects streaming response entering DOM", () => {
+Deno.test("integration: DuckAiDomObserver: dynamic discovery detects streaming response entering DOM", () => {
     const { cleanup } = setupTestDom();
     try {
         const doc = new DOMParser().parseFromString(
@@ -79,7 +79,7 @@ Deno.test("integration: DuckAiDomObserver dynamic discovery detects streaming re
     }
 });
 
-Deno.test("integration: DuckAiDomObserver streaming response is marked unsettled before debounce", () => {
+Deno.test("integration: DuckAiDomObserver: streaming response is marked unsettled before debounce", () => {
     const { cleanup } = setupTestDom();
     try {
         const doc = new DOMParser().parseFromString(
@@ -114,7 +114,7 @@ Deno.test("integration: DuckAiDomObserver streaming response is marked unsettled
     }
 });
 
-Deno.test("integration: DuckAiDomObserver micro debounce fires streaming callback", async () => {
+Deno.test("integration: DuckAiDomObserver: micro debounce fires streaming callback", async () => {
     const { cleanup } = setupTestDom();
     try {
         const doc = new DOMParser().parseFromString(
@@ -150,7 +150,7 @@ Deno.test("integration: DuckAiDomObserver micro debounce fires streaming callbac
     }
 });
 
-Deno.test("integration: DuckAiDomObserver message actions addition marks response settled", () => {
+Deno.test("integration: DuckAiDomObserver: message actions addition marks response settled", () => {
     const { cleanup } = setupTestDom();
     try {
         const doc = new DOMParser().parseFromString(
@@ -195,7 +195,7 @@ Deno.test("integration: DuckAiDomObserver message actions addition marks respons
     }
 });
 
-Deno.test("integration: DuckAiDomObserver response removal triggers onResponseRemoved callback", () => {
+Deno.test("integration: DuckAiDomObserver: response removal triggers onResponseRemoved callback", () => {
     const { cleanup } = setupTestDom();
     try {
         const doc = new DOMParser().parseFromString(
@@ -238,7 +238,7 @@ Deno.test("integration: DuckAiDomObserver response removal triggers onResponseRe
     }
 });
 
-Deno.test("integration: DuckAiDomObserver macro silence fallback settles stream after inactivity timeout", async () => {
+Deno.test("integration: DuckAiDomObserver: macro silence fallback settles stream after inactivity timeout", async () => {
     const { cleanup } = setupTestDom();
     try {
         const doc = new DOMParser().parseFromString(

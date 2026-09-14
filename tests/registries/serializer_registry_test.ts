@@ -15,13 +15,13 @@ const mockSerializer: ConversationSerializer = {
     serializeConversation: (turns) => turns.map((t) => `* Turn: ${t.userQuery}`).join("\n"),
 };
 
-Deno.test("unit: SerializerRegistry get returns undefined for unregistered format", async () => {
+Deno.test("unit: SerializerRegistry: get returns undefined for unregistered format", async () => {
     const registry = new SerializerRegistry();
     const result = await registry.get("org");
     assertEquals(result, undefined);
 });
 
-Deno.test("unit: SerializerRegistry registers and resolves conversation serializer", async () => {
+Deno.test("unit: SerializerRegistry: registers and resolves conversation serializer", async () => {
     const registry = new SerializerRegistry();
     registry.registerLazy({
         formatId: "org",
@@ -32,7 +32,7 @@ Deno.test("unit: SerializerRegistry registers and resolves conversation serializ
     assertEquals(loaded, mockSerializer);
 });
 
-Deno.test("unit: SerializerRegistry getAll returns registered serializers list", async () => {
+Deno.test("unit: SerializerRegistry: getAll returns registered serializers list", async () => {
     const registry = new SerializerRegistry();
     registry.registerLazy({
         formatId: "org",
@@ -43,7 +43,7 @@ Deno.test("unit: SerializerRegistry getAll returns registered serializers list",
     assertEquals(all.length, 1);
 });
 
-Deno.test("unit: SerializerRegistry unregister removes registered serializer", () => {
+Deno.test("unit: SerializerRegistry: unregister removes registered serializer", () => {
     const registry = new SerializerRegistry();
     registry.register(mockSerializer);
     const removed = registry.unregister("org");

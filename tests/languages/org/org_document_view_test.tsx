@@ -5,7 +5,7 @@ import { OrgDocumentView } from "../../../src/languages/org/views/OrgDocumentVie
 import { defaultAstCache } from "../../../src/store/astCache.ts";
 import { computeContentHash } from "../../../src/core/utils/contentHash.ts";
 
-Deno.test("unit: OrgDocumentView renders document title in header", () => {
+Deno.test("unit: OrgDocumentView: renders document title in header", () => {
     const { cleanup } = setupTestDom();
     try {
         const content = "#+TITLE: Main Knowledge Base\n* First Headline\nContent.\n";
@@ -18,7 +18,7 @@ Deno.test("unit: OrgDocumentView renders document title in header", () => {
     }
 });
 
-Deno.test("unit: OrgDocumentView caches parsed AST in defaultAstCache", () => {
+Deno.test("unit: OrgDocumentView: caches parsed AST in defaultAstCache", () => {
     const { cleanup } = setupTestDom();
     try {
         const content = "#+TITLE: Main Knowledge Base\n* First Headline\nContent.\n";
@@ -33,7 +33,7 @@ Deno.test("unit: OrgDocumentView caches parsed AST in defaultAstCache", () => {
     }
 });
 
-Deno.test("unit: OrgDocumentView initializes headlines in folded state when STARTUP overview is present", () => {
+Deno.test("unit: OrgDocumentView: initializes headlines in folded state when STARTUP overview is present", () => {
     const { cleanup } = setupTestDom();
     try {
         const content = "#+STARTUP: overview\n* Section One\nContent.\n";
@@ -46,7 +46,7 @@ Deno.test("unit: OrgDocumentView initializes headlines in folded state when STAR
     }
 });
 
-Deno.test("unit: OrgDocumentView fold toggles display folded glyph in overview mode", () => {
+Deno.test("unit: OrgDocumentView: fold toggles display folded glyph in overview mode", () => {
     const { cleanup } = setupTestDom();
     try {
         const content = "#+STARTUP: overview\n* Section One\nContent.\n";
@@ -59,7 +59,7 @@ Deno.test("unit: OrgDocumentView fold toggles display folded glyph in overview m
     }
 });
 
-Deno.test("unit: OrgDocumentView hydrates folded headlines from documentViewState", () => {
+Deno.test("unit: OrgDocumentView: hydrates folded headlines from documentViewState", () => {
     const { cleanup } = setupTestDom();
     try {
         const content = "* Section One\nBody text.\n";
@@ -77,7 +77,7 @@ Deno.test("unit: OrgDocumentView hydrates folded headlines from documentViewStat
     }
 });
 
-Deno.test("unit: OrgDocumentView hydrates TODO overrides from documentViewState", () => {
+Deno.test("unit: OrgDocumentView: hydrates TODO overrides from documentViewState", () => {
     const { cleanup } = setupTestDom();
     try {
         const content = "* TODO Section One\nBody text.\n";
@@ -96,7 +96,7 @@ Deno.test("unit: OrgDocumentView hydrates TODO overrides from documentViewState"
     }
 });
 
-Deno.test("unit: OrgDocumentView dispatches updated foldedHeadlines on fold toggle", async () => {
+Deno.test("unit: OrgDocumentView: dispatches updated foldedHeadlines on fold toggle", async () => {
     const { cleanup } = setupTestDom();
     try {
         const content = "* Section One\nBody text.\n";
@@ -122,7 +122,7 @@ Deno.test("unit: OrgDocumentView dispatches updated foldedHeadlines on fold togg
     }
 });
 
-Deno.test("unit: OrgDocumentView dispatches updated todoOverrides on TODO cycle", async () => {
+Deno.test("unit: OrgDocumentView: dispatches updated todoOverrides on TODO cycle", async () => {
     const { cleanup } = setupTestDom();
     try {
         const content = "* TODO Section One\nBody text.\n";
@@ -147,7 +147,7 @@ Deno.test("unit: OrgDocumentView dispatches updated todoOverrides on TODO cycle"
     }
 });
 
-Deno.test("unit: OrgDocumentView dispatches updated foldedBlocks on block toggle", async () => {
+Deno.test("unit: OrgDocumentView: dispatches updated foldedBlocks on block toggle", async () => {
     const { cleanup } = setupTestDom();
     try {
         const content = "#+NAME: sample-block\n#+BEGIN_SRC python\nx = 1\n#+END_SRC\n";
@@ -172,7 +172,7 @@ Deno.test("unit: OrgDocumentView dispatches updated foldedBlocks on block toggle
     }
 });
 
-Deno.test("unit: OrgDocumentView dispatches updated checkedItems on checkbox click", async () => {
+Deno.test("unit: OrgDocumentView: dispatches updated checkedItems on checkbox click", async () => {
     const { cleanup } = setupTestDom();
     try {
         const content = "- [ ] Task item\n";
@@ -197,7 +197,7 @@ Deno.test("unit: OrgDocumentView dispatches updated checkedItems on checkbox cli
     }
 });
 
-Deno.test("unit: OrgDocumentView renders internal link button", () => {
+Deno.test("unit: OrgDocumentView: renders internal link button", () => {
     const { cleanup } = setupTestDom();
     try {
         const content = "* Target\nLink to [[*Target][Go to Target]].\n";
@@ -210,7 +210,7 @@ Deno.test("unit: OrgDocumentView renders internal link button", () => {
     }
 });
 
-Deno.test("unit: OrgDocumentView renders target headline section matching internal link", () => {
+Deno.test("unit: OrgDocumentView: renders target headline section matching internal link", () => {
     const { cleanup } = setupTestDom();
     try {
         const content = "* Target\nLink to [[*Target][Go to Target]].\n";
@@ -223,7 +223,7 @@ Deno.test("unit: OrgDocumentView renders target headline section matching intern
     }
 });
 
-Deno.test("unit: OrgDocumentView clicking internal link executes without throwing", () => {
+Deno.test("unit: OrgDocumentView: clicking internal link executes without throwing", () => {
     const { cleanup } = setupTestDom();
     try {
         const content = "* Target\nLink to [[*Target][Go to Target]].\n";
@@ -237,7 +237,7 @@ Deno.test("unit: OrgDocumentView clicking internal link executes without throwin
     }
 });
 
-Deno.test("unit: OrgDocumentView initial render in default state shows all headline levels", () => {
+Deno.test("unit: OrgDocumentView: initial render in default state shows all headline levels", () => {
     const { cleanup } = setupTestDom();
     try {
         const content = "* H1\nText 1\n** H2\nText 2\n*** H3\nText 3\n";
@@ -250,7 +250,7 @@ Deno.test("unit: OrgDocumentView initial render in default state shows all headl
     }
 });
 
-Deno.test("unit: OrgDocumentView clicking headline cycles to folded state hiding child headlines", async () => {
+Deno.test("unit: OrgDocumentView: clicking headline cycles to folded state hiding child headlines", async () => {
     const { cleanup } = setupTestDom();
     try {
         const content = "* H1\nText 1\n** H2\nText 2\n";
@@ -266,7 +266,7 @@ Deno.test("unit: OrgDocumentView clicking headline cycles to folded state hiding
     }
 });
 
-Deno.test("unit: OrgDocumentView cycling to children state shows intermediate child headlines", async () => {
+Deno.test("unit: OrgDocumentView: cycling to children state shows intermediate child headlines", async () => {
     const { cleanup } = setupTestDom();
     try {
         const content = "* H1\nText 1\n** H2\nText 2\n*** H3\nText 3\n";
@@ -287,7 +287,7 @@ Deno.test("unit: OrgDocumentView cycling to children state shows intermediate ch
     }
 });
 
-Deno.test("unit: OrgDocumentView cycling to children state hides headline body text", async () => {
+Deno.test("unit: OrgDocumentView: cycling to children state hides headline body text", async () => {
     const { cleanup } = setupTestDom();
     try {
         const content = "* H1\nUniqueBodyTextH1\n** H2\nText 2\n";
@@ -307,7 +307,7 @@ Deno.test("unit: OrgDocumentView cycling to children state hides headline body t
     }
 });
 
-Deno.test("unit: OrgDocumentView cycling to subtree state reveals all descendants", async () => {
+Deno.test("unit: OrgDocumentView: cycling to subtree state reveals all descendants", async () => {
     const { cleanup } = setupTestDom();
     try {
         const content = "* H1\nText 1\n** H2\nText 2\n*** H3\nText 3\n";
@@ -330,7 +330,7 @@ Deno.test("unit: OrgDocumentView cycling to subtree state reveals all descendant
     }
 });
 
-Deno.test("unit: OrgDocumentView rootFoldState children initializes top-level headlines to folded", () => {
+Deno.test("unit: OrgDocumentView: rootFoldState children initializes top-level headlines to folded", () => {
     const { cleanup } = setupTestDom();
     try {
         const content = "* H1 Alpha\nAlpha text.\n** H2 Beta\nBeta text.\n";

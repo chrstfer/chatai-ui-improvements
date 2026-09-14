@@ -4,7 +4,7 @@ import { setupTestDom, triggerClick } from "../../fixtures/dom_fixture.ts";
 import { FloatingHud, mountHud } from "../../../src/views/settings/index.ts";
 import { type ExtensionSettings, SettingsStore } from "../../../src/core/storage/settings.ts";
 
-Deno.test("unit: FloatingHud renders title with AI Chat UI brand", () => {
+Deno.test("unit: FloatingHud: renders title with AI Chat UI brand", () => {
     const { cleanup: domCleanup } = setupTestDom();
     try {
         const settings: ExtensionSettings = {
@@ -24,7 +24,7 @@ Deno.test("unit: FloatingHud renders title with AI Chat UI brand", () => {
     }
 });
 
-Deno.test("unit: FloatingHud renders collapse button with minus symbol", () => {
+Deno.test("unit: FloatingHud: renders collapse button with minus symbol", () => {
     const { cleanup: domCleanup } = setupTestDom();
     try {
         const settings: ExtensionSettings = {
@@ -44,7 +44,7 @@ Deno.test("unit: FloatingHud renders collapse button with minus symbol", () => {
     }
 });
 
-Deno.test("unit: FloatingHud renders current chat width percentage on width button", () => {
+Deno.test("unit: FloatingHud: renders current chat width percentage on width button", () => {
     const { cleanup: domCleanup } = setupTestDom();
     try {
         const settings: ExtensionSettings = {
@@ -64,7 +64,7 @@ Deno.test("unit: FloatingHud renders current chat width percentage on width butt
     }
 });
 
-Deno.test("unit: FloatingHud renders four width preset buttons", () => {
+Deno.test("unit: FloatingHud: renders four width preset buttons", () => {
     const { cleanup: domCleanup } = setupTestDom();
     try {
         const settings: ExtensionSettings = {
@@ -84,7 +84,7 @@ Deno.test("unit: FloatingHud renders four width preset buttons", () => {
     }
 });
 
-Deno.test("unit: FloatingHud collapses HUD when clicking header bar", () => {
+Deno.test("unit: FloatingHud: collapses HUD when clicking header bar", () => {
     const { cleanup: domCleanup } = setupTestDom();
     try {
         let collapsed = false;
@@ -112,7 +112,7 @@ Deno.test("unit: FloatingHud collapses HUD when clicking header bar", () => {
     }
 });
 
-Deno.test("unit: FloatingHud renders compact square when collapsed", () => {
+Deno.test("unit: FloatingHud: renders compact square when collapsed", () => {
     const { cleanup: domCleanup } = setupTestDom();
     try {
         const settings: ExtensionSettings = {
@@ -132,7 +132,7 @@ Deno.test("unit: FloatingHud renders compact square when collapsed", () => {
     }
 });
 
-Deno.test("unit: FloatingHud renders icon inside compact square when collapsed", () => {
+Deno.test("unit: FloatingHud: renders icon inside compact square when collapsed", () => {
     const { cleanup: domCleanup } = setupTestDom();
     try {
         const settings: ExtensionSettings = {
@@ -152,7 +152,7 @@ Deno.test("unit: FloatingHud renders icon inside compact square when collapsed",
     }
 });
 
-Deno.test("unit: FloatingHud hides expanded body when collapsed", () => {
+Deno.test("unit: FloatingHud: hides expanded body when collapsed", () => {
     const { cleanup: domCleanup } = setupTestDom();
     try {
         const settings: ExtensionSettings = {
@@ -171,7 +171,7 @@ Deno.test("unit: FloatingHud hides expanded body when collapsed", () => {
     }
 });
 
-Deno.test("unit: FloatingHud expands HUD when clicking collapsed square", () => {
+Deno.test("unit: FloatingHud: expands HUD when clicking collapsed square", () => {
     const { cleanup: domCleanup } = setupTestDom();
     try {
         let collapsed = true;
@@ -199,7 +199,7 @@ Deno.test("unit: FloatingHud expands HUD when clicking collapsed square", () => 
     }
 });
 
-Deno.test("unit: FloatingHud toggles fullWidth state when width button clicked", () => {
+Deno.test("unit: FloatingHud: toggles fullWidth state when width button clicked", () => {
     const { cleanup: domCleanup } = setupTestDom();
     try {
         let fullWidth = true;
@@ -227,7 +227,7 @@ Deno.test("unit: FloatingHud toggles fullWidth state when width button clicked",
     }
 });
 
-Deno.test("unit: FloatingHud activates fullWidth when preset button clicked", () => {
+Deno.test("unit: FloatingHud: activates fullWidth when preset button clicked", () => {
     const { cleanup: domCleanup } = setupTestDom();
     try {
         let fullWidth = false;
@@ -256,7 +256,7 @@ Deno.test("unit: FloatingHud activates fullWidth when preset button clicked", ()
     }
 });
 
-Deno.test("unit: FloatingHud updates widthPercent when preset button clicked", () => {
+Deno.test("unit: FloatingHud: updates widthPercent when preset button clicked", () => {
     const { cleanup: domCleanup } = setupTestDom();
     try {
         let widthPercent = 94;
@@ -285,7 +285,7 @@ Deno.test("unit: FloatingHud updates widthPercent when preset button clicked", (
     }
 });
 
-Deno.test("unit: FloatingHud computes style positioning with anchor from chat column bounds", () => {
+Deno.test("unit: FloatingHud: computes style positioning with anchor from chat column bounds", () => {
     const { cleanup: domCleanup } = setupTestDom();
     try {
         const settings: ExtensionSettings = {
@@ -313,7 +313,7 @@ Deno.test("unit: FloatingHud computes style positioning with anchor from chat co
     }
 });
 
-Deno.test("integration: mountHud creates root container element in document", () => {
+Deno.test("integration: FloatingHudMount: mountHud creates root container element in document", () => {
     const { doc, cleanup: domCleanup } = setupTestDom();
     try {
         const store = new SettingsStore({ fullWidth: true, widthPercent: 94, hudCollapsed: false });
@@ -326,7 +326,7 @@ Deno.test("integration: mountHud creates root container element in document", ()
     }
 });
 
-Deno.test("integration: mountHud sets initial theme on container dataset", () => {
+Deno.test("integration: FloatingHudMount: mountHud sets initial theme on container dataset", () => {
     const { doc, cleanup: domCleanup } = setupTestDom();
     try {
         const store = new SettingsStore({ fullWidth: true, widthPercent: 94, hudCollapsed: false });
@@ -339,7 +339,7 @@ Deno.test("integration: mountHud sets initial theme on container dataset", () =>
     }
 });
 
-Deno.test("integration: mountHud updates theme on container dataset via updateTheme", () => {
+Deno.test("integration: FloatingHudMount: mountHud updates theme on container dataset via updateTheme", () => {
     const { doc, cleanup: domCleanup } = setupTestDom();
     try {
         const store = new SettingsStore({ fullWidth: true, widthPercent: 94, hudCollapsed: false });
@@ -353,7 +353,7 @@ Deno.test("integration: mountHud updates theme on container dataset via updateTh
     }
 });
 
-Deno.test("integration: mountHud triggers onWidthChange callback when width button clicked", () => {
+Deno.test("integration: FloatingHudMount: mountHud triggers onWidthChange callback when width button clicked", () => {
     const { doc, cleanup: domCleanup } = setupTestDom();
     try {
         const store = new SettingsStore({ fullWidth: true, widthPercent: 94, hudCollapsed: false });
@@ -377,7 +377,7 @@ Deno.test("integration: mountHud triggers onWidthChange callback when width butt
     }
 });
 
-Deno.test("integration: mountHud removes container element from document on unmount", () => {
+Deno.test("integration: FloatingHudMount: mountHud removes container element from document on unmount", () => {
     const { doc, cleanup: domCleanup } = setupTestDom();
     try {
         const store = new SettingsStore({ fullWidth: true, widthPercent: 94, hudCollapsed: false });

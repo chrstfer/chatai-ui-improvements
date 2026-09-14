@@ -1,0 +1,129 @@
+#+TITLE: Phase 3 Stage 4 Forward-Readiness Test Plan: Headless Serializers & Dynamic Fences
+#+AUTHOR: DeepMind Antigravity Pair Programmer
+#+DATE: [2026-09-14]
+#+STARTUP: overview
+
+* 1. Overview & Architectural Objectives
+
+** Scope & Purpose
+In accordance with =docs/phase-3_meta-plan.org= (§6), Stage 4 delivers the pure headless serialization engine. It implements the =ConversationSerializer= contract for Org-mode, Markdown, and JSON, enabling high-fidelity conversation export from linear turn arrays.
+
+This document formalizes the test architecture, edge-case matrices, and invariant verification suites required to certify Stage 4 implementations.
+
+---
+
+* 2. Test Architecture & Directory Organization
+
+All serializer test suites reside under =tests/features/serializers/=, operating as pure headless unit tests with zero DOM, CSS, or browser dependencies:
+
+#+BEGIN_SRC text
+tests/
+└── features/
+    └── serializers/
+        ├── org_serializer_test.ts            (unit: Org frontmatter, headlines, property drawers)
+        ├── markdown_serializer_test.ts       (unit: GFM output, dynamic N+1 fences, blockquotes)
+        ├── json_serializer_test.ts           (unit: structured JSON conversation tree export)
+        └── serializer_handler_test.ts        (unit: registry dispatch and linear turn routing)
+fixtures/
+└── data/
+    └── serializers/
+        ├── turn_with_nested_backticks.json
+        ├── turn_with_multiline_latex.json
+        ├── turn_with_pipe_tables.json
+        └── multi_turn_conversation.json
+#+END_SRC
+
+---
+
+* 3. Test Nomenclature Standard
+
+All test cases must enforce the **Two-Level Prefix Standard** (=docs/test-design.org=):
+#+BEGIN_SRC text
+unit: [SerializerComponent]: [scenario or condition] [expected behavior or invariant]
+#+END_SRC
+
+** Standardized Examples
+- ~unit: OrgSerializer: formats top-level frontmatter with title date and options~
+- ~unit: OrgSerializer: places #+BEGIN_SRC delimiters strictly at column zero~
+- ~unit: OrgSerializer: serializes turn property drawer with TURN_ID and CREATED_AT~
+- ~unit: MarkdownSerializer: dynamically sizes outer code fence to 4 backticks when 3 backticks are in content~
+- ~unit: MarkdownSerializer: escapes raw pipe characters within table cell text~
+- ~unit: JsonSerializer: outputs deterministic JSON with turn metadata and timestamps~
+- ~unit: SerializerHandler: delegates turn sequence to registered format serializer by ID~
+
+---
+
+* 4. Subsystem Verification Matrices
+
+** 4.1 OrgSerializer Invariants Matrix (=src/features/serializers/org/=)
+
+#+BEGIN_SRC text
+Conversation Turn ───────► OrgSerializer ───────► Compliant Emacs Org Document
+                            │                      ├── Frontmatter (#+TITLE:, #+DATE:)
+                            │                      ├── Turn Headline (* User / ** Assistant)
+                            │                      ├── :PROPERTIES: Drawer
+                            │                      └── Column 0 #+BEGIN_SRC Fences
+#+END_SRC
+
+| Invariant / Feature | Target Input | Expected Serialized Output | Acceptance Verification |
+|---+---+---+---|
+| *Frontmatter* | Metadata with title & date | ~#+TITLE: <title>~<br>~#+DATE: [YYYY-MM-DD]~<br>~#+OPTIONS: toc:nil~ | Top of document contains valid Org headers |
+| *Turn Structure* | User prompt + Assistant reply | ~* User: <prompt>~<br>~** Assistant~ | Hierarchical headline stars reflect conversation turns |
+| *Property Drawers* | Turn ID & Timestamp | ~:PROPERTIES:~<br>~:TURN_ID: <id>~<br>~:CREATED_AT: <epoch>~<br>~:END:~ | Valid Emacs Org property drawer syntax |
+| *Column 0 Fences* | CodeBlockNode | ~#+BEGIN_SRC <lang>~<br>~<code>~<br>~#+END_SRC~ | Delimiters start at column 0 with zero indentation |
+| *Math Equations* | MathDisplayNode | ~\begin{equation}~<br>~<latex>~<br>~\end{equation}~ | LaTeX display math cleanly delimited |
+
+** 4.2 MarkdownSerializer Dynamic Fence Sizing Matrix (=src/features/serializers/markdown/=)
+
+To prevent markdown parsing ambiguity when code blocks contain backticks (such as markdown snippets or shell code), the serializer must dynamically size outer fences to $N + 1$ backticks:
+
+| Inner Content Pattern | Max Contiguous Backticks | Generated Outer Fence | Verification Assertion |
+|---+---+---+---|
+| Plain Python code | 0 | ~```python~ | Standard 3-backtick fence |
+| Inline code snippet (~`foo`~) | 1 | ~```markdown~ | Standard 3-backtick fence |
+| Triple-backtick code block (~```~) | 3 | ~````markdown~ | Dynamic 4-backtick fence |
+| Four-backtick nested block (~````~) | 4 | ~`````markdown~ | Dynamic 5-backtick fence |
+| Inner tilde block (~~~~shell~) | 3 tildes | ~```shell~ or ~~~~~shell~ | Disjoint delimiter selection |
+
+** 4.3 JsonSerializer Structured Export Matrix (=src/features/serializers/json/=)
+
+| Invariant / Feature | Target Input | Expected Output Structure |
+|---+---+---|
+| *Document Schema* | Linear sequence of turns | Root object with ~version: 1~, ~metadata~, and ~turns: [...]~ |
+| *Turn Integrity* | Individual turn | Contains ~turnId~, ~turnIndex~, ~speaker~, ~timestamp~, and ~blocks~ |
+| *Block Preservation* | Mixed turn (prose, code, math) | Typed block array preserving code languages and math types |
+| *Deterministic Formatting* | Arbitrary conversation | Formatted with 2-space indentation and newline termination |
+
+** 4.4 SerializerHandler Dispatch Matrix (=src/features/serializers/handler.ts=)
+
+| Invariant / Feature | Condition | Expected Behavior |
+|---+---+---|
+| *Format Resolution* | Requesting "org", "markdown", "json" | Resolves registered serializer instance from DI registry |
+| *Unregistered Format* | Requesting unknown format "xml" | Throws descriptive error indicating unsupported format ID |
+| *Metadata Injection* | Custom conversation metadata | Injects title, export date, and chat slug into serializer call |
+
+---
+
+* 5. Edge-Case Fixtures Specification
+
+Stage 4 test suites will validate serializers against complex fixtures stored in =tests/fixtures/data/serializers/=:
+1. *Nested Backticks*: Code block containing a complete markdown document with nested 3-backtick and 4-backtick fences.
+2. *Complex LaTeX*: Equations containing fraction commands, Greek symbols (\lambda, \alpha), subscripts, and superscripts.
+3. *Pristine Pipe Tables*: Tables containing cells with escaped pipes, inline code, and unicode characters.
+4. *Multi-Turn Dialogue*: 10+ turns simulating back-and-forth prompt iterations with code revisions.
+
+---
+
+* 6. Acceptance Gates & Verification Commands
+
+#+BEGIN_SRC bash
+# 1. Run all serializer unit tests (<5s)
+deno test -A --filter "unit: .*Serializer" tests/
+
+# 2. Verify 100% two-level prefix compliance
+deno task audit:tests
+
+# 3. Format and lint codebase
+deno task fmt
+deno task lint
+#+END_SRC

@@ -1,9 +1,11 @@
-#+TITLE: Automated Test Suite Rework & Audit Report
+#+TITLE: Automated Test Suite Rework & Audit Report -- Step 1
 #+AUTHOR: DeepMind Antigravity Pair Programmer
 #+DATE: [2026-09-14]
 #+STARTUP: overview
 
 * Executive Summary
+This audit is step 1 of a test and documentation audit for codebase and plan alignment.
+
 Following the guidelines established in =docs/test-design.org=, =AGENTS.md=, and the =test_audit_plan.md= blueprint, a complete architectural overhaul ("Sort, Clean, Measure") of the automated test suite was executed on branch =phase-3_test-rework=.
 
 Prior to this rework, the test suite suffered from architectural drift: compound test cases packing up to five distinct assertions into a single =Deno.test= block, bespoke DOM shimming scattered across test files, mixed test tier categories lacking standardized filtering, un-quarantined technical debt in site adapters, and absence of standardized Preact component testing utilities.

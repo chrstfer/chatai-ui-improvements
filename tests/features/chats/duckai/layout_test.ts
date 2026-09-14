@@ -75,7 +75,7 @@ function createMockDocument(): DocumentLike {
     };
 }
 
-Deno.test("unit: DuckAiLayoutController initialize injects layout styles into document.head", () => {
+Deno.test("unit: DuckAiLayoutController: initialize injects layout styles into document.head", () => {
     const doc = createMockDocument();
     const layout = new DuckAiLayoutController();
     layout.initialize(doc);
@@ -83,7 +83,7 @@ Deno.test("unit: DuckAiLayoutController initialize injects layout styles into do
     assertEquals(styleEl !== null, true);
 });
 
-Deno.test("unit: DuckAiLayoutController initialize stylesheet contains --ext-chat-max-width rules", () => {
+Deno.test("unit: DuckAiLayoutController: initialize stylesheet contains --ext-chat-max-width rules", () => {
     const doc = createMockDocument();
     const layout = new DuckAiLayoutController();
     layout.initialize(doc);
@@ -91,7 +91,7 @@ Deno.test("unit: DuckAiLayoutController initialize stylesheet contains --ext-cha
     assertEquals(styleEl?.textContent.includes("--ext-chat-max-width"), true);
 });
 
-Deno.test("unit: DuckAiLayoutController apply adds ext-fullwidth-active class to body when fullWidth is true", () => {
+Deno.test("unit: DuckAiLayoutController: apply adds ext-fullwidth-active class to body when fullWidth is true", () => {
     const doc = createMockDocument();
     const layout = new DuckAiLayoutController();
     const settings: ExtensionSettings = {
@@ -104,7 +104,7 @@ Deno.test("unit: DuckAiLayoutController apply adds ext-fullwidth-active class to
     assertEquals(doc.body?.classList?.contains("ext-fullwidth-active"), true);
 });
 
-Deno.test("unit: DuckAiLayoutController apply sets --ext-chat-max-width CSS variable to configured percentage", () => {
+Deno.test("unit: DuckAiLayoutController: apply sets --ext-chat-max-width CSS variable to configured percentage", () => {
     const doc = createMockDocument();
     const layout = new DuckAiLayoutController();
     const settings: ExtensionSettings = {
@@ -117,7 +117,7 @@ Deno.test("unit: DuckAiLayoutController apply sets --ext-chat-max-width CSS vari
     assertEquals(doc.documentElement?.style?.getPropertyValue?.("--ext-chat-max-width"), "92%");
 });
 
-Deno.test("unit: DuckAiLayoutController apply removes ext-fullwidth-active class when fullWidth is false", () => {
+Deno.test("unit: DuckAiLayoutController: apply removes ext-fullwidth-active class when fullWidth is false", () => {
     const doc = createMockDocument();
     const layout = new DuckAiLayoutController();
     const settings: ExtensionSettings = {
@@ -130,7 +130,7 @@ Deno.test("unit: DuckAiLayoutController apply removes ext-fullwidth-active class
     assertEquals(doc.body?.classList?.contains("ext-fullwidth-active"), false);
 });
 
-Deno.test("unit: DuckAiLayoutController destroy removes ext-fullwidth-active class from body", () => {
+Deno.test("unit: DuckAiLayoutController: destroy removes ext-fullwidth-active class from body", () => {
     const doc = createMockDocument();
     const layout = new DuckAiLayoutController();
     layout.initialize(doc);
@@ -139,7 +139,7 @@ Deno.test("unit: DuckAiLayoutController destroy removes ext-fullwidth-active cla
     assertEquals(doc.body?.classList?.contains("ext-fullwidth-active"), false);
 });
 
-Deno.test("unit: DuckAiLayoutController destroy removes injected layout style element", () => {
+Deno.test("unit: DuckAiLayoutController: destroy removes injected layout style element", () => {
     const doc = createMockDocument();
     const layout = new DuckAiLayoutController();
     layout.initialize(doc);
@@ -148,7 +148,7 @@ Deno.test("unit: DuckAiLayoutController destroy removes injected layout style el
     assertEquals(doc.getElementById?.("ext-duckai-layout"), null);
 });
 
-Deno.test("unit: DuckAiLayoutController destroy resets --ext-chat-max-width CSS variable", () => {
+Deno.test("unit: DuckAiLayoutController: destroy resets --ext-chat-max-width CSS variable", () => {
     const doc = createMockDocument();
     const layout = new DuckAiLayoutController();
     layout.initialize(doc);

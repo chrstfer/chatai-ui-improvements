@@ -1,0 +1,244 @@
+#+TITLE: Automated Test Pipeline Remediation Plan
+#+AUTHOR: DeepMind Antigravity Pair Programmer
+#+DATE: [2026-09-14]
+#+STARTUP: overview
+
+* Executive Overview & Objective
+
+The objective of this plan is to systematically refactor the 493 tests across 39 test modules in =tests/= to achieve *100.0% adherence* to repository standards established in =CONTEXT.org=, =AGENTS.md=, and =docs/test-design.org=:
+
+1. *Strict Two-Level Categorized Nomenclature* (<category>: <Component>: <behavior>):
+   - Elevate strict Level 2 compliance from =0 / 493 (0.0%)= to =497 / 497 (100.0%)=.
+   - Insert colon separators for the 347 tests already possessing component tokens.
+   - Assign authoritative, unambiguous component prefixes for the 146 tests currently lacking them.
+2. *Arrange-Act-Assert (AAA) Single-Assertion Discipline*:
+   - Elevate functional single-assertion compliance from =481 / 489 (98.4%)= to =497 / 497 (100.0%)=.
+   - Decompose the 8 multi-assertion tests into focused, atomic test cases.
+   - Maintain 100% isolation of the 4 throughput benchmarks in =logging_bench.ts= (~b.start()~ / ~b.end()~).
+3. *Output Token Minimization*:
+   - Execute all refactoring via targeted contiguous chunk replacements with =replace_file_content=.
+   - Strictly forbid whole-file regenerations.
+   - Process tests grouped by file and batch, verifying each file immediately in-situ.
+
+---
+
+* Query & Inspection Infrastructure (=deno task audit:tests:query=)
+
+To eliminate manual searching and minimize token expenditure during execution, the TypeScript query utility is registered and active:
+
+#+BEGIN_SRC bash
+deno task audit:tests:query [options]
+#+END_SRC
+
+** Primary Capabilities & Filters
+- *-t, --issue <type>*: Filter by specific issue (=colon= / =missing-colon=, =missing-comp=, =multi-assert= / =aaa=, =zero-assert=, =category=, =quarantine=, or =all=).
+- *-c, --cat <category>*: Filter by test category (=unit=, =integration=, =e2e=, =bench=).
+- *-d, --dir <subdir>*: Filter by directory substring (e.g. =languages/org=, =features/chats=).
+- *-f, --file-filter <str>*: Filter by file path or name.
+- *-s, --suggest*: Automatically generate drop-in replacement names using the canonical component registry.
+- *--format <compact|summary|remediation|json>*:
+  - =compact= (default): Minimal output tokens (one line per test: line, issue tag, current name, and suggested replacement).
+  - =summary=: Aggregated file-by-file count matrix.
+  - =remediation=: Detailed punchlist with line ranges, names, suggestions, and issue descriptions.
+
+** Query Recipe Examples for Execution Batches
+#+BEGIN_SRC bash
+# 1. Summary of all non-compliant tests by file
+deno task audit:tests:query --format summary
+
+# 2. Targeted punchlist for multi-assertion tests
+deno task audit:tests:query -t multi-assert --format remediation
+
+# 3. Compact suggestions for missing component prefixes in Org parser tests
+deno task audit:tests:query -d languages/org -t missing-comp -s
+
+# 4. Filter for specific file before refactoring
+deno task audit:tests:query -f build_test.ts -s
+#+END_SRC
+
+---
+
+* Canonical Component Taxonomy
+
+To ensure naming uniformity across all 39 test files, the following canonical component names are established:
+
+| Test Subsystem | Test Module | Target Canonical Component | Example Target Name |
+|---+---+---+---|
+| *Build & E2E* | =tests/build/build_test.ts= | =BuildPipeline= | ~e2e: BuildPipeline: exits with code 0 on development build~ |
+| *Core Services* | =tests/core/clipboard/clipboard_test.ts= | =ClipboardService= | ~unit: ClipboardService: writes text directly to navigator clipboard~ |
+| | =tests/core/hash/content_hash_test.ts= | =ContentHash= | ~unit: ContentHash: produces identical uint32 hashes~ |
+| | =tests/core/logging/logging_test.ts= | =CoreLogger= | ~unit: CoreLogger: creates logger with default dev level~ |
+| | =tests/core/logging/logging_bench.ts= | =CoreLoggerBench= | ~bench: CoreLoggerBench: standard logger throughput~ |
+| | =tests/core/navigation/history_observer_test.ts= | =HistoryObserver= | ~unit: HistoryObserver: notifies listeners on pushState~ |
+| | =tests/core/rpc/tab_bridge_test.ts= | =TabBridge= | ~unit: TabBridge: sends message across port boundary~ |
+| | =tests/core/storage/settings_test.ts= | =SettingsService= | ~unit: SettingsService: loads default settings on initialization~ |
+| *Styles & Store* | =tests/styles/adopted_stylesheets_test.ts= | =AdoptedStyleSheets= | ~unit: AdoptedStyleSheets: replaces font root placeholder~ |
+| | =tests/store/ast_cache_test.ts= | =AstCache= | ~unit: AstCache: stores and retrieves parsed document AST~ |
+| | =tests/store/conversation_tree_test.ts= | =ConversationTree= | ~unit: ConversationTree: appends turn to thread branch~ |
+| | =tests/store/storage_test.ts= | =StorageService= | ~unit: StorageService: enforces quota and LRU pruning~ |
+| *Registries* | =tests/registries/chat_registry_test.ts= | =ChatAdapterRegistry= | ~unit: ChatAdapterRegistry: registers adapter instance~ |
+| | =tests/registries/matcher_registry_test.ts= | =MatcherRegistry= | ~unit: MatcherRegistry: returns highest priority match~ |
+| | =tests/registries/parser_registry_test.ts= | =ParserRegistry= | ~unit: ParserRegistry: returns parser by format id~ |
+| | =tests/registries/renderer_registry_test.ts= | =RendererRegistry= | ~unit: RendererRegistry: registers renderer component~ |
+| | =tests/registries/serializer_registry_test.ts= | =SerializerRegistry= | ~unit: SerializerRegistry: returns serializer for format~ |
+| *Contracts* | =tests/contracts/contracts_test.ts= | =Contracts= | ~unit: Contracts: validates schema structure~ |
+| *Bootloader* | =tests/entrypoints/content_test.ts= | =ContentBootloader= | ~integration: ContentBootloader: bootstraps extension lifecycle~ |
+| *Matchers* | =tests/features/matchers/matchers_test.ts= | =OrgMatcher= / =MarkdownMatcher= | ~unit: OrgMatcher: matches valid org document~ |
+| *Languages* | =tests/languages/org/org_block_parser_test.ts= | =OrgBlockParser= | ~unit: OrgBlockParser: parses headline with todo keyword~ |
+| | =tests/languages/org/org_inline_parser_test.ts= | =OrgInlineParser= | ~unit: OrgInlineParser: parses bold markup with asterisk delimiters~ |
+| | =tests/languages/org/org_serializer_test.ts= | =OrgSerializer= | ~unit: OrgSerializer: serializes headline with title~ |
+| | =tests/languages/org/views/*= | Component Under Test | ~unit: OrgHeadlineView: renders tags in header container~ |
+| *Chats (Duck.ai)*| =tests/features/chats/duckai/adapter_test.ts= | =DuckAiSiteAdapter= | ~unit: DuckAiSiteAdapter: matches duck.ai host origin~ |
+| | =tests/features/chats/duckai/dom_observer_test.ts= | =DuckAiDomObserver= | ~integration: DuckAiDomObserver: detects added turn container~ |
+| | =tests/features/chats/duckai/injector_test.tsx= | =DuckAiInjector= | ~integration: DuckAiInjector: creates sibling container in host DOM~ |
+| | =tests/features/chats/duckai/layout_test.ts= | =DuckAiLayout= | ~integration: DuckAiLayout: applies widened chat container styling~ |
+| | =tests/features/chats/duckai/scraper_test.ts= | =DuckAiScraper= | ~unit: DuckAiScraper: extracts prompt and completion payload~ |
+| | =tests/features/chats/duckai/selectors_test.ts= | =DuckAiSelectors= | ~unit: DuckAiSelectors: resolves turn scroller element~ |
+| | =tests/features/chats/duckai/theme_test.ts= | =DuckAiTheme= | ~unit: DuckAiTheme: detects dark theme from data attributes~ |
+| *Chats (Gemini)* | =tests/features/chats/gemini/*= | =GeminiSiteAdapter= / =Gemini...= | ~unit: GeminiSiteAdapter: matches gemini.google.com host~ |
+| *Views* | =tests/views/settings/floating_hud_test.tsx= | =FloatingHud= | ~unit: FloatingHud: renders title with AI Chat UI brand~ |
+| | =tests/views/codeblock/codeblock_view_test.tsx= | =CodeBlockView= | ~unit: CodeBlockView: renders syntax highlighted code~ |
+| | =tests/views/common/inline_image_view_test.tsx= | =InlineImageView= | ~unit: InlineImageView: renders image container element~ |
+| | =tests/views/common/latex_math_view_test.tsx= | =LatexMathView= | ~unit: LatexMathView: renders display math contents~ |
+
+---
+
+* Work Breakdown & Batch Execution Strategy
+
+The 39 test files are organized into 4 logical batches, tracked systematically using =seq/count= (total: 4).
+
+** Part 1: Batch 1 -- Build Pipeline & Infrastructure (1 file, 14 tests)
+- *Scope*: =tests/build/build_test.ts=
+- *Current Metrics*: 14 tests (13 component tokens without colon, 1 multi-assertion violation).
+- *Execution Steps*:
+  1. Inspect targets:
+     #+BEGIN_SRC bash
+     deno task audit:tests:query -f build_test.ts -s
+     #+END_SRC
+  2. In =tests/build/build_test.ts=, update 13 test names:
+     - ~e2e: build.ts <behavior>~ -> ~e2e: BuildPipeline: <behavior>~
+  3. Decompose the multi-assertion test at line 106 (~e2e: build.ts omits font files when --no-fonts flag is passed~):
+     - Test A: ~e2e: BuildPipeline: omits font directory from build when --no-fonts flag is passed~ (asserts =fonts/= directory does not exist).
+     - Test B: ~e2e: BuildPipeline: excludes font resources from manifest when --no-fonts flag is passed~ (asserts manifest =web_accessible_resources= omits fonts).
+  4. Verify in-situ:
+     #+BEGIN_SRC bash
+     deno test -A tests/build/build_test.ts
+     #+END_SRC
+  5. Advance batch progress:
+     #+BEGIN_SRC text
+     seq:count (step 1/4 completed)
+     #+END_SRC
+
+** Part 2: Batch 2 -- Core Services, Styles, Registries & Store (10 files, 102 tests)
+- *Scope*: =tests/core/*=, =tests/styles/*=, =tests/registries/*=, =tests/store/*=, =tests/contracts/*=
+- *Current Metrics*: 102 tests (59 component tokens without colon, 42 missing component prefixes, 1 multi-assertion violation).
+- *Execution Steps*:
+  1. *Clipboard* (=tests/core/clipboard/clipboard_test.ts=, 6 tests):
+     - Prepend =ClipboardService:= to all 6 tests.
+  2. *Hash* (=tests/core/hash/content_hash_test.ts=, 15 tests):
+     - Insert colon for 7 tests; prepend =ContentHash:= for 8 tests.
+  3. *Logging & Benchmarks* (=tests/core/logging/logging_test.ts=, =logging_bench.ts=, 34 tests):
+     - Update 30 tests in =logging_test.ts= with =CoreLogger:=.
+     - Update 4 benchmark tests in =logging_bench.ts= with =CoreLoggerBench:=.
+  4. *RPC, Navigation & Storage* (=tests/core/rpc/tab_bridge_test.ts=, =tests/core/storage/settings_test.ts=, =tests/store/ast_cache_test.ts=):
+     - Insert colons after =TabBridge:=, =SettingsService:=, =AstCache:=.
+  5. *Styles* (=tests/styles/adopted_stylesheets_test.ts=, 10 tests):
+     - Prepend =AdoptedStyleSheets:= to all 10 tests.
+     - Decompose multi-assertion test at line 81:
+       * Test A: ~unit: AdoptedStyleSheets: replaces font root placeholder with extension URL~
+       * Test B: ~unit: AdoptedStyleSheets: ensures raw placeholder string is purged from stylesheet~
+  6. *Registries* (=tests/registries/*=, 5 files, 28 tests):
+     - Update =chat_registry_test.ts=, =matcher_registry_test.ts=, =parser_registry_test.ts=, =renderer_registry_test.ts=, =serializer_registry_test.ts= with canonical component colons.
+  7. *Contracts* (=tests/contracts/contracts_test.ts=, 4 tests):
+     - Insert colons after =Contracts:=.
+  8. Verify in-situ:
+     #+BEGIN_SRC bash
+     deno test -A tests/core/ tests/styles/ tests/registries/ tests/store/ tests/contracts/
+     #+END_SRC
+  9. Advance batch progress:
+     #+BEGIN_SRC text
+     seq:count (step 2/4 completed)
+     #+END_SRC
+
+** Part 3: Batch 3 -- Languages, Parsers, Serializers & Matchers (11 files, 212 tests)
+- *Scope*: =tests/languages/org/*=, =tests/features/matchers/*=, =tests/entrypoints/content_test.ts=
+- *Current Metrics*: 212 tests (117 component tokens without colon, 95 missing component prefixes, 0 multi-assertion violations).
+- *Execution Steps*:
+  1. *Org Block Parser* (=tests/languages/org/org_block_parser_test.ts=, 31 tests):
+     - Prepend =OrgBlockParser:= to all 31 tests.
+  2. *Org Inline Parser* (=tests/languages/org/org_inline_parser_test.ts=, 23 tests):
+     - Prepend =OrgInlineParser:= to all 23 tests.
+  3. *Org Serializer* (=tests/languages/org/org_serializer_test.ts=, 11 tests):
+     - Prepend =OrgSerializer:= to all 11 tests.
+  4. *Format Matchers* (=tests/features/matchers/matchers_test.ts=, 17 tests):
+     - Prepend =OrgMatcher:= or =MarkdownMatcher:= based on target format.
+  5. *Content Bootloader* (=tests/entrypoints/content_test.ts=, 12 tests):
+     - Prepend =ContentBootloader:= to all 12 tests.
+  6. *Org Preact Views* (=tests/languages/org/*view*_test.tsx=, 5 files, 63 tests):
+     - Insert colons after component tokens in =org_document_view_test.tsx= (=OrgDocumentView:=), =org_element_renderer_test.tsx= (=OrgElementRenderer:=), =org_headline_view_test.tsx= (=OrgHeadlineView:=), =org_object_renderer_test.tsx= (=OrgObjectRenderer:=).
+  7. Verify in-situ:
+     #+BEGIN_SRC bash
+     deno test -A tests/languages/ tests/features/matchers/ tests/entrypoints/
+     #+END_SRC
+  8. Advance batch progress:
+     #+BEGIN_SRC text
+     seq:count (step 3/4 completed)
+     #+END_SRC
+
+** Part 4: Batch 4 -- Features (Chats) & Common Views (17 files, 165 tests)
+- *Scope*: =tests/features/chats/duckai/*=, =tests/features/chats/gemini/*=, =tests/views/*=
+- *Current Metrics*: 165 tests (157 component tokens without colon, 5 missing component prefixes, 6 multi-assertion violations).
+- *Execution Steps*:
+  1. *Duck.ai Adapter Suite* (=tests/features/chats/duckai/*=, 7 files, 82 tests):
+     - Insert colons after =DuckAiSiteAdapter:=, =DuckAiDomObserver:=, =DuckAiInjector:=, =DuckAiLayout:=, =DuckAiScraper:=, =DuckAiSelectors:=, =DuckAiTheme:=.
+  2. *Gemini Adapter Suite* (=tests/features/chats/gemini/*=, 5 files, 46 tests):
+     - Insert colons after =GeminiSiteAdapter:=, =GeminiDomObserver:=, =GeminiInjector:=, =GeminiLayout:=, =GeminiScraper:=, =GeminiAst:=.
+  3. *Codeblock View* (=tests/views/codeblock/codeblock_view_test.tsx=, 29 tests):
+     - Insert colons after =CodeBlockView:=.
+  4. *Floating HUD* (=tests/views/settings/floating_hud_test.tsx=, 18 tests):
+     - Insert colons for 13 tests (=FloatingHud:=).
+     - Prepend =FloatingHudMount:= for the 5 mount helper tests.
+  5. *Latex Math View* (=tests/views/common/latex_math_view_test.tsx=, 12 tests):
+     - Insert colons after =LatexMathView:= for all 12 tests.
+     - Decompose multi-assertion test at line 137:
+       * Test A: ~unit: LatexMathView: adopts KaTeX stylesheet into ShadowRoot adoptedStyleSheets~
+       * Test B: ~unit: LatexMathView: preserves KaTeX stylesheet rules upon adoption~
+  6. *Inline Image View* (=tests/views/common/inline_image_view_test.tsx=, 12 tests):
+     - Insert colons after =InlineImageView:= for all 12 tests.
+     - Decompose 5 multi-assertion tests (L116, L137, L160, L176, L192) into atomic single-assertion tests.
+  7. Verify in-situ:
+     #+BEGIN_SRC bash
+     deno test -A tests/features/chats/ tests/views/
+     #+END_SRC
+  8. Advance batch progress:
+     #+BEGIN_SRC text
+     seq:count (step 4/4 completed)
+     #+END_SRC
+
+---
+
+* Final Pipeline Certification & Verification Protocol
+
+Following completion of all 4 batches, execute the comprehensive quality gates:
+
+1. *Audit Engine Execution*:
+   #+BEGIN_SRC bash
+   deno task audit:tests
+   #+END_SRC
+   - *Target Verification Standard*:
+     - Compliant Tests: =497 (100.0%)=
+     - Non-Compliant Tests: =0 (0.0%)=
+     - Strict Level 2 Prefix Compliance: =497 / 497 (100.0%)=
+     - AAA Single-Assertion Discipline: =493 / 493 functional tests (100.0%)=
+     - Benchmarks Excluded: =4=
+
+2. *Automated Test Pipeline Execution*:
+   #+BEGIN_SRC bash
+   deno task test
+   #+END_SRC
+   - All 497 tests must pass cleanly.
+
+3. *Code Formatting Check*:
+   #+BEGIN_SRC bash
+   deno fmt > /dev/null 2>&1
+   #+END_SRC

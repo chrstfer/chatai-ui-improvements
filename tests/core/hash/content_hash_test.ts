@@ -2,7 +2,7 @@ import { assertEquals, assertNotEquals } from "@std/assert";
 import { computeContentHash, formatHashHex } from "../../../src/core/utils/contentHash.ts";
 import { defaultViewStateCache, ViewStateCache } from "../../../src/store/viewStateCache.ts";
 
-Deno.test("unit: computeContentHash produces identical uint32 hashes for identical inputs", () => {
+Deno.test("unit: ContentHash: produces identical uint32 hashes for identical inputs", () => {
     // Arrange
     const text = "* Heading\nSome content in an org block";
 
@@ -14,7 +14,7 @@ Deno.test("unit: computeContentHash produces identical uint32 hashes for identic
     assertEquals(hash1, hash2);
 });
 
-Deno.test("unit: computeContentHash produces different hashes for distinct content", () => {
+Deno.test("unit: ContentHash: produces different hashes for distinct content", () => {
     // Arrange
     const text = "* Heading\nSome content in an org block";
 
@@ -26,7 +26,7 @@ Deno.test("unit: computeContentHash produces different hashes for distinct conte
     assertNotEquals(hash1, hash2);
 });
 
-Deno.test("unit: computeContentHash returns FNV-1a offset basis for empty string", () => {
+Deno.test("unit: ContentHash: returns FNV-1a offset basis for empty string", () => {
     // Arrange & Act
     const emptyHash = computeContentHash("");
 
@@ -34,7 +34,7 @@ Deno.test("unit: computeContentHash returns FNV-1a offset basis for empty string
     assertEquals(emptyHash, 2166136261);
 });
 
-Deno.test("unit: computeContentHash incorporates format salt into hash generation", () => {
+Deno.test("unit: ContentHash: incorporates format salt into hash generation", () => {
     // Arrange
     const text = "* Heading";
 
@@ -46,7 +46,7 @@ Deno.test("unit: computeContentHash incorporates format salt into hash generatio
     assertNotEquals(orgHash, pythonHash);
 });
 
-Deno.test("unit: formatHashHex formats zero as eight zero-padded hex characters", () => {
+Deno.test("unit: ContentHash: formats zero as eight zero-padded hex characters", () => {
     // Arrange & Act
     const formatted = formatHashHex(0);
 
@@ -54,7 +54,7 @@ Deno.test("unit: formatHashHex formats zero as eight zero-padded hex characters"
     assertEquals(formatted, "00000000");
 });
 
-Deno.test("unit: formatHashHex formats 32-bit unsigned integers as lowercase hex", () => {
+Deno.test("unit: ContentHash: formats 32-bit unsigned integers as lowercase hex", () => {
     // Arrange & Act
     const formatted = formatHashHex(0x811c9dc5);
 
@@ -62,7 +62,7 @@ Deno.test("unit: formatHashHex formats 32-bit unsigned integers as lowercase hex
     assertEquals(formatted, "811c9dc5");
 });
 
-Deno.test("unit: formatHashHex formats maximum uint32 as ffffffff", () => {
+Deno.test("unit: ContentHash: formats maximum uint32 as ffffffff", () => {
     // Arrange & Act
     const formatted = formatHashHex(0xffffffff);
 
@@ -70,7 +70,7 @@ Deno.test("unit: formatHashHex formats maximum uint32 as ffffffff", () => {
     assertEquals(formatted, "ffffffff");
 });
 
-Deno.test("unit: ViewStateCache returns undefined for un-cached keys", () => {
+Deno.test("unit: ViewStateCache: returns undefined for un-cached keys", () => {
     // Arrange
     const cache = new ViewStateCache(3);
 
@@ -81,7 +81,7 @@ Deno.test("unit: ViewStateCache returns undefined for un-cached keys", () => {
     assertEquals(value, undefined);
 });
 
-Deno.test("unit: ViewStateCache stores and retrieves state by numeric key", () => {
+Deno.test("unit: ViewStateCache: stores and retrieves state by numeric key", () => {
     // Arrange
     const cache = new ViewStateCache(3);
 
@@ -92,7 +92,7 @@ Deno.test("unit: ViewStateCache stores and retrieves state by numeric key", () =
     assertEquals(cache.get(101), { isFolded: true, viewMode: "rendered" });
 });
 
-Deno.test("unit: ViewStateCache updates existing key without incrementing size", () => {
+Deno.test("unit: ViewStateCache: updates existing key without incrementing size", () => {
     // Arrange
     const cache = new ViewStateCache(3);
     cache.set(101, { isFolded: true, viewMode: "rendered" });
@@ -104,7 +104,7 @@ Deno.test("unit: ViewStateCache updates existing key without incrementing size",
     assertEquals(cache.size, 1);
 });
 
-Deno.test("unit: ViewStateCache supports retrieval using string keys", () => {
+Deno.test("unit: ViewStateCache: supports retrieval using string keys", () => {
     // Arrange
     const cache = new ViewStateCache(3);
 
@@ -115,7 +115,7 @@ Deno.test("unit: ViewStateCache supports retrieval using string keys", () => {
     assertEquals(cache.get("custom-key"), { isFolded: true, viewMode: "raw" });
 });
 
-Deno.test("unit: ViewStateCache evicts least recently used entry on capacity overflow", () => {
+Deno.test("unit: ViewStateCache: evicts least recently used entry on capacity overflow", () => {
     // Arrange
     const cache = new ViewStateCache(3);
     cache.set(1, { isFolded: false, viewMode: "rendered" });
@@ -129,7 +129,7 @@ Deno.test("unit: ViewStateCache evicts least recently used entry on capacity ove
     assertEquals(cache.has(1), false);
 });
 
-Deno.test("unit: ViewStateCache read access promotes entry to most recently used", () => {
+Deno.test("unit: ViewStateCache: read access promotes entry to most recently used", () => {
     // Arrange
     const cache = new ViewStateCache(3);
     cache.set(1, { isFolded: false, viewMode: "rendered" });
@@ -144,7 +144,7 @@ Deno.test("unit: ViewStateCache read access promotes entry to most recently used
     assertEquals(cache.has(2), false);
 });
 
-Deno.test("unit: ViewStateCache clear purges all entries and resets size", () => {
+Deno.test("unit: ViewStateCache: clear purges all entries and resets size", () => {
     // Arrange
     const cache = new ViewStateCache(3);
     cache.set(1, { isFolded: false, viewMode: "rendered" });
@@ -157,7 +157,7 @@ Deno.test("unit: ViewStateCache clear purges all entries and resets size", () =>
     assertEquals(cache.size, 0);
 });
 
-Deno.test("unit: defaultViewStateCache is exported as a singleton instance", () => {
+Deno.test("unit: ViewStateCache: defaultViewStateCache is exported as a singleton instance", () => {
     // Assert
     assertEquals(defaultViewStateCache instanceof ViewStateCache, true);
 });

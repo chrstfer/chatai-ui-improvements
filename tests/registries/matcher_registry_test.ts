@@ -6,7 +6,7 @@ import { assertEquals } from "@std/assert";
 import { defaultMatcherRegistry, MatcherRegistry } from "../../src/registries/matcherRegistry.ts";
 import type { FormatMatcher } from "../../src/contracts/features/matchers/index.ts";
 
-Deno.test("unit: MatcherRegistry registers and retrieves format matcher by ID", () => {
+Deno.test("unit: MatcherRegistry: registers and retrieves format matcher by ID", () => {
     // Arrange
     const registry = new MatcherRegistry([]);
     const testMatcher: FormatMatcher = {
@@ -23,7 +23,7 @@ Deno.test("unit: MatcherRegistry registers and retrieves format matcher by ID", 
     assertEquals(registry.get("lua"), testMatcher);
 });
 
-Deno.test("unit: MatcherRegistry findMatching resolves matcher by hint", () => {
+Deno.test("unit: MatcherRegistry: findMatching resolves matcher by hint", () => {
     // Arrange
     const registry = new MatcherRegistry([]);
     const testMatcher: FormatMatcher = {
@@ -41,7 +41,7 @@ Deno.test("unit: MatcherRegistry findMatching resolves matcher by hint", () => {
     assertEquals(matched, testMatcher);
 });
 
-Deno.test("unit: MatcherRegistry formatDisplayName returns uppercase name for registered matcher", () => {
+Deno.test("unit: MatcherRegistry: formatDisplayName returns uppercase name for registered matcher", () => {
     // Arrange
     const registry = new MatcherRegistry([]);
     const testMatcher: FormatMatcher = {
@@ -59,7 +59,7 @@ Deno.test("unit: MatcherRegistry formatDisplayName returns uppercase name for re
     assertEquals(displayName, "LUA SCRIPT");
 });
 
-Deno.test("unit: MatcherRegistry formatDisplayName falls back to uppercase hint for unregistered format", () => {
+Deno.test("unit: MatcherRegistry: formatDisplayName falls back to uppercase hint for unregistered format", () => {
     // Arrange
     const registry = new MatcherRegistry([]);
 
@@ -70,7 +70,7 @@ Deno.test("unit: MatcherRegistry formatDisplayName falls back to uppercase hint 
     assertEquals(displayName, "UNKNOWN-FORMAT");
 });
 
-Deno.test("unit: MatcherRegistry unregister removes format matcher", () => {
+Deno.test("unit: MatcherRegistry: unregister removes format matcher", () => {
     // Arrange
     const registry = new MatcherRegistry([]);
     const testMatcher: FormatMatcher = {
@@ -88,7 +88,7 @@ Deno.test("unit: MatcherRegistry unregister removes format matcher", () => {
     assertEquals(registry.get("lua"), undefined);
 });
 
-Deno.test("unit: defaultMatcherRegistry contains core format matchers", () => {
+Deno.test("unit: MatcherRegistry: defaultMatcherRegistry contains core format matchers", () => {
     // Arrange & Act
     const hasOrg = defaultMatcherRegistry.get("org") !== undefined;
     const hasMd = defaultMatcherRegistry.get("markdown") !== undefined;

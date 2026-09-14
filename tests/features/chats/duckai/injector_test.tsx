@@ -37,7 +37,7 @@ function createPythonBlockRef(doc: { querySelector: (s: string) => unknown }): D
     };
 }
 
-Deno.test("integration: DuckAiInjector - injects sibling container into DOM", () => {
+Deno.test("integration: DuckAiInjector: - injects sibling container into DOM", () => {
     const { doc, cleanup } = setupTestDom({ html: TEST_HTML });
     const injector = new DuckAiInjector();
     try {
@@ -51,7 +51,7 @@ Deno.test("integration: DuckAiInjector - injects sibling container into DOM", ()
     }
 });
 
-Deno.test("integration: DuckAiInjector - sets container class name", () => {
+Deno.test("integration: DuckAiInjector: - sets container class name", () => {
     const { doc, cleanup } = setupTestDom({ html: TEST_HTML });
     const injector = new DuckAiInjector();
     try {
@@ -65,7 +65,7 @@ Deno.test("integration: DuckAiInjector - sets container class name", () => {
     }
 });
 
-Deno.test("integration: DuckAiInjector - sets host-id data attribute on container", () => {
+Deno.test("integration: DuckAiInjector: - sets host-id data attribute on container", () => {
     const { doc, cleanup } = setupTestDom({ html: TEST_HTML });
     const injector = new DuckAiInjector();
     try {
@@ -79,7 +79,7 @@ Deno.test("integration: DuckAiInjector - sets host-id data attribute on containe
     }
 });
 
-Deno.test("integration: DuckAiInjector - sets ext-mounted data attribute on container", () => {
+Deno.test("integration: DuckAiInjector: - sets ext-mounted data attribute on container", () => {
     const { doc, cleanup } = setupTestDom({ html: TEST_HTML });
     const injector = new DuckAiInjector();
     try {
@@ -93,7 +93,7 @@ Deno.test("integration: DuckAiInjector - sets ext-mounted data attribute on cont
     }
 });
 
-Deno.test("integration: DuckAiInjector - sets siblingContainer reference on block ref", () => {
+Deno.test("integration: DuckAiInjector: - sets siblingContainer reference on block ref", () => {
     const { doc, cleanup } = setupTestDom({ html: TEST_HTML });
     const injector = new DuckAiInjector();
     try {
@@ -107,7 +107,7 @@ Deno.test("integration: DuckAiInjector - sets siblingContainer reference on bloc
     }
 });
 
-Deno.test("integration: DuckAiInjector - hides native host element on injection", () => {
+Deno.test("integration: DuckAiInjector: - hides native host element on injection", () => {
     const { doc, cleanup } = setupTestDom({ html: TEST_HTML });
     const injector = new DuckAiInjector();
     try {
@@ -120,7 +120,7 @@ Deno.test("integration: DuckAiInjector - hides native host element on injection"
     }
 });
 
-Deno.test("integration: DuckAiInjector - marks host element as processed on injection", () => {
+Deno.test("integration: DuckAiInjector: - marks host element as processed on injection", () => {
     const { doc, cleanup } = setupTestDom({ html: TEST_HTML });
     const injector = new DuckAiInjector();
     try {
@@ -133,7 +133,7 @@ Deno.test("integration: DuckAiInjector - marks host element as processed on inje
     }
 });
 
-Deno.test("integration: DuckAiInjector - attaches shadow root to sibling container", () => {
+Deno.test("integration: DuckAiInjector: - attaches shadow root to sibling container", () => {
     const { doc, cleanup } = setupTestDom({ html: TEST_HTML });
     const injector = new DuckAiInjector();
     try {
@@ -148,7 +148,7 @@ Deno.test("integration: DuckAiInjector - attaches shadow root to sibling contain
     }
 });
 
-Deno.test("integration: DuckAiInjector - skips duplicate injection on same block ref", () => {
+Deno.test("integration: DuckAiInjector: - skips duplicate injection on same block ref", () => {
     const { doc, cleanup } = setupTestDom({ html: TEST_HTML });
     const injector = new DuckAiInjector();
     try {
@@ -163,7 +163,7 @@ Deno.test("integration: DuckAiInjector - skips duplicate injection on same block
     }
 });
 
-Deno.test("integration: DuckAiInjector - removes sibling container on destroyAll", () => {
+Deno.test("integration: DuckAiInjector: - removes sibling container on destroyAll", () => {
     const { doc, cleanup } = setupTestDom({ html: TEST_HTML });
     const injector = new DuckAiInjector();
     try {
@@ -176,7 +176,7 @@ Deno.test("integration: DuckAiInjector - removes sibling container on destroyAll
     }
 });
 
-Deno.test("integration: DuckAiInjector - restores native host element display on destroyAll", () => {
+Deno.test("integration: DuckAiInjector: - restores native host element display on destroyAll", () => {
     const { doc, cleanup } = setupTestDom({ html: TEST_HTML });
     const injector = new DuckAiInjector();
     try {
@@ -189,7 +189,7 @@ Deno.test("integration: DuckAiInjector - restores native host element display on
     }
 });
 
-Deno.test("integration: DuckAiInjector - removes processed attribute from host element on destroyAll", () => {
+Deno.test("integration: DuckAiInjector: - removes processed attribute from host element on destroyAll", () => {
     const { doc, cleanup } = setupTestDom({ html: TEST_HTML });
     const injector = new DuckAiInjector();
     try {
@@ -202,7 +202,7 @@ Deno.test("integration: DuckAiInjector - removes processed attribute from host e
     }
 });
 
-Deno.test("integration: DuckAiInjector - bypasses unhandled formats without injecting sibling container", () => {
+Deno.test("integration: DuckAiInjector: - bypasses unhandled formats without injecting sibling container", () => {
     const { doc, cleanup } = setupTestDom({ html: TEST_HTML });
     const injector = new DuckAiInjector();
     try {
@@ -215,7 +215,7 @@ Deno.test("integration: DuckAiInjector - bypasses unhandled formats without inje
     }
 });
 
-Deno.test("integration: DuckAiInjector - keeps native element visible when format is unhandled", () => {
+Deno.test("integration: DuckAiInjector: - keeps native element visible when format is unhandled", () => {
     const { doc, cleanup } = setupTestDom({ html: TEST_HTML });
     const injector = new DuckAiInjector();
     try {
@@ -228,7 +228,7 @@ Deno.test("integration: DuckAiInjector - keeps native element visible when forma
     }
 });
 
-Deno.test("integration: DuckAiInjector - leaves native element unprocessed when format is unhandled", () => {
+Deno.test("integration: DuckAiInjector: - leaves native element unprocessed when format is unhandled", () => {
     const { doc, cleanup } = setupTestDom({ html: TEST_HTML });
     const injector = new DuckAiInjector();
     try {
@@ -241,7 +241,7 @@ Deno.test("integration: DuckAiInjector - leaves native element unprocessed when 
     }
 });
 
-Deno.test("integration: DuckAiInjector - sets initial theme attribute on mounted container", () => {
+Deno.test("integration: DuckAiInjector: - sets initial theme attribute on mounted container", () => {
     const { doc, cleanup } = setupTestDom({ html: TEST_HTML });
     const injector = new DuckAiInjector();
     try {
@@ -255,7 +255,7 @@ Deno.test("integration: DuckAiInjector - sets initial theme attribute on mounted
     }
 });
 
-Deno.test("integration: DuckAiInjector - updates container theme attribute on updateThemes", () => {
+Deno.test("integration: DuckAiInjector: - updates container theme attribute on updateThemes", () => {
     const { doc, cleanup } = setupTestDom({ html: TEST_HTML });
     const injector = new DuckAiInjector();
     try {
@@ -270,7 +270,7 @@ Deno.test("integration: DuckAiInjector - updates container theme attribute on up
     }
 });
 
-Deno.test("integration: DuckAiInjector - adds dark class to container when theme is dark", () => {
+Deno.test("integration: DuckAiInjector: - adds dark class to container when theme is dark", () => {
     const { doc, cleanup } = setupTestDom({ html: TEST_HTML });
     const injector = new DuckAiInjector();
     try {
@@ -285,7 +285,7 @@ Deno.test("integration: DuckAiInjector - adds dark class to container when theme
     }
 });
 
-Deno.test("integration: DuckAiInjector - removes dark class when theme is updated back to light", () => {
+Deno.test("integration: DuckAiInjector: - removes dark class when theme is updated back to light", () => {
     const { doc, cleanup } = setupTestDom({ html: TEST_HTML });
     const injector = new DuckAiInjector();
     try {

@@ -1,7 +1,7 @@
 import { assertEquals } from "@std/assert";
 import { copyTextToClipboard } from "../../../src/core/utils/clipboard.ts";
 
-Deno.test("unit: copyTextToClipboard writes text directly to navigator clipboard", async () => {
+Deno.test("unit: ClipboardService: writes text directly to navigator clipboard", async () => {
     // Arrange
     let writtenText = "";
     const originalClipboard = (navigator as unknown as { clipboard?: unknown }).clipboard;
@@ -32,7 +32,7 @@ Deno.test("unit: copyTextToClipboard writes text directly to navigator clipboard
     }
 });
 
-Deno.test("unit: copyTextToClipboard returns true when primary navigator clipboard succeeds", async () => {
+Deno.test("unit: ClipboardService: returns true when primary navigator clipboard succeeds", async () => {
     // Arrange
     const originalClipboard = (navigator as unknown as { clipboard?: unknown }).clipboard;
 
@@ -59,7 +59,7 @@ Deno.test("unit: copyTextToClipboard returns true when primary navigator clipboa
     }
 });
 
-Deno.test("unit: copyTextToClipboard bypasses host fallback when primary write succeeds", async () => {
+Deno.test("unit: ClipboardService: bypasses host fallback when primary write succeeds", async () => {
     // Arrange
     const originalClipboard = (navigator as unknown as { clipboard?: unknown }).clipboard;
 
@@ -97,7 +97,7 @@ Deno.test("unit: copyTextToClipboard bypasses host fallback when primary write s
     }
 });
 
-Deno.test("unit: copyTextToClipboard triggers host native copy button when primary write rejects", async () => {
+Deno.test("unit: ClipboardService: triggers host native copy button when primary write rejects", async () => {
     // Arrange
     const originalClipboard = (navigator as unknown as { clipboard?: unknown }).clipboard;
 
@@ -143,7 +143,7 @@ Deno.test("unit: copyTextToClipboard triggers host native copy button when prima
     }
 });
 
-Deno.test("unit: copyTextToClipboard returns false without triggering host button when fallback is disabled", async () => {
+Deno.test("unit: ClipboardService: returns false without triggering host button when fallback is disabled", async () => {
     // Arrange
     const originalClipboard = (navigator as unknown as { clipboard?: unknown }).clipboard;
 
@@ -181,7 +181,7 @@ Deno.test("unit: copyTextToClipboard returns false without triggering host butto
     }
 });
 
-Deno.test("unit: copyTextToClipboard returns false when primary rejects and native button is missing", async () => {
+Deno.test("unit: ClipboardService: returns false when primary rejects and native button is missing", async () => {
     // Arrange
     const originalClipboard = (navigator as unknown as { clipboard?: unknown }).clipboard;
 

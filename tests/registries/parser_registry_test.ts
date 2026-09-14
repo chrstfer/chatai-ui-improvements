@@ -7,7 +7,7 @@ import { defaultParserRegistry, ParserRegistry } from "../../src/registries/pars
 import type { Parser } from "../../src/contracts/features/parsers/index.ts";
 import { AstCache } from "../../src/store/astCache.ts";
 
-Deno.test("unit: ParserRegistry has returns false for unregistered format", () => {
+Deno.test("unit: ParserRegistry: has returns false for unregistered format", () => {
     // Arrange
     const registry = new ParserRegistry();
 
@@ -15,7 +15,7 @@ Deno.test("unit: ParserRegistry has returns false for unregistered format", () =
     assertEquals(registry.has("unregistered"), false);
 });
 
-Deno.test("unit: ParserRegistry registerLazy registers format parser definition", () => {
+Deno.test("unit: ParserRegistry: registerLazy registers format parser definition", () => {
     // Arrange
     const registry = new ParserRegistry();
 
@@ -34,7 +34,7 @@ Deno.test("unit: ParserRegistry registerLazy registers format parser definition"
     assertEquals(registry.has("custom"), true);
 });
 
-Deno.test("unit: ParserRegistry get dynamically loads registered parser", async () => {
+Deno.test("unit: ParserRegistry: get dynamically loads registered parser", async () => {
     // Arrange
     const registry = new ParserRegistry();
     const mockParser: Parser = {
@@ -54,7 +54,7 @@ Deno.test("unit: ParserRegistry get dynamically loads registered parser", async 
     assertEquals(loadedParser, mockParser);
 });
 
-Deno.test("integration: ParserRegistry settleContent parses content and caches AST in AstCache", async () => {
+Deno.test("integration: ParserRegistry: settleContent parses content and caches AST in AstCache", async () => {
     // Arrange
     const registry = new ParserRegistry();
     let parseCount = 0;
@@ -79,7 +79,7 @@ Deno.test("integration: ParserRegistry settleContent parses content and caches A
     assertEquals(parseCount, 1);
 });
 
-Deno.test("integration: ParserRegistry settleContent reuses cached AST on identical content", async () => {
+Deno.test("integration: ParserRegistry: settleContent reuses cached AST on identical content", async () => {
     // Arrange
     const registry = new ParserRegistry();
     let parseCount = 0;
@@ -106,7 +106,7 @@ Deno.test("integration: ParserRegistry settleContent reuses cached AST on identi
     assertEquals(parseCount, 1);
 });
 
-Deno.test("unit: defaultParserRegistry defines lazy Org parser with org formatId", async () => {
+Deno.test("unit: ParserRegistry: defaultParserRegistry defines lazy Org parser with org formatId", async () => {
     // Arrange & Act
     const orgParser = await defaultParserRegistry.get("org");
 

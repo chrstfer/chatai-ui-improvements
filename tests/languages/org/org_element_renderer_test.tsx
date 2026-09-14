@@ -4,7 +4,7 @@ import { setupTestDom, triggerClick } from "../../fixtures/dom_fixture.ts";
 import { OrgElementRenderer } from "../../../src/languages/org/views/OrgElementRenderer.tsx";
 import { parseOrgDocument } from "../../../src/languages/org/ast/parser.ts";
 
-Deno.test("unit: OrgElementRenderer renders H1 tag with headline title", () => {
+Deno.test("unit: OrgElementRenderer: renders H1 tag with headline title", () => {
     const { cleanup } = setupTestDom();
     try {
         const ast = parseOrgDocument("* Top Headline\nContent.");
@@ -17,7 +17,7 @@ Deno.test("unit: OrgElementRenderer renders H1 tag with headline title", () => {
     }
 });
 
-Deno.test("unit: OrgElementRenderer renders nested H2 tag with child headline title", () => {
+Deno.test("unit: OrgElementRenderer: renders nested H2 tag with child headline title", () => {
     const { cleanup } = setupTestDom();
     try {
         const ast = parseOrgDocument("* Top\n** Level 2 Child Headline\nChild.");
@@ -30,7 +30,7 @@ Deno.test("unit: OrgElementRenderer renders nested H2 tag with child headline ti
     }
 });
 
-Deno.test("unit: OrgElementRenderer renders headline priority marker", () => {
+Deno.test("unit: OrgElementRenderer: renders headline priority marker", () => {
     const { cleanup } = setupTestDom();
     try {
         const ast = parseOrgDocument("* TODO [#A] Top Headline\nContent.");
@@ -43,7 +43,7 @@ Deno.test("unit: OrgElementRenderer renders headline priority marker", () => {
     }
 });
 
-Deno.test("unit: OrgElementRenderer renders headline tag chips", () => {
+Deno.test("unit: OrgElementRenderer: renders headline tag chips", () => {
     const { cleanup } = setupTestDom();
     try {
         const ast = parseOrgDocument("* Top Headline :WORK:PROJECT:\nContent.");
@@ -56,7 +56,7 @@ Deno.test("unit: OrgElementRenderer renders headline tag chips", () => {
     }
 });
 
-Deno.test("unit: OrgElementRenderer renders headline planning information", () => {
+Deno.test("unit: OrgElementRenderer: renders headline planning information", () => {
     const { cleanup } = setupTestDom();
     try {
         const ast = parseOrgDocument("* Top\nDEADLINE: <2026-09-10 Thu>\nContent.");
@@ -69,7 +69,7 @@ Deno.test("unit: OrgElementRenderer renders headline planning information", () =
     }
 });
 
-Deno.test("unit: OrgElementRenderer fold toggle click dispatches onToggleHeadlineFold", () => {
+Deno.test("unit: OrgElementRenderer: fold toggle click dispatches onToggleHeadlineFold", () => {
     const { cleanup } = setupTestDom();
     try {
         const ast = parseOrgDocument("* Top\nBody.");
@@ -91,7 +91,7 @@ Deno.test("unit: OrgElementRenderer fold toggle click dispatches onToggleHeadlin
     }
 });
 
-Deno.test("unit: OrgElementRenderer hides headline body when foldedHeadlines includes headline ID", () => {
+Deno.test("unit: OrgElementRenderer: hides headline body when foldedHeadlines includes headline ID", () => {
     const { cleanup } = setupTestDom();
     try {
         const ast = parseOrgDocument("* Top\nBody.");
@@ -108,7 +108,7 @@ Deno.test("unit: OrgElementRenderer hides headline body when foldedHeadlines inc
     }
 });
 
-Deno.test("unit: OrgElementRenderer clicking TODO badge dispatches onCycleTodo", () => {
+Deno.test("unit: OrgElementRenderer: clicking TODO badge dispatches onCycleTodo", () => {
     const { cleanup } = setupTestDom();
     try {
         const ast = parseOrgDocument("* TODO Task A");
@@ -130,7 +130,7 @@ Deno.test("unit: OrgElementRenderer clicking TODO badge dispatches onCycleTodo",
     }
 });
 
-Deno.test("unit: OrgElementRenderer applies line-through styling when todoOverrides marks headline DONE", () => {
+Deno.test("unit: OrgElementRenderer: applies line-through styling when todoOverrides marks headline DONE", () => {
     const { cleanup } = setupTestDom();
     try {
         const ast = parseOrgDocument("* TODO Task A");
@@ -148,7 +148,7 @@ Deno.test("unit: OrgElementRenderer applies line-through styling when todoOverri
     }
 });
 
-Deno.test("unit: OrgElementRenderer renders source block line count pill", () => {
+Deno.test("unit: OrgElementRenderer: renders source block line count pill", () => {
     const { cleanup } = setupTestDom();
     try {
         const ast = parseOrgDocument("#+BEGIN_SRC python\ndef add(a, b):\n    return a + b\n#+END_SRC");
@@ -161,7 +161,7 @@ Deno.test("unit: OrgElementRenderer renders source block line count pill", () =>
     }
 });
 
-Deno.test("unit: OrgElementRenderer renders source block copy button", () => {
+Deno.test("unit: OrgElementRenderer: renders source block copy button", () => {
     const { cleanup } = setupTestDom();
     try {
         const ast = parseOrgDocument("#+BEGIN_SRC python\nprint(42)\n#+END_SRC");
@@ -174,7 +174,7 @@ Deno.test("unit: OrgElementRenderer renders source block copy button", () => {
     }
 });
 
-Deno.test("unit: OrgElementRenderer clicking source block header dispatches onToggleBlockFold", () => {
+Deno.test("unit: OrgElementRenderer: clicking source block header dispatches onToggleBlockFold", () => {
     const { cleanup } = setupTestDom();
     try {
         const ast = parseOrgDocument("#+NAME: sample-code\n#+BEGIN_SRC python\nprint(42)\n#+END_SRC");
@@ -196,7 +196,7 @@ Deno.test("unit: OrgElementRenderer clicking source block header dispatches onTo
     }
 });
 
-Deno.test("unit: OrgElementRenderer hides source block body when foldedBlocks includes block ID", () => {
+Deno.test("unit: OrgElementRenderer: hides source block body when foldedBlocks includes block ID", () => {
     const { cleanup } = setupTestDom();
     try {
         const ast = parseOrgDocument("#+NAME: sample-code\n#+BEGIN_SRC python\nprint(42)\n#+END_SRC");
@@ -213,7 +213,7 @@ Deno.test("unit: OrgElementRenderer hides source block body when foldedBlocks in
     }
 });
 
-Deno.test("unit: OrgElementRenderer renders table thead header columns", () => {
+Deno.test("unit: OrgElementRenderer: renders table thead header columns", () => {
     const { cleanup } = setupTestDom();
     try {
         const ast = parseOrgDocument("| Name | Age |\n|---+---|\n| Alice | 30 |");
@@ -226,7 +226,7 @@ Deno.test("unit: OrgElementRenderer renders table thead header columns", () => {
     }
 });
 
-Deno.test("unit: OrgElementRenderer renders table tbody data rows", () => {
+Deno.test("unit: OrgElementRenderer: renders table tbody data rows", () => {
     const { cleanup } = setupTestDom();
     try {
         const ast = parseOrgDocument("| Name | Age |\n|---+---|\n| Alice | 30 |");
@@ -239,7 +239,7 @@ Deno.test("unit: OrgElementRenderer renders table tbody data rows", () => {
     }
 });
 
-Deno.test("unit: OrgElementRenderer renders list description term tag", () => {
+Deno.test("unit: OrgElementRenderer: renders list description term tag", () => {
     const { cleanup } = setupTestDom();
     try {
         const ast = parseOrgDocument("- Term :: Definition content");
@@ -252,7 +252,7 @@ Deno.test("unit: OrgElementRenderer renders list description term tag", () => {
     }
 });
 
-Deno.test("unit: OrgElementRenderer renders checkboxes for list items", () => {
+Deno.test("unit: OrgElementRenderer: renders checkboxes for list items", () => {
     const { cleanup } = setupTestDom();
     try {
         const ast = parseOrgDocument("- [ ] Task 1\n- [X] Task 2");
@@ -265,7 +265,7 @@ Deno.test("unit: OrgElementRenderer renders checkboxes for list items", () => {
     }
 });
 
-Deno.test("unit: OrgElementRenderer clicking checkbox dispatches onToggleCheckbox", () => {
+Deno.test("unit: OrgElementRenderer: clicking checkbox dispatches onToggleCheckbox", () => {
     const { cleanup } = setupTestDom();
     try {
         const ast = parseOrgDocument("- [ ] Task 1");
@@ -287,7 +287,7 @@ Deno.test("unit: OrgElementRenderer clicking checkbox dispatches onToggleCheckbo
     }
 });
 
-Deno.test("unit: OrgElementRenderer renders collapsible property drawer header", () => {
+Deno.test("unit: OrgElementRenderer: renders collapsible property drawer header", () => {
     const { cleanup } = setupTestDom();
     try {
         const ast = parseOrgDocument(":PROPERTIES:\n:CUSTOM_ID: my-id\n:END:");
@@ -300,7 +300,7 @@ Deno.test("unit: OrgElementRenderer renders collapsible property drawer header",
     }
 });
 
-Deno.test("unit: OrgElementRenderer renders exactly one property drawer under headline without duplication", () => {
+Deno.test("unit: OrgElementRenderer: renders exactly one property drawer under headline without duplication", () => {
     const { cleanup } = setupTestDom();
     try {
         const ast = parseOrgDocument("* Headline\n:PROPERTIES:\n:ID: 1\n:END:\nBody.");

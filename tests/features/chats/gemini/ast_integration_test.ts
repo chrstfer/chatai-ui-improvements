@@ -20,7 +20,7 @@ function setupGeminiDom() {
     };
 }
 
-Deno.test("integration: Gemini AST settleContent caches Org document AST", async () => {
+Deno.test("integration: Gemini: AST settleContent caches Org document AST", async () => {
     defaultAstCache.clear();
     const rawOrg = "* Project Planning\n| Task | Status |\n|---+---|\n| AST | DONE |";
     const hash = computeContentHash(rawOrg, "org");
@@ -28,7 +28,7 @@ Deno.test("integration: Gemini AST settleContent caches Org document AST", async
     assertEquals(defaultAstCache.has(hash, "org"), true);
 });
 
-Deno.test("integration: GeminiInjector injects Org block and caches AST", async () => {
+Deno.test("integration: GeminiInjector: injects Org block and caches AST", async () => {
     const { hostEl, cleanup } = setupGeminiDom();
     defaultAstCache.clear();
     try {
@@ -52,7 +52,7 @@ Deno.test("integration: GeminiInjector injects Org block and caches AST", async 
     }
 });
 
-Deno.test("integration: GeminiInjector re-injecting block reuses cached AST", async () => {
+Deno.test("integration: GeminiInjector: re-injecting block reuses cached AST", async () => {
     const { hostEl, cleanup } = setupGeminiDom();
     defaultAstCache.clear();
     try {
@@ -89,7 +89,7 @@ Deno.test("integration: GeminiInjector re-injecting block reuses cached AST", as
     }
 });
 
-Deno.test("integration: GeminiInjector non-org block does not populate Org AST cache", () => {
+Deno.test("integration: GeminiInjector: non-org block does not populate Org AST cache", () => {
     const { hostEl, cleanup } = setupGeminiDom();
     defaultAstCache.clear();
     try {
@@ -112,7 +112,7 @@ Deno.test("integration: GeminiInjector non-org block does not populate Org AST c
     }
 });
 
-Deno.test("integration: GeminiInjector non-destructive bypass leaves host visible for non-org code", () => {
+Deno.test("integration: GeminiInjector: non-destructive bypass leaves host visible for non-org code", () => {
     const { hostEl, cleanup } = setupGeminiDom();
     defaultAstCache.clear();
     try {

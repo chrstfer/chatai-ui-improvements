@@ -8,7 +8,7 @@ import type { Parser } from "../../src/contracts/features/parsers/index.ts";
 import type { Renderer } from "../../src/contracts/features/renderers/index.ts";
 import type { ConversationSerializer } from "../../src/contracts/features/serializers/index.ts";
 
-Deno.test("unit: Contracts Hierarchy core submodule exports valid ConversationTurnNode contract", () => {
+Deno.test("unit: ContractsHierarchy: core submodule exports valid ConversationTurnNode contract", () => {
     // Arrange & Act
     const segment: ResponseSegment = { type: "code-block", content: "* Headline", language: "org" };
     const turn: ConversationTurnNode = {
@@ -24,7 +24,7 @@ Deno.test("unit: Contracts Hierarchy core submodule exports valid ConversationTu
     assertEquals(turn.id, "turn-test");
 });
 
-Deno.test("unit: Contracts Hierarchy features submodule exports valid Parser contract", () => {
+Deno.test("unit: ContractsHierarchy: features submodule exports valid Parser contract", () => {
     // Arrange & Act
     const parser: Parser<string> = {
         id: "test",
@@ -36,7 +36,7 @@ Deno.test("unit: Contracts Hierarchy features submodule exports valid Parser con
     assertEquals(parser.id, "test");
 });
 
-Deno.test("unit: Contracts Hierarchy features submodule exports valid Renderer contract", () => {
+Deno.test("unit: ContractsHierarchy: features submodule exports valid Renderer contract", () => {
     // Arrange & Act
     const renderer: Renderer = {
         id: "test",
@@ -48,7 +48,7 @@ Deno.test("unit: Contracts Hierarchy features submodule exports valid Renderer c
     assertEquals(renderer.id, "test");
 });
 
-Deno.test("unit: Contracts Hierarchy features submodule exports valid ConversationSerializer contract", () => {
+Deno.test("unit: ContractsHierarchy: features submodule exports valid ConversationSerializer contract", () => {
     // Arrange & Act
     const serializer: ConversationSerializer = {
         formatId: "test",

@@ -22,7 +22,7 @@ function restoreConsole() {
 }
 
 // 1. Filtered log throughput: testing hot paths where debug logs are discarded
-Deno.bench("bench: CoreLogger filtered log throughput (DEBUG silenced at WARN level)", (b) => {
+Deno.bench("bench: CoreLogger: filtered log throughput (DEBUG silenced at WARN level)", (b) => {
     CoreLogger.resetForTesting("prod");
     const logger = createLogger("BenchmarkFiltered");
     b.start();
@@ -33,7 +33,7 @@ Deno.bench("bench: CoreLogger filtered log throughput (DEBUG silenced at WARN le
 });
 
 // 2. Active log throughput: testing active logging dispatched to ring buffer and console
-Deno.bench("bench: CoreLogger active log throughput (INFO emitted)", (b) => {
+Deno.bench("bench: CoreLogger: active log throughput (INFO emitted)", (b) => {
     CoreLogger.resetForTesting("dev");
     silenceConsole();
     const logger = createLogger("BenchmarkActive");
@@ -46,7 +46,7 @@ Deno.bench("bench: CoreLogger active log throughput (INFO emitted)", (b) => {
 });
 
 // 3. Child logger instantiation: testing scope hierarchy creation
-Deno.bench("bench: CoreLogger child logger instantiation", (b) => {
+Deno.bench("bench: CoreLogger: child logger instantiation", (b) => {
     const rootLogger = createLogger("BenchmarkRoot");
     b.start();
     for (let i = 0; i < 1000; i++) {
@@ -57,7 +57,7 @@ Deno.bench("bench: CoreLogger child logger instantiation", (b) => {
 });
 
 // 4. Active debugWithTiming throughput
-Deno.bench("bench: CoreLogger debugWithTiming throughput", (b) => {
+Deno.bench("bench: CoreLogger: debugWithTiming throughput", (b) => {
     CoreLogger.resetForTesting("dev");
     silenceConsole();
     const logger = createLogger("BenchmarkTiming");

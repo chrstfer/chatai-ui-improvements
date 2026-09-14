@@ -10,37 +10,37 @@ function setupDom() {
     });
 }
 
-Deno.test("unit: GeminiSiteAdapter has correct adapter id", () => {
+Deno.test("unit: GeminiSiteAdapter: has correct adapter id", () => {
     const adapter = new GeminiSiteAdapter();
     assertEquals(adapter.id, "gemini");
 });
 
-Deno.test("unit: GeminiSiteAdapter has correct adapter display name", () => {
+Deno.test("unit: GeminiSiteAdapter: has correct adapter display name", () => {
     const adapter = new GeminiSiteAdapter();
     assertEquals(adapter.name, "Google Gemini");
 });
 
-Deno.test("unit: GeminiSiteAdapter matches standard Gemini app URL", () => {
+Deno.test("unit: GeminiSiteAdapter: matches standard Gemini app URL", () => {
     const adapter = new GeminiSiteAdapter();
     assertEquals(adapter.matches(new URL("https://gemini.google.com/app")), true);
 });
 
-Deno.test("unit: GeminiSiteAdapter matches multi-user profile Gemini app URL", () => {
+Deno.test("unit: GeminiSiteAdapter: matches multi-user profile Gemini app URL", () => {
     const adapter = new GeminiSiteAdapter();
     assertEquals(adapter.matches(new URL("https://gemini.google.com/u/1/app")), true);
 });
 
-Deno.test("unit: GeminiSiteAdapter rejects Duck.ai URL", () => {
+Deno.test("unit: GeminiSiteAdapter: rejects Duck.ai URL", () => {
     const adapter = new GeminiSiteAdapter();
     assertEquals(adapter.matches(new URL("https://duck.ai/")), false);
 });
 
-Deno.test("unit: GeminiSiteAdapter rejects ChatGPT URL", () => {
+Deno.test("unit: GeminiSiteAdapter: rejects ChatGPT URL", () => {
     const adapter = new GeminiSiteAdapter();
     assertEquals(adapter.matches(new URL("https://chatgpt.com/")), false);
 });
 
-Deno.test("integration: GeminiSiteAdapter initialize injects layout stylesheet into document head", () => {
+Deno.test("integration: GeminiSiteAdapter: initialize injects layout stylesheet into document head", () => {
     const { doc, cleanup } = setupDom();
     try {
         const adapter = new GeminiSiteAdapter();
@@ -53,7 +53,7 @@ Deno.test("integration: GeminiSiteAdapter initialize injects layout stylesheet i
     }
 });
 
-Deno.test("integration: GeminiSiteAdapter initialize applies chat width variable from settings", () => {
+Deno.test("integration: GeminiSiteAdapter: initialize applies chat width variable from settings", () => {
     const { styleMap, cleanup } = setupDom();
     try {
         const store = new SettingsStore({ fullWidth: true, widthPercent: 94 });
@@ -66,7 +66,7 @@ Deno.test("integration: GeminiSiteAdapter initialize applies chat width variable
     }
 });
 
-Deno.test("integration: GeminiSiteAdapter initialize mounts floating HUD container", () => {
+Deno.test("integration: GeminiSiteAdapter: initialize mounts floating HUD container", () => {
     const { doc, cleanup } = setupDom();
     try {
         const adapter = new GeminiSiteAdapter();
@@ -79,7 +79,7 @@ Deno.test("integration: GeminiSiteAdapter initialize mounts floating HUD contain
     }
 });
 
-Deno.test("integration: GeminiSiteAdapter settings update propagates new width variable", () => {
+Deno.test("integration: GeminiSiteAdapter: settings update propagates new width variable", () => {
     const { styleMap, cleanup } = setupDom();
     try {
         const store = new SettingsStore({ fullWidth: true, widthPercent: 94 });
@@ -93,7 +93,7 @@ Deno.test("integration: GeminiSiteAdapter settings update propagates new width v
     }
 });
 
-Deno.test("integration: GeminiSiteAdapter destroy unmounts floating HUD", () => {
+Deno.test("integration: GeminiSiteAdapter: destroy unmounts floating HUD", () => {
     const { doc, cleanup } = setupDom();
     try {
         const adapter = new GeminiSiteAdapter();
@@ -105,7 +105,7 @@ Deno.test("integration: GeminiSiteAdapter destroy unmounts floating HUD", () => 
     }
 });
 
-Deno.test("integration: GeminiSiteAdapter theme change updates HUD data-theme attribute", () => {
+Deno.test("integration: GeminiSiteAdapter: theme change updates HUD data-theme attribute", () => {
     const { doc, cleanup } = setupDom();
     try {
         let themeCallback: ((theme: "light" | "dark") => void) | null = null;
@@ -136,7 +136,7 @@ Deno.test("integration: GeminiSiteAdapter theme change updates HUD data-theme at
     }
 });
 
-Deno.test("integration: GeminiSiteAdapter getChatColumnBounds falls back to viewport bounds when no container", () => {
+Deno.test("integration: GeminiSiteAdapter: getChatColumnBounds falls back to viewport bounds when no container", () => {
     const { cleanup } = setupDom();
     try {
         const adapter = new GeminiSiteAdapter();
@@ -147,7 +147,7 @@ Deno.test("integration: GeminiSiteAdapter getChatColumnBounds falls back to view
     }
 });
 
-Deno.test("integration: GeminiSiteAdapter getChatColumnBounds reads conversation container rect", () => {
+Deno.test("integration: GeminiSiteAdapter: getChatColumnBounds reads conversation container rect", () => {
     const { doc, cleanup } = setupDom();
     try {
         const adapter = new GeminiSiteAdapter();
@@ -172,7 +172,7 @@ Deno.test("integration: GeminiSiteAdapter getChatColumnBounds reads conversation
     }
 });
 
-Deno.test("integration: GeminiSiteAdapter getChatColumnBounds clamps left bound to expanded sidebar", () => {
+Deno.test("integration: GeminiSiteAdapter: getChatColumnBounds clamps left bound to expanded sidebar", () => {
     const { doc, cleanup } = setupDom();
     try {
         const adapter = new GeminiSiteAdapter();

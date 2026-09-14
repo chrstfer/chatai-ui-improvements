@@ -1,0 +1,131 @@
+#+TITLE: Phase 3 Stage 3 Forward-Readiness Test Plan: Two-Phase Math & Tripartite ASTs
+#+AUTHOR: DeepMind Antigravity Pair Programmer
+#+DATE: [2026-09-14]
+#+STARTUP: overview
+
+* 1. Overview & Architectural Objectives
+
+** Scope & Purpose
+In accordance with =docs/phase-3_meta-plan.org= (§5), Stage 3 delivers two critical domain subsystems:
+1. *Two-Phase LaTeX Math Tokenization*: Shields inline and display mathematical notation from premature prose Greek entity expansion, delivering pristine ASCII LaTeX syntax directly to KaTeX.
+2. *Tripartite Headless AST Foundation*: Establishes pure, headless AST engines for:
+   - Org-mode AST (=src/features/ast/org/=) with fine-grained math shielding.
+   - CommonMark + GitHub Flavored Markdown (GFM) AST (=src/features/ast/markdown/=) with section hierarchies, callouts, and pipe tables.
+   - Canonical JSON AST Intermediate Representation (IR) (=src/features/ast/json/=) providing structured turn modeling.
+
+This document defines the forward-readiness test plan, test case matrix, fixture specifications, and verification gates for Stage 3 development.
+
+---
+
+* 2. Test Architecture & Directory Organization
+
+All tests will reside in component-centric modules under =tests/languages/=, strictly adhering to the headless domain boundary (zero Preact, zero DOM, zero CSS dependencies):
+
+#+BEGIN_SRC text
+tests/
+├── languages/
+│   ├── org/
+│   │   ├── org_math_tokenization_test.ts       (unit: two-phase math token shielding)
+│   │   └── org_latex_entity_expansion_test.ts  (unit: selective prose Greek entity expansion)
+│   ├── markdown/
+│   │   ├── gfm_block_parser_test.ts            (unit: ATX headings, sections, code fences)
+│   │   ├── gfm_inline_parser_test.ts           (unit: inline formatting, links, code spans)
+│   │   ├── gfm_callouts_test.ts                (unit: GitHub Alert syntax [!NOTE], [!TIP])
+│   │   └── gfm_table_parser_test.ts            (unit: pipe tables with alignment colons)
+│   └── json/
+│       ├── json_ast_parser_test.ts             (unit: pure JSON AST parsing and node trees)
+│       └── json_ir_converter_test.ts           (unit: turn conversion to/from JSON IR)
+└── fixtures/
+    └── data/
+        ├── math/
+        │   ├── inline_math_samples.json
+        │   └── display_math_samples.json
+        └── markdown/
+            ├── gfm_callouts_sample.md
+            └── complex_pipe_table.md
+#+END_SRC
+
+---
+
+* 3. Test Nomenclature Standard
+
+In accordance with =docs/test-design.org=, every test in Stage 3 must enforce the **Two-Level Prefix Standard**:
+#+BEGIN_SRC text
+unit: [ComponentUnderTest]: [scenario or condition] [expected behavior or invariant]
+#+END_SRC
+
+** Standardized Examples
+- ~unit: OrgInlineParser: isolates inline dollar math token before entity expansion~
+- ~unit: OrgInlineParser: preserves LaTeX backslash commands in display equation blocks~
+- ~unit: MarkdownParser: constructs nested section hierarchy under H1 document heading~
+- ~unit: MarkdownCalloutParser: maps [!IMPORTANT] token to AlertNode with error level~
+- ~unit: JsonAstParser: parses nested object into key-value PropertyNode tree~
+- ~unit: JsonIrConverter: converts conversational turn into canonical JSON IR node~
+
+---
+
+* 4. Subsystem Verification Matrices
+
+** 4.1 Two-Phase Math Tokenization Test Matrix
+
+#+BEGIN_SRC text
+Prose Input ───────► Phase 1: Delimit Math ───────► Phase 2: Entity Expansion ───────► Pure AST
+                      (Tokens Shielded)               (Only Prose Modified)
+#+END_SRC
+
+| Test Case | Input Syntax | Phase 1 Tokenization | Phase 2 Expansion | Invariant / Expected AST Node |
+|---+---+---+---+---|
+| Inline Dollar Math | ~$E = mc^2$~ | ~MathInlineNode~ | Untouched | Formula delivered verbatim to KaTeX |
+| Inline Paren Math | ~\( \alpha + \beta \)~ | ~MathInlineNode~ | Untouched | ~alpha~ and ~beta~ remain ASCII LaTeX commands |
+| Display Double Dollar | ~$$ \int_0^\infty e^{-x} dx $$~ | ~MathDisplayNode~ | Untouched | Verbatim ASCII math formula preserved |
+| Display Equation Env | ~\begin{equation}\lambda = \frac{h}{p}\end{equation}~ | ~MathDisplayNode~ | Untouched | ~\lambda~ remains ASCII command |
+| Non-Math Prose Entities | ~Values: \alpha and \beta~ | ~TextRunNode~ | ~\alpha~ expanded | Prose expands to unicode or entity target |
+| Mixed Math and Prose | ~Let \alpha be angle: $\cos(\alpha) = 1$~ | Math shielded; prose exposed | Prose expands; math untouched | Inside MathInlineNode, ~\alpha~ is verbatim |
+
+** 4.2 CommonMark & GFM AST Test Matrix
+
+| Component | Target Syntax | Verified Invariants |
+|---+---+---|
+| *ATX Headings* | ~# H1~, ~## H2~, ~### H3~ | Produces =HeadingNode= with correct depth (1-6) and auto-generated slug ID |
+| *Section Nesting* | Hierarchical headings | Lower-rank headings (=H2=) are nested inside the body of preceding =H1= |
+| *GitHub Alerts* | ~> [!NOTE]~, ~> [!TIP]~, ~> [!IMPORTANT]~, ~> [!WARNING]~, ~> [!CAUTION]~ | Produces =AlertNode= with designated variant, default localized title, and child body |
+| *Pipe Tables* | ~| Header |~, ~| :--- | :---: | ---: |~ | Produces =TableNode=, =TableRowNode=, =TableCellNode= with correct text alignments |
+| *Task Lists* | ~- [ ] Todo~, ~- [x] Done~ | Produces =TaskItemNode= with boolean =checked= property |
+| *Code Fences* | ~```python~, ~~~~yaml~ | Produces =CodeBlockNode= capturing language tag and unescaped code body |
+
+** 4.3 JSON AST & Intermediate Representation (IR) Test Matrix
+
+| Component | Target Syntax | Verified Invariants |
+|---+---+---|
+| *JSON AST Parser* | Arbitrary JSON string | Produces =JsonDocumentNode= holding =JsonObjectNode=, =JsonArrayNode=, =JsonPrimitiveNode= |
+| *Roundtrip Integrity* | Complex JSON payload | Serializing AST back to JSON produces identical object graph |
+| *Turn to JSON IR* | Conversational Turn | Maps turn ID, speaker ("user" / "assistant"), timestamp, and content segments into =JsonTurnIr= |
+| *JSON IR to Turn* | Canonical JSON IR | Reconstructs =ConversationTurnNode= without data loss |
+
+---
+
+* 5. Hermetic Test Fixture Requirements
+
+1. *Zero Global Leakage*: Pure unit tests must execute in pure memory without instantiating global DOM shims.
+2. *Deterministic Fixture Files*:
+   - Complex test inputs exceeding 3 lines must reside in =tests/fixtures/data/math/= and =tests/fixtures/data/markdown/=.
+   - Tests read fixtures synchronously via =tests/fixtures/fixture_loader.ts=.
+3. *Single-Assertion Discipline*: Each test case must contain exactly one logical assertion (=assertEquals=, =assertStringIncludes=, =assertMatch=).
+
+---
+
+* 6. Acceptance Gates & Verification Commands
+
+Before Stage 3 is certified for merging, the following commands must execute cleanly:
+
+#+BEGIN_SRC bash
+# 1. Run all unit tests including new AST and Math suites (<10s)
+deno task test:unit
+
+# 2. Run test pipeline audit and verify 100% two-level prefix compliance on new tests
+deno task audit:tests
+
+# 3. Format and lint codebase
+deno task fmt
+deno task lint
+#+END_SRC

@@ -21,7 +21,7 @@ function createMockSiteAdapter(id: string, hostname: string): SiteAdapter {
     };
 }
 
-Deno.test("unit: ChatAdapterRegistry hasMatching returns true for matched host URL", () => {
+Deno.test("unit: ChatAdapterRegistry: hasMatching returns true for matched host URL", () => {
     const registry = new ChatAdapterRegistry();
     const mock = createMockSiteAdapter("test-host", "test.host.ai");
     registry.register({
@@ -34,7 +34,7 @@ Deno.test("unit: ChatAdapterRegistry hasMatching returns true for matched host U
     assertEquals(result, true);
 });
 
-Deno.test("unit: ChatAdapterRegistry hasMatching returns false for unmatched host URL", () => {
+Deno.test("unit: ChatAdapterRegistry: hasMatching returns false for unmatched host URL", () => {
     const registry = new ChatAdapterRegistry();
     const mock = createMockSiteAdapter("test-host", "test.host.ai");
     registry.register({
@@ -47,7 +47,7 @@ Deno.test("unit: ChatAdapterRegistry hasMatching returns false for unmatched hos
     assertEquals(result, false);
 });
 
-Deno.test("unit: ChatAdapterRegistry findAndLoad resolves matching site adapter", async () => {
+Deno.test("unit: ChatAdapterRegistry: findAndLoad resolves matching site adapter", async () => {
     const registry = new ChatAdapterRegistry();
     const mock = createMockSiteAdapter("test-host", "test.host.ai");
     registry.register({
@@ -60,7 +60,7 @@ Deno.test("unit: ChatAdapterRegistry findAndLoad resolves matching site adapter"
     assertEquals(loaded?.id, "test-host");
 });
 
-Deno.test("unit: ChatAdapterRegistry caches loaded adapter instance across calls", async () => {
+Deno.test("unit: ChatAdapterRegistry: caches loaded adapter instance across calls", async () => {
     const registry = new ChatAdapterRegistry();
     let loadCount = 0;
     const mock = createMockSiteAdapter("test-host", "test.host.ai");
@@ -78,7 +78,7 @@ Deno.test("unit: ChatAdapterRegistry caches loaded adapter instance across calls
     assertEquals(loadCount, 1);
 });
 
-Deno.test("unit: ChatAdapterRegistry reloads factory when fresh option is true", async () => {
+Deno.test("unit: ChatAdapterRegistry: reloads factory when fresh option is true", async () => {
     const registry = new ChatAdapterRegistry();
     let loadCount = 0;
     const mock = createMockSiteAdapter("test-host", "test.host.ai");
@@ -96,7 +96,7 @@ Deno.test("unit: ChatAdapterRegistry reloads factory when fresh option is true",
     assertEquals(loadCount, 2);
 });
 
-Deno.test("unit: ChatAdapterRegistry unload evicts cached instance", async () => {
+Deno.test("unit: ChatAdapterRegistry: unload evicts cached instance", async () => {
     const registry = new ChatAdapterRegistry();
     const mock = createMockSiteAdapter("test-host", "test.host.ai");
     registry.register({
@@ -110,7 +110,7 @@ Deno.test("unit: ChatAdapterRegistry unload evicts cached instance", async () =>
     assertEquals(unloaded, true);
 });
 
-Deno.test("unit: ChatAdapterRegistry unregister removes adapter definition", () => {
+Deno.test("unit: ChatAdapterRegistry: unregister removes adapter definition", () => {
     const registry = new ChatAdapterRegistry();
     const mock = createMockSiteAdapter("test-host", "test.host.ai");
     registry.register({
@@ -124,32 +124,32 @@ Deno.test("unit: ChatAdapterRegistry unregister removes adapter definition", () 
     assertEquals(result, false);
 });
 
-Deno.test("integration: defaultChatRegistry matches Gemini chat URL", () => {
+Deno.test("integration: ChatAdapterRegistry: defaultChatRegistry matches Gemini chat URL", () => {
     const result = defaultChatRegistry.hasMatching("https://gemini.google.com/app");
     assertEquals(result, true);
 });
 
-Deno.test("integration: defaultChatRegistry lazily loads GeminiSiteAdapter", async () => {
+Deno.test("integration: ChatAdapterRegistry: defaultChatRegistry lazily loads GeminiSiteAdapter", async () => {
     const adapter = await defaultChatRegistry.findAndLoad("https://gemini.google.com/app");
     assertEquals(adapter?.id, "gemini");
 });
 
-Deno.test("integration: defaultChatRegistry matches Duck.ai root URL", () => {
+Deno.test("integration: ChatAdapterRegistry: defaultChatRegistry matches Duck.ai root URL", () => {
     const result = defaultChatRegistry.hasMatching("https://duck.ai/");
     assertEquals(result, true);
 });
 
-Deno.test("integration: defaultChatRegistry matches DuckDuckGo chat URL", () => {
+Deno.test("integration: ChatAdapterRegistry: defaultChatRegistry matches DuckDuckGo chat URL", () => {
     const result = defaultChatRegistry.hasMatching("https://duckduckgo.com/chat");
     assertEquals(result, true);
 });
 
-Deno.test("integration: defaultChatRegistry rejects non-chat DuckDuckGo URL", () => {
+Deno.test("integration: ChatAdapterRegistry: defaultChatRegistry rejects non-chat DuckDuckGo URL", () => {
     const result = defaultChatRegistry.hasMatching("https://duckduckgo.com/");
     assertEquals(result, false);
 });
 
-Deno.test("integration: defaultChatRegistry lazily loads DuckAiSiteAdapter", async () => {
+Deno.test("integration: ChatAdapterRegistry: defaultChatRegistry lazily loads DuckAiSiteAdapter", async () => {
     const adapter = await defaultChatRegistry.findAndLoad("https://duck.ai/");
     assertEquals(adapter?.id, "duckai");
 });

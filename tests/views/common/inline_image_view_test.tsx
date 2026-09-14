@@ -5,7 +5,7 @@ import { InlineImageView } from "../../../src/views/common/InlineImageView.tsx";
 
 const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
 
-Deno.test("unit: InlineImageView renders figure with inline-image-container class", () => {
+Deno.test("unit: InlineImageView: renders figure with inline-image-container class", () => {
     const { cleanup: domCleanup } = setupTestDom();
     try {
         const { container } = render(
@@ -23,7 +23,7 @@ Deno.test("unit: InlineImageView renders figure with inline-image-container clas
     }
 });
 
-Deno.test("unit: InlineImageView renders figcaption with title text", () => {
+Deno.test("unit: InlineImageView: renders figcaption with title text", () => {
     const { cleanup: domCleanup } = setupTestDom();
     try {
         const { container } = render(
@@ -41,7 +41,7 @@ Deno.test("unit: InlineImageView renders figcaption with title text", () => {
     }
 });
 
-Deno.test("unit: InlineImageView renders link to image source with _blank target", () => {
+Deno.test("unit: InlineImageView: renders link to image source with _blank target", () => {
     const { cleanup: domCleanup } = setupTestDom();
     try {
         const { container } = render(
@@ -59,7 +59,7 @@ Deno.test("unit: InlineImageView renders link to image source with _blank target
     }
 });
 
-Deno.test("unit: InlineImageView renders link to image source with noopener noreferrer rel", () => {
+Deno.test("unit: InlineImageView: renders link to image source with noopener noreferrer rel", () => {
     const { cleanup: domCleanup } = setupTestDom();
     try {
         const { container } = render(
@@ -77,7 +77,7 @@ Deno.test("unit: InlineImageView renders link to image source with noopener nore
     }
 });
 
-Deno.test("unit: InlineImageView renders img with specified src attribute", () => {
+Deno.test("unit: InlineImageView: renders img with specified src attribute", () => {
     const { cleanup: domCleanup } = setupTestDom();
     try {
         const { container } = render(
@@ -95,7 +95,7 @@ Deno.test("unit: InlineImageView renders img with specified src attribute", () =
     }
 });
 
-Deno.test("unit: InlineImageView renders img with specified alt attribute", () => {
+Deno.test("unit: InlineImageView: renders img with specified alt attribute", () => {
     const { cleanup: domCleanup } = setupTestDom();
     try {
         const { container } = render(
@@ -113,7 +113,7 @@ Deno.test("unit: InlineImageView renders img with specified alt attribute", () =
     }
 });
 
-Deno.test("unit: InlineImageView hides img when figcaption is clicked to fold", async () => {
+Deno.test("unit: InlineImageView: hides img when figcaption is clicked to fold", async () => {
     const { cleanup: domCleanup } = setupTestDom();
     try {
         const { container } = render(
@@ -124,8 +124,7 @@ Deno.test("unit: InlineImageView hides img when figcaption is clicked to fold", 
             />,
         );
         const caption = container.querySelector("figcaption");
-        assertNotEquals(caption, null);
-        triggerClick(caption!);
+        if (caption) triggerClick(caption);
         await sleep(20);
         assertEquals(container.querySelector("img"), null);
     } finally {
@@ -134,7 +133,7 @@ Deno.test("unit: InlineImageView hides img when figcaption is clicked to fold", 
     }
 });
 
-Deno.test("unit: InlineImageView restores img when figcaption is clicked twice to unfold", async () => {
+Deno.test("unit: InlineImageView: restores img when figcaption is clicked twice to unfold", async () => {
     const { cleanup: domCleanup } = setupTestDom();
     try {
         const { container } = render(
@@ -145,11 +144,12 @@ Deno.test("unit: InlineImageView restores img when figcaption is clicked twice t
             />,
         );
         const caption = container.querySelector("figcaption");
-        assertNotEquals(caption, null);
-        triggerClick(caption!);
-        await sleep(20);
-        triggerClick(caption!);
-        await sleep(20);
+        if (caption) {
+            triggerClick(caption);
+            await sleep(20);
+            triggerClick(caption);
+            await sleep(20);
+        }
         assertNotEquals(container.querySelector("img"), null);
     } finally {
         cleanup();
@@ -157,13 +157,12 @@ Deno.test("unit: InlineImageView restores img when figcaption is clicked twice t
     }
 });
 
-Deno.test("unit: InlineImageView renders error banner when image triggers error event", async () => {
+Deno.test("unit: InlineImageView: renders error banner when image triggers error event", async () => {
     const { cleanup: domCleanup } = setupTestDom();
     try {
         const { container } = render(<InlineImageView src="https://example.com/broken.jpg" />);
         const img = container.querySelector("img");
-        assertNotEquals(img, null);
-        img!.dispatchEvent(new Event("error"));
+        img?.dispatchEvent(new Event("error"));
         await sleep(20);
         const errorBanner = container.querySelector(".inline-image-error");
         assertNotEquals(errorBanner, null);
@@ -173,13 +172,12 @@ Deno.test("unit: InlineImageView renders error banner when image triggers error 
     }
 });
 
-Deno.test("unit: InlineImageView error banner contains failure message", async () => {
+Deno.test("unit: InlineImageView: error banner contains failure message", async () => {
     const { cleanup: domCleanup } = setupTestDom();
     try {
         const { container } = render(<InlineImageView src="https://example.com/broken.jpg" />);
         const img = container.querySelector("img");
-        assertNotEquals(img, null);
-        img!.dispatchEvent(new Event("error"));
+        img?.dispatchEvent(new Event("error"));
         await sleep(20);
         const errorBanner = container.querySelector(".inline-image-error");
         assertEquals(errorBanner?.textContent?.includes("Failed to preview image"), true);
@@ -189,13 +187,12 @@ Deno.test("unit: InlineImageView error banner contains failure message", async (
     }
 });
 
-Deno.test("unit: InlineImageView error banner contains link to image source", async () => {
+Deno.test("unit: InlineImageView: error banner contains link to image source", async () => {
     const { cleanup: domCleanup } = setupTestDom();
     try {
         const { container } = render(<InlineImageView src="https://example.com/broken.jpg" />);
         const img = container.querySelector("img");
-        assertNotEquals(img, null);
-        img!.dispatchEvent(new Event("error"));
+        img?.dispatchEvent(new Event("error"));
         await sleep(20);
         const errorLink = container.querySelector(".inline-image-error a");
         assertEquals(errorLink?.getAttribute("href"), "https://example.com/broken.jpg");
@@ -205,7 +202,7 @@ Deno.test("unit: InlineImageView error banner contains link to image source", as
     }
 });
 
-Deno.test("unit: InlineImageView contains zero org- prefixed class names", () => {
+Deno.test("unit: InlineImageView: contains zero org- prefixed class names", () => {
     const { cleanup: domCleanup } = setupTestDom();
     try {
         const { container } = render(

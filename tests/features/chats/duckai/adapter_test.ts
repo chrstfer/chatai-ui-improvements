@@ -3,52 +3,52 @@ import { DuckAiSiteAdapter } from "../../../../src/features/chats/duckai/index.t
 import { SettingsStore } from "../../../../src/core/storage/settings.ts";
 import { setupTestDom } from "../../../fixtures/dom_fixture.ts";
 
-Deno.test("unit: DuckAiSiteAdapter has correct adapter id", () => {
+Deno.test("unit: DuckAiSiteAdapter: has correct adapter id", () => {
     const adapter = new DuckAiSiteAdapter();
     assertEquals(adapter.id, "duckai");
 });
 
-Deno.test("unit: DuckAiSiteAdapter has correct adapter display name", () => {
+Deno.test("unit: DuckAiSiteAdapter: has correct adapter display name", () => {
     const adapter = new DuckAiSiteAdapter();
     assertEquals(adapter.name, "DuckDuckGo AI");
 });
 
-Deno.test("unit: DuckAiSiteAdapter matches root duck.ai domain", () => {
+Deno.test("unit: DuckAiSiteAdapter: matches root duck.ai domain", () => {
     const adapter = new DuckAiSiteAdapter();
     assertEquals(adapter.matches(new URL("https://duck.ai/")), true);
 });
 
-Deno.test("unit: DuckAiSiteAdapter matches conversation path on duck.ai", () => {
+Deno.test("unit: DuckAiSiteAdapter: matches conversation path on duck.ai", () => {
     const adapter = new DuckAiSiteAdapter();
     assertEquals(adapter.matches(new URL("https://duck.ai/c/123")), true);
 });
 
-Deno.test("unit: DuckAiSiteAdapter matches duckduckgo chat path", () => {
+Deno.test("unit: DuckAiSiteAdapter: matches duckduckgo chat path", () => {
     const adapter = new DuckAiSiteAdapter();
     assertEquals(adapter.matches(new URL("https://duckduckgo.com/chat")), true);
 });
 
-Deno.test("unit: DuckAiSiteAdapter matches duckduckgo chat with query string", () => {
+Deno.test("unit: DuckAiSiteAdapter: matches duckduckgo chat with query string", () => {
     const adapter = new DuckAiSiteAdapter();
     assertEquals(adapter.matches(new URL("https://duckduckgo.com/chat?q=test")), true);
 });
 
-Deno.test("unit: DuckAiSiteAdapter rejects non-chat duckduckgo root domain", () => {
+Deno.test("unit: DuckAiSiteAdapter: rejects non-chat duckduckgo root domain", () => {
     const adapter = new DuckAiSiteAdapter();
     assertEquals(adapter.matches(new URL("https://duckduckgo.com/")), false);
 });
 
-Deno.test("unit: DuckAiSiteAdapter rejects Gemini domain", () => {
+Deno.test("unit: DuckAiSiteAdapter: rejects Gemini domain", () => {
     const adapter = new DuckAiSiteAdapter();
     assertEquals(adapter.matches(new URL("https://gemini.google.com/app")), false);
 });
 
-Deno.test("unit: DuckAiSiteAdapter rejects ChatGPT domain", () => {
+Deno.test("unit: DuckAiSiteAdapter: rejects ChatGPT domain", () => {
     const adapter = new DuckAiSiteAdapter();
     assertEquals(adapter.matches(new URL("https://chatgpt.com/")), false);
 });
 
-Deno.test("integration: DuckAiSiteAdapter initialize injects layout stylesheet into document", () => {
+Deno.test("integration: DuckAiSiteAdapter: initialize injects layout stylesheet into document", () => {
     const { doc, cleanup } = setupTestDom();
     try {
         const adapter = new DuckAiSiteAdapter();
@@ -61,7 +61,7 @@ Deno.test("integration: DuckAiSiteAdapter initialize injects layout stylesheet i
     }
 });
 
-Deno.test("integration: DuckAiSiteAdapter initialize applies chat width variable from settings", () => {
+Deno.test("integration: DuckAiSiteAdapter: initialize applies chat width variable from settings", () => {
     const { styleMap, cleanup } = setupTestDom();
     try {
         const store = new SettingsStore({ fullWidth: true, widthPercent: 94 });
@@ -74,7 +74,7 @@ Deno.test("integration: DuckAiSiteAdapter initialize applies chat width variable
     }
 });
 
-Deno.test("integration: DuckAiSiteAdapter initialize mounts floating HUD container", () => {
+Deno.test("integration: DuckAiSiteAdapter: initialize mounts floating HUD container", () => {
     const { doc, cleanup } = setupTestDom();
     try {
         const adapter = new DuckAiSiteAdapter();
@@ -87,7 +87,7 @@ Deno.test("integration: DuckAiSiteAdapter initialize mounts floating HUD contain
     }
 });
 
-Deno.test("integration: DuckAiSiteAdapter settings update propagates new width variable", () => {
+Deno.test("integration: DuckAiSiteAdapter: settings update propagates new width variable", () => {
     const { styleMap, cleanup } = setupTestDom();
     try {
         const store = new SettingsStore({ fullWidth: true, widthPercent: 94 });
@@ -101,7 +101,7 @@ Deno.test("integration: DuckAiSiteAdapter settings update propagates new width v
     }
 });
 
-Deno.test("integration: DuckAiSiteAdapter destroy unmounts floating HUD", () => {
+Deno.test("integration: DuckAiSiteAdapter: destroy unmounts floating HUD", () => {
     const { doc, cleanup } = setupTestDom();
     try {
         const adapter = new DuckAiSiteAdapter();
@@ -113,7 +113,7 @@ Deno.test("integration: DuckAiSiteAdapter destroy unmounts floating HUD", () => 
     }
 });
 
-Deno.test("integration: DuckAiSiteAdapter theme change updates HUD data-theme attribute", () => {
+Deno.test("integration: DuckAiSiteAdapter: theme change updates HUD data-theme attribute", () => {
     const { doc, cleanup } = setupTestDom();
     try {
         let themeCallback: ((theme: "light" | "dark") => void) | null = null;
@@ -144,7 +144,7 @@ Deno.test("integration: DuckAiSiteAdapter theme change updates HUD data-theme at
     }
 });
 
-Deno.test("integration: DuckAiSiteAdapter getChatColumnBounds falls back to viewport bounds without sidebar", () => {
+Deno.test("integration: DuckAiSiteAdapter: getChatColumnBounds falls back to viewport bounds without sidebar", () => {
     const { cleanup } = setupTestDom();
     try {
         const adapter = new DuckAiSiteAdapter();
@@ -155,7 +155,7 @@ Deno.test("integration: DuckAiSiteAdapter getChatColumnBounds falls back to view
     }
 });
 
-Deno.test("integration: DuckAiSiteAdapter getChatColumnBounds clamps left bound to sidebar right", () => {
+Deno.test("integration: DuckAiSiteAdapter: getChatColumnBounds clamps left bound to sidebar right", () => {
     const { doc, cleanup } = setupTestDom();
     try {
         const adapter = new DuckAiSiteAdapter();
@@ -181,7 +181,7 @@ Deno.test("integration: DuckAiSiteAdapter getChatColumnBounds clamps left bound 
     }
 });
 
-Deno.test("integration: DuckAiSiteAdapter handleThreadSwitch destroys active injector roots", () => {
+Deno.test("integration: DuckAiSiteAdapter: handleThreadSwitch destroys active injector roots", () => {
     const { cleanup } = setupTestDom();
     try {
         let destroyAllCalled = false;
@@ -206,7 +206,7 @@ Deno.test("integration: DuckAiSiteAdapter handleThreadSwitch destroys active inj
     }
 });
 
-Deno.test("integration: DuckAiSiteAdapter handleThreadSwitch resets injector state", () => {
+Deno.test("integration: DuckAiSiteAdapter: handleThreadSwitch resets injector state", () => {
     const { cleanup } = setupTestDom();
     try {
         let resetCalled = false;

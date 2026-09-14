@@ -1,41 +1,41 @@
 import { assertEquals, assertFalse, assertNotEquals } from "@std/assert";
 import { AstCache, defaultAstCache } from "../../src/store/astCache.ts";
 
-Deno.test("unit: AstCache stores and verifies entry existence", () => {
+Deno.test("unit: AstCache: stores and verifies entry existence", () => {
     const cache = new AstCache(10);
     const mockAst = { type: "document", children: [] };
     cache.set(12345, "org", mockAst);
     assertEquals(cache.has(12345, "org"), true);
 });
 
-Deno.test("unit: AstCache has normalizes format type case-insensitively", () => {
+Deno.test("unit: AstCache: has normalizes format type case-insensitively", () => {
     const cache = new AstCache(10);
     const mockAst = { type: "document", children: [] };
     cache.set(12345, "org", mockAst);
     assertEquals(cache.has(12345, "ORG"), true);
 });
 
-Deno.test("unit: AstCache get retrieves stored AST", () => {
+Deno.test("unit: AstCache: get retrieves stored AST", () => {
     const cache = new AstCache(10);
     const mockAst = { type: "document", children: [] };
     cache.set(12345, "org", mockAst);
     assertEquals(cache.get(12345, "org"), mockAst);
 });
 
-Deno.test("unit: AstCache get returns undefined for mismatched type", () => {
+Deno.test("unit: AstCache: get returns undefined for mismatched type", () => {
     const cache = new AstCache(10);
     const mockAst = { type: "document", children: [] };
     cache.set(12345, "org", mockAst);
     assertEquals(cache.get(12345, "python"), undefined);
 });
 
-Deno.test("unit: AstCache size reports correct element count", () => {
+Deno.test("unit: AstCache: size reports correct element count", () => {
     const cache = new AstCache(10);
     cache.set(12345, "org", { type: "document" });
     assertEquals(cache.size, 1);
 });
 
-Deno.test("unit: AstCache getEntry populates metadata hash", () => {
+Deno.test("unit: AstCache: getEntry populates metadata hash", () => {
     const cache = new AstCache(10);
     const mockAst = { type: "document", children: [] };
     cache.set(12345, "org", mockAst);
@@ -43,7 +43,7 @@ Deno.test("unit: AstCache getEntry populates metadata hash", () => {
     assertEquals(entry?.hash, 12345);
 });
 
-Deno.test("unit: AstCache getEntry populates metadata timestamp", () => {
+Deno.test("unit: AstCache: getEntry populates metadata timestamp", () => {
     const cache = new AstCache(10);
     const mockAst = { type: "document", children: [] };
     cache.set(12345, "org", mockAst);
@@ -51,14 +51,14 @@ Deno.test("unit: AstCache getEntry populates metadata timestamp", () => {
     assertNotEquals(entry?.timestamp, undefined);
 });
 
-Deno.test("unit: AstCache delete removes specified entry", () => {
+Deno.test("unit: AstCache: delete removes specified entry", () => {
     const cache = new AstCache(10);
     cache.set(1, "org", { id: 1 });
     cache.delete(1, "org");
     assertFalse(cache.has(1, "org"));
 });
 
-Deno.test("unit: AstCache delete decreases cache size", () => {
+Deno.test("unit: AstCache: delete decreases cache size", () => {
     const cache = new AstCache(10);
     cache.set(1, "org", { id: 1 });
     cache.set(2, "org", { id: 2 });
@@ -66,21 +66,21 @@ Deno.test("unit: AstCache delete decreases cache size", () => {
     assertEquals(cache.size, 1);
 });
 
-Deno.test("unit: AstCache clear resets size to zero", () => {
+Deno.test("unit: AstCache: clear resets size to zero", () => {
     const cache = new AstCache(10);
     cache.set(1, "org", { id: 1 });
     cache.clear();
     assertEquals(cache.size, 0);
 });
 
-Deno.test("unit: AstCache clear purges stored entries", () => {
+Deno.test("unit: AstCache: clear purges stored entries", () => {
     const cache = new AstCache(10);
     cache.set(2, "org", { id: 2 });
     cache.clear();
     assertFalse(cache.has(2, "org"));
 });
 
-Deno.test("unit: AstCache evicts least recently used entry on capacity overflow", () => {
+Deno.test("unit: AstCache: evicts least recently used entry on capacity overflow", () => {
     const cache = new AstCache(3);
     cache.set(1, "org", { id: 1 });
     cache.set(2, "org", { id: 2 });
@@ -90,7 +90,7 @@ Deno.test("unit: AstCache evicts least recently used entry on capacity overflow"
     assertFalse(cache.has(2, "org"));
 });
 
-Deno.test("unit: AstCache preserves recently accessed entry during LRU eviction", () => {
+Deno.test("unit: AstCache: preserves recently accessed entry during LRU eviction", () => {
     const cache = new AstCache(3);
     cache.set(1, "org", { id: 1 });
     cache.set(2, "org", { id: 2 });
@@ -100,6 +100,6 @@ Deno.test("unit: AstCache preserves recently accessed entry during LRU eviction"
     assertEquals(cache.has(1, "org"), true);
 });
 
-Deno.test("unit: defaultAstCache singleton is configured with capacity 200", () => {
+Deno.test("unit: AstCache: defaultAstCache singleton is configured with capacity 200", () => {
     assertEquals(defaultAstCache.maxCapacity, 200);
 });

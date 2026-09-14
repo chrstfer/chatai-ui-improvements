@@ -4,7 +4,7 @@ import { setupTestDom } from "../../fixtures/dom_fixture.ts";
 import { LatexMathView } from "../../../src/views/common/LatexMathView.tsx";
 import { _resetStyleSheetCacheForTesting, getKatexStyleSheet } from "../../../src/styles/adoptedStyleSheets.ts";
 
-Deno.test("unit: LatexMathView renders container with latex-math class for inline expression", () => {
+Deno.test("unit: LatexMathView: renders container with latex-math class for inline expression", () => {
     const { cleanup: domCleanup } = setupTestDom();
     try {
         const { container } = render(<LatexMathView value="x^2 + y^2 = z^2" />);
@@ -16,7 +16,7 @@ Deno.test("unit: LatexMathView renders container with latex-math class for inlin
     }
 });
 
-Deno.test("unit: LatexMathView renders span tag for inline math", () => {
+Deno.test("unit: LatexMathView: renders span tag for inline math", () => {
     const { cleanup: domCleanup } = setupTestDom();
     try {
         const { container } = render(<LatexMathView value="x^2 + y^2 = z^2" />);
@@ -28,7 +28,7 @@ Deno.test("unit: LatexMathView renders span tag for inline math", () => {
     }
 });
 
-Deno.test("unit: LatexMathView adds inline-block class for inline math", () => {
+Deno.test("unit: LatexMathView: adds inline-block class for inline math", () => {
     const { cleanup: domCleanup } = setupTestDom();
     try {
         const { container } = render(<LatexMathView value="x^2 + y^2 = z^2" />);
@@ -40,7 +40,7 @@ Deno.test("unit: LatexMathView adds inline-block class for inline math", () => {
     }
 });
 
-Deno.test("unit: LatexMathView renders katex element hierarchy", () => {
+Deno.test("unit: LatexMathView: renders katex element hierarchy", () => {
     const { cleanup: domCleanup } = setupTestDom();
     try {
         const { container } = render(<LatexMathView value="x^2 + y^2 = z^2" />);
@@ -52,7 +52,7 @@ Deno.test("unit: LatexMathView renders katex element hierarchy", () => {
     }
 });
 
-Deno.test("unit: LatexMathView renders math content variables", () => {
+Deno.test("unit: LatexMathView: renders math content variables", () => {
     const { cleanup: domCleanup } = setupTestDom();
     try {
         const { container } = render(<LatexMathView value="x^2 + y^2 = z^2" />);
@@ -63,7 +63,7 @@ Deno.test("unit: LatexMathView renders math content variables", () => {
     }
 });
 
-Deno.test("unit: LatexMathView renders div tag for display math delimited by $$", () => {
+Deno.test("unit: LatexMathView: renders div tag for display math delimited by $", () => {
     const { cleanup: domCleanup } = setupTestDom();
     try {
         const { container } = render(<LatexMathView value="$$\int_0^\infty e^{-x} dx = 1$$" />);
@@ -75,7 +75,7 @@ Deno.test("unit: LatexMathView renders div tag for display math delimited by $$"
     }
 });
 
-Deno.test("unit: LatexMathView adds text-center class for display math", () => {
+Deno.test("unit: LatexMathView: adds text-center class for display math", () => {
     const { cleanup: domCleanup } = setupTestDom();
     try {
         const { container } = render(<LatexMathView value="$$\int_0^\infty e^{-x} dx = 1$$" />);
@@ -87,7 +87,7 @@ Deno.test("unit: LatexMathView adds text-center class for display math", () => {
     }
 });
 
-Deno.test("unit: LatexMathView adds block class for display math", () => {
+Deno.test("unit: LatexMathView: adds block class for display math", () => {
     const { cleanup: domCleanup } = setupTestDom();
     try {
         const { container } = render(<LatexMathView value="$$\int_0^\infty e^{-x} dx = 1$$" />);
@@ -99,7 +99,7 @@ Deno.test("unit: LatexMathView adds block class for display math", () => {
     }
 });
 
-Deno.test("unit: LatexMathView renders katex element hierarchy for display math", () => {
+Deno.test("unit: LatexMathView: renders katex element hierarchy for display math", () => {
     const { cleanup: domCleanup } = setupTestDom();
     try {
         const { container } = render(<LatexMathView value="$$\int_0^\infty e^{-x} dx = 1$$" />);
@@ -111,7 +111,7 @@ Deno.test("unit: LatexMathView renders katex element hierarchy for display math"
     }
 });
 
-Deno.test("unit: LatexMathView renders display math contents", () => {
+Deno.test("unit: LatexMathView: renders display math contents", () => {
     const { cleanup: domCleanup } = setupTestDom();
     try {
         const { container } = render(<LatexMathView value="$$\int_0^\infty e^{-x} dx = 1$$" />);
@@ -122,7 +122,7 @@ Deno.test("unit: LatexMathView renders display math contents", () => {
     }
 });
 
-Deno.test("unit: LatexMathView renders fallback element when expression contains syntax error", () => {
+Deno.test("unit: LatexMathView: renders fallback element when expression contains syntax error", () => {
     const { cleanup: domCleanup } = setupTestDom();
     try {
         const { container } = render(<LatexMathView value="\\invalid{macro" />);
@@ -134,7 +134,7 @@ Deno.test("unit: LatexMathView renders fallback element when expression contains
     }
 });
 
-Deno.test("unit: LatexMathView adopts KaTeX stylesheet when mounted inside ShadowRoot", () => {
+Deno.test("unit: LatexMathView: adopts KaTeX stylesheet when mounted inside ShadowRoot", () => {
     _resetStyleSheetCacheForTesting();
     const origSheet = globalThis.CSSStyleSheet;
 
@@ -161,7 +161,6 @@ Deno.test("unit: LatexMathView adopts KaTeX stylesheet when mounted inside Shado
         render(<LatexMathView value="E = mc^2" />, { container: mountPoint });
 
         const katexSheet = getKatexStyleSheet();
-        assertNotEquals(katexSheet, null);
         assertEquals(mockShadow.adoptedStyleSheets.includes(katexSheet), true);
 
         cleanup();

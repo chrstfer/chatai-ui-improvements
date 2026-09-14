@@ -1,7 +1,7 @@
 import { assertEquals } from "@std/assert";
 import { DEFAULT_SETTINGS, SettingsStore } from "../../../src/core/storage/settings.ts";
 
-Deno.test("unit: SettingsStore initializes with DEFAULT_SETTINGS baseline", () => {
+Deno.test("unit: SettingsStore: initializes with DEFAULT_SETTINGS baseline", () => {
     // Arrange & Act
     const store = new SettingsStore();
 
@@ -9,7 +9,7 @@ Deno.test("unit: SettingsStore initializes with DEFAULT_SETTINGS baseline", () =
     assertEquals(store.settings, DEFAULT_SETTINGS);
 });
 
-Deno.test("unit: SettingsStore updates in-memory settings state on update", async () => {
+Deno.test("unit: SettingsStore: updates in-memory settings state on update", async () => {
     // Arrange
     const store = new SettingsStore();
 
@@ -20,7 +20,7 @@ Deno.test("unit: SettingsStore updates in-memory settings state on update", asyn
     assertEquals(updated.fullWidth, false);
 });
 
-Deno.test("unit: SettingsStore dispatches change notification to active subscribers", async () => {
+Deno.test("unit: SettingsStore: dispatches change notification to active subscribers", async () => {
     // Arrange
     const store = new SettingsStore();
     const notifications: unknown[] = [];
@@ -39,7 +39,7 @@ Deno.test("unit: SettingsStore dispatches change notification to active subscrib
     }
 });
 
-Deno.test("unit: SettingsStore stops notifying subscriber after unsubscribe", async () => {
+Deno.test("unit: SettingsStore: stops notifying subscriber after unsubscribe", async () => {
     // Arrange
     const store = new SettingsStore();
     const notifications: unknown[] = [];
@@ -56,7 +56,7 @@ Deno.test("unit: SettingsStore stops notifying subscriber after unsubscribe", as
     assertEquals(notifications.length, 1);
 });
 
-Deno.test("unit: SettingsStore reset restores settings to DEFAULT_SETTINGS", () => {
+Deno.test("unit: SettingsStore: reset restores settings to DEFAULT_SETTINGS", () => {
     // Arrange
     const store = new SettingsStore({ fullWidth: false, widthPercent: 100 });
 
@@ -67,7 +67,7 @@ Deno.test("unit: SettingsStore reset restores settings to DEFAULT_SETTINGS", () 
     assertEquals(store.settings, { ...DEFAULT_SETTINGS });
 });
 
-Deno.test("unit: SettingsStore load hydrates settings from browser.storage.local", async () => {
+Deno.test("unit: SettingsStore: load hydrates settings from browser.storage.local", async () => {
     // Arrange
     const mockStorage: Record<string, unknown> = {
         fullWidth: false,
@@ -108,7 +108,7 @@ Deno.test("unit: SettingsStore load hydrates settings from browser.storage.local
     }
 });
 
-Deno.test("unit: SettingsStore update persists modified values to browser.storage.local", async () => {
+Deno.test("unit: SettingsStore: update persists modified values to browser.storage.local", async () => {
     // Arrange
     const mockStorage: Record<string, unknown> = {
         widthPercent: 90,

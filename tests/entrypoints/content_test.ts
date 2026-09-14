@@ -31,7 +31,7 @@ function createLifecycleMockAdapter(id: string, hostname: string) {
     };
 }
 
-Deno.test("integration: bootstrapContentScript initializes matched adapter successfully", async () => {
+Deno.test("integration: ContentBootloader: bootstrapContentScript initializes matched adapter successfully", async () => {
     const registry = new ChatAdapterRegistry();
     const { adapter } = createLifecycleMockAdapter("gemini", "gemini.google.com");
     registry.register(adapter);
@@ -55,7 +55,7 @@ Deno.test("integration: bootstrapContentScript initializes matched adapter succe
     assertEquals(result.initialized, true);
 });
 
-Deno.test("integration: bootstrapContentScript reports success reason on matched adapter initialization", async () => {
+Deno.test("integration: ContentBootloader: bootstrapContentScript reports success reason on matched adapter initialization", async () => {
     const registry = new ChatAdapterRegistry();
     const { adapter } = createLifecycleMockAdapter("gemini", "gemini.google.com");
     registry.register(adapter);
@@ -79,7 +79,7 @@ Deno.test("integration: bootstrapContentScript reports success reason on matched
     assertEquals(result.reason, "success");
 });
 
-Deno.test("integration: bootstrapContentScript calls initialize method on matched adapter", async () => {
+Deno.test("integration: ContentBootloader: bootstrapContentScript calls initialize method on matched adapter", async () => {
     const registry = new ChatAdapterRegistry();
     const { adapter, getInitCalls } = createLifecycleMockAdapter("gemini", "gemini.google.com");
     registry.register(adapter);
@@ -103,7 +103,7 @@ Deno.test("integration: bootstrapContentScript calls initialize method on matche
     assertEquals(getInitCalls(), 1);
 });
 
-Deno.test("integration: bootstrapContentScript skips initialization when no adapter matches URL", async () => {
+Deno.test("integration: ContentBootloader: bootstrapContentScript skips initialization when no adapter matches URL", async () => {
     const registry = new ChatAdapterRegistry();
     const fakeWin: WindowLike = {
         location: { href: "https://unknown-service.com/" },
@@ -124,7 +124,7 @@ Deno.test("integration: bootstrapContentScript skips initialization when no adap
     assertEquals(result.initialized, false);
 });
 
-Deno.test("integration: bootstrapContentScript reports no_matching_adapter reason when URL unmatched", async () => {
+Deno.test("integration: ContentBootloader: bootstrapContentScript reports no_matching_adapter reason when URL unmatched", async () => {
     const registry = new ChatAdapterRegistry();
     const fakeWin: WindowLike = {
         location: { href: "https://unknown-service.com/" },
@@ -145,7 +145,7 @@ Deno.test("integration: bootstrapContentScript reports no_matching_adapter reaso
     assertEquals(result.reason, "no_matching_adapter");
 });
 
-Deno.test("integration: bootstrapContentScript prevents re-initialization on subsequent calls", async () => {
+Deno.test("integration: ContentBootloader: bootstrapContentScript prevents re-initialization on subsequent calls", async () => {
     const registry = new ChatAdapterRegistry();
     const { adapter } = createLifecycleMockAdapter("gemini", "gemini.google.com");
     registry.register(adapter);
@@ -165,7 +165,7 @@ Deno.test("integration: bootstrapContentScript prevents re-initialization on sub
     assertEquals(res2.initialized, false);
 });
 
-Deno.test("integration: bootstrapContentScript reports already_initialized reason on duplicate bootstrap", async () => {
+Deno.test("integration: ContentBootloader: bootstrapContentScript reports already_initialized reason on duplicate bootstrap", async () => {
     const registry = new ChatAdapterRegistry();
     const { adapter } = createLifecycleMockAdapter("gemini", "gemini.google.com");
     registry.register(adapter);
@@ -185,7 +185,7 @@ Deno.test("integration: bootstrapContentScript reports already_initialized reaso
     assertEquals(res2.reason, "already_initialized");
 });
 
-Deno.test("integration: bootstrapContentScript calls adapter destroy on window pagehide event", async () => {
+Deno.test("integration: ContentBootloader: bootstrapContentScript calls adapter destroy on window pagehide event", async () => {
     const registry = new ChatAdapterRegistry();
     const { adapter, getDestroyCalls } = createLifecycleMockAdapter("gemini", "gemini.google.com");
     registry.register(adapter);
@@ -208,7 +208,7 @@ Deno.test("integration: bootstrapContentScript calls adapter destroy on window p
     assertEquals(getDestroyCalls(), 1);
 });
 
-Deno.test("integration: bootstrapContentScript skips initialization when tab is deactivated in bridge", async () => {
+Deno.test("integration: ContentBootloader: bootstrapContentScript skips initialization when tab is deactivated in bridge", async () => {
     const registry = new ChatAdapterRegistry();
     const { adapter } = createLifecycleMockAdapter("gemini", "gemini.google.com");
     registry.register(adapter);
@@ -236,7 +236,7 @@ Deno.test("integration: bootstrapContentScript skips initialization when tab is 
     assertEquals(res.initialized, false);
 });
 
-Deno.test("integration: bootstrapContentScript leaves adapter uninitialized when bridge reports tab disabled", async () => {
+Deno.test("integration: ContentBootloader: bootstrapContentScript leaves adapter uninitialized when bridge reports tab disabled", async () => {
     const registry = new ChatAdapterRegistry();
     const { adapter, getInitCalls } = createLifecycleMockAdapter("gemini", "gemini.google.com");
     registry.register(adapter);
@@ -264,7 +264,7 @@ Deno.test("integration: bootstrapContentScript leaves adapter uninitialized when
     assertEquals(getInitCalls(), 0);
 });
 
-Deno.test("integration: bootstrapContentScript tears down active adapter when tab bridge toggles disabled", async () => {
+Deno.test("integration: ContentBootloader: bootstrapContentScript tears down active adapter when tab bridge toggles disabled", async () => {
     const registry = new ChatAdapterRegistry();
     let currentAdapter: ReturnType<typeof createLifecycleMockAdapter> | null = null;
 
@@ -307,7 +307,7 @@ Deno.test("integration: bootstrapContentScript tears down active adapter when ta
     assertEquals(currentAdapter!.getDestroyCalls(), 1);
 });
 
-Deno.test("integration: bootstrapContentScript re-loads and initializes fresh adapter when tab bridge toggles enabled", async () => {
+Deno.test("integration: ContentBootloader: bootstrapContentScript re-loads and initializes fresh adapter when tab bridge toggles enabled", async () => {
     const registry = new ChatAdapterRegistry();
     let currentAdapter: ReturnType<typeof createLifecycleMockAdapter> | null = null;
     let factoryCount = 0;

@@ -11,11 +11,13 @@
  * 1. Test AST & Scope Isolation:
  *    - Discovers all test and benchmark modules within the target directory.
  *    - Balanced-brace scope parser (`findMatchingBraceEnd`) isolates each individual test callback.
+ *    - Extracts startLine and endLine numbers for every test declaration.
  *    - Scans assertion counts per test to evaluate Arrange-Act-Assert (AAA) single-assertion compliance.
  *    - Classifies test names against the two-level prefix convention:
  *      * Level 1 Category: `unit:`, `integration:`, `e2e:`, `bench:`
  *      * Level 2 Component: `<Component>: <behavior>` vs `<Component> <behavior>` vs missing component.
  *    - Audits quarantine lifecycle for any `ignore: true` tests against `.scratch/technical-debt/issues/`.
+ *    - Flags each test with `isCompliant` and detailed `complianceIssues`.
  * 2. Setup & Harness Architecture Scanner:
  *    - Audits Preact UI component tests for `@testing-library/preact` and explicit `cleanup()` lifecycles.
  *    - Audits host DOM tests for centralized routing through `tests/fixtures/dom_fixture.ts`.
@@ -26,9 +28,10 @@
  *    - Scans all files within the target test directory for unmanaged `console.log|warn|error|info|debug` calls.
  * 4. Hierarchical Directory & File Aggregation:
  *    - Recursively groups test metrics by directory and file.
- *    - Every directory node contains bottom-up summed counts of tests and compliance metrics within it.
+ *    - Every directory and file node contains summed counts and compliance percentages.
  * 5. Datestamped JSON Emission:
  *    - Emits structured JSON to `docs/audits/20260914_test-audit/<timestamp>_test-pipeline-audit.json`.
+ *    - Includes complete `allTests` array with line numbers and compliance flags.
  *    - Renders a clean terminal summary table.
  */
 
@@ -50,6 +53,8 @@ export type PrefixQuality =
 export interface TestCaseAudit {
     file: string;
     line: number;
+    startLine: number;
+    endLine: number;
     name: string;
     type: "test" | "bench";
     category: TestCategory;
@@ -64,6 +69,8 @@ export interface TestCaseAudit {
     hasQuarantineComment: boolean;
     quarantineTicket: string | null;
     ticketExists: boolean | null;
+    isCompliant: boolean;
+    complianceIssues: string[];
 }
 
 export interface InlinedHtmlSnippet {
@@ -112,10 +119,15 @@ export interface ConsoleCall {
 }
 
 /**
- * Aggregated test counts for a file or directory node in the hierarchy.
+ * Aggregated test counts and compliance percentages for a file or directory node in the hierarchy.
  */
 export interface TestCounts {
     totalTests: number;
+    functionalTestsCount: number;
+    compliantTestsCount: number;
+    compliantTestsRate: number;
+    nonCompliantTestsCount: number;
+    nonCompliantTestsRate: number;
     testsByCategory: Record<TestCategory, number>;
     strictLevel2PrefixCount: number;
     componentTokenCount: number;
@@ -166,6 +178,11 @@ export interface AuditSummary {
     targetDirectory: string;
     totalTestFiles: number;
     totalTests: number;
+    functionalTestsCount: number;
+    compliantTestsCount: number;
+    compliantTestsRate: number;
+    nonCompliantTestsCount: number;
+    nonCompliantTestsRate: number;
     testsByCategory: Record<TestCategory, number>;
     categoryPrefixComplianceRate: number;
     strictLevel2PrefixCount: number;
@@ -199,16 +216,12 @@ export interface AuditReport {
     };
     summary: AuditSummary;
     hierarchy: DirectoryNode;
+    allTests: TestCaseAudit[];
+    nonCompliantTests: TestCaseAudit[];
     files: FileAudit[];
     consoleCalls: ConsoleCall[];
     repeatedSetups: RepeatedSetupBlock[];
     inlinedHtmlSnippets: InlinedHtmlSnippet[];
-    nonCompliantTests: {
-        file: string;
-        line: number;
-        name: string;
-        issue: string;
-    }[];
 }
 
 // ============================================================================
@@ -470,6 +483,67 @@ async function inspectQuarantine(
 }
 
 /**
+ * Evaluates whether a test case meets all repository test standards.
+ */
+function evaluateTestCompliance(tc: {
+    hasCategoryPrefix: boolean;
+    hasStrictLevel2Prefix: boolean;
+    hasComponentToken: boolean;
+    assertionCount: number;
+    type: "test" | "bench";
+    isIgnored: boolean;
+    hasQuarantineComment: boolean;
+    ticketExists: boolean | null;
+}): { isCompliant: boolean; complianceIssues: string[] } {
+    const complianceIssues: string[] = [];
+
+    if (!tc.hasCategoryPrefix) {
+        complianceIssues.push(
+            "Missing authorized Level 1 category prefix (unit:, integration:, e2e:, bench:)",
+        );
+    }
+
+    if (!tc.hasStrictLevel2Prefix) {
+        if (tc.hasComponentToken) {
+            complianceIssues.push(
+                "Missing colon separator after Level 2 component prefix (<category>: <Component>: <behavior>)",
+            );
+        } else {
+            complianceIssues.push(
+                "Missing Level 2 target component prefix (<category>: <Component>: <behavior>)",
+            );
+        }
+    }
+
+    // Benchmark tests measure throughput (b.start / b.end) and are excluded from AAA single-assertion counts
+    if (tc.type === "test") {
+        if (tc.assertionCount > 1) {
+            complianceIssues.push(
+                `Arrange-Act-Assert violation: multiple assertions detected (${tc.assertionCount})`,
+            );
+        } else if (tc.assertionCount === 0) {
+            complianceIssues.push("Zero assertions detected in test body");
+        }
+    }
+
+    if (tc.isIgnored) {
+        if (!tc.hasQuarantineComment) {
+            complianceIssues.push(
+                "Ignored test missing mandatory quarantine comment citing .scratch/technical-debt/issues/",
+            );
+        }
+        if (tc.ticketExists === false) {
+            complianceIssues.push("Referenced technical debt ticket file does not exist on disk");
+        }
+    }
+
+    return {
+        isCompliant: complianceIssues.length === 0,
+        complianceIssues,
+    };
+}
+
+/**
  * Scans an individual test file for test cases, harness imports, inlined HTML, and setup architecture.
  */
 export async function auditTestFile(filePath: string, projectRoot: string): Promise<FileAudit> {
@@ -502,7 +576,6 @@ export async function auditTestFile(filePath: string, projectRoot: string): Prom
     }
 
     // 3. Inlined HTML templates and strings check
-    // Matches HTML string literals containing <!DOCTYPE, <html, <body, <div, <math, <code-block, etc.
     const htmlRegex =
         /(?:html\s*:\s*|["'`])((?:<!DOCTYPE\s+html|<html\b|<div\b|<body\b|<math\b|<code-block\b|<table\b|<pre\b)[^"'`]*)(?:["'`])/gi;
     let htmlMatch: RegExpExecArray | null;
@@ -609,20 +682,44 @@ export async function auditTestFile(filePath: string, projectRoot: string): Prom
             }
         }
 
-        // Extract body and count assertions
+        // Extract body, calculate endLine, and count assertions
         let assertionCount = 0;
+        let endLine = line;
         if (fnBodyStart !== -1) {
             const bodyEnd = findMatchingBraceEnd(content, fnBodyStart);
             const bodySource = content.slice(fnBodyStart, bodyEnd + 1);
             assertionCount = countAssertions(bodySource);
+
+            // Locate closing parenthesis of Deno.test/bench invocation
+            const closeParenIdx = content.indexOf(")", bodyEnd);
+            const declEndIdx = closeParenIdx !== -1 ? closeParenIdx : bodyEnd;
+            endLine = getLineNumber(content, declEndIdx);
+        } else {
+            const closeParenIdx = content.indexOf(")", declStart);
+            if (closeParenIdx !== -1) {
+                endLine = getLineNumber(content, closeParenIdx);
+            }
         }
 
         const nomenclature = analyzeTestNomenclature(testName);
         const quarantine = await inspectQuarantine(content, declStart, isIgnored, projectRoot);
 
+        const compliance = evaluateTestCompliance({
+            hasCategoryPrefix: nomenclature.hasCategoryPrefix,
+            hasStrictLevel2Prefix: nomenclature.hasStrictLevel2Prefix,
+            hasComponentToken: nomenclature.hasComponentToken,
+            assertionCount,
+            type: testType,
+            isIgnored,
+            hasQuarantineComment: quarantine.hasQuarantineComment,
+            ticketExists: quarantine.ticketExists,
+        });
+
         testCases.push({
             file: relativePath,
             line,
+            startLine: line,
+            endLine,
             name: testName,
             type: testType,
             category: nomenclature.category,
@@ -637,6 +734,8 @@ export async function auditTestFile(filePath: string, projectRoot: string): Prom
             hasQuarantineComment: quarantine.hasQuarantineComment,
             quarantineTicket: quarantine.quarantineTicket,
             ticketExists: quarantine.ticketExists,
+            isCompliant: compliance.isCompliant,
+            complianceIssues: compliance.complianceIssues,
         });
     }
 
@@ -736,6 +835,11 @@ async function walkFiles(
 function createEmptyCounts(): TestCounts {
     return {
         totalTests: 0,
+        functionalTestsCount: 0,
+        compliantTestsCount: 0,
+        compliantTestsRate: 0,
+        nonCompliantTestsCount: 0,
+        nonCompliantTestsRate: 0,
         testsByCategory: {
             unit: 0,
             integration: 0,
@@ -755,32 +859,50 @@ function createEmptyCounts(): TestCounts {
 }
 
 /**
- * Computes summed test counts for an individual file's test suite.
+ * Computes summed test counts and compliance rates for an individual file's test suite.
  */
 function computeFileCounts(tests: TestCaseAudit[]): TestCounts {
     const c = createEmptyCounts();
     for (const t of tests) {
         c.totalTests++;
+        if (t.isCompliant) {
+            c.compliantTestsCount++;
+        } else {
+            c.nonCompliantTestsCount++;
+        }
+
         c.testsByCategory[t.category]++;
         if (t.prefixQuality === "strict_two_level") c.strictLevel2PrefixCount++;
         else if (t.prefixQuality === "component_no_colon") c.componentTokenCount++;
         else if (t.prefixQuality === "missing_component") c.missingComponentCount++;
         else if (t.prefixQuality === "invalid_category") c.invalidCategoryCount++;
 
-        if (t.assertionCount === 1) c.singleAssertionCount++;
-        else if (t.assertionCount > 1) c.multiAssertionCount++;
-        else c.zeroAssertionCount++;
+        // Benchmark tests measure throughput and are excluded from AAA single-assertion counts
+        if (t.type === "test") {
+            c.functionalTestsCount++;
+            if (t.assertionCount === 1) c.singleAssertionCount++;
+            else if (t.assertionCount > 1) c.multiAssertionCount++;
+            else c.zeroAssertionCount++;
+        }
 
         if (t.isIgnored) c.quarantinedTestsCount++;
     }
+
+    c.compliantTestsRate = c.totalTests > 0 ? (c.compliantTestsCount / c.totalTests) * 100 : 0;
+    c.nonCompliantTestsRate = c.totalTests > 0 ? (c.nonCompliantTestsCount / c.totalTests) * 100 : 0;
+
     return c;
 }
 
 /**
- * Adds source counts into target counts in-place.
+ * Adds source counts into target counts in-place, updating percentage rates.
  */
 function addCounts(target: TestCounts, source: TestCounts): void {
     target.totalTests += source.totalTests;
+    target.functionalTestsCount += source.functionalTestsCount;
+    target.compliantTestsCount += source.compliantTestsCount;
+    target.nonCompliantTestsCount += source.nonCompliantTestsCount;
+
     for (const cat of Object.keys(source.testsByCategory) as TestCategory[]) {
         target.testsByCategory[cat] += source.testsByCategory[cat];
     }
@@ -792,12 +914,17 @@ function addCounts(target: TestCounts, source: TestCounts): void {
     target.multiAssertionCount += source.multiAssertionCount;
     target.zeroAssertionCount += source.zeroAssertionCount;
     target.quarantinedTestsCount += source.quarantinedTestsCount;
+
+    target.compliantTestsRate = target.totalTests > 0 ? (target.compliantTestsCount / target.totalTests) * 100 : 0;
+    target.nonCompliantTestsRate = target.totalTests > 0
+        ? (target.nonCompliantTestsCount / target.totalTests) * 100
+        : 0;
 }
 
 /**
  * Builds a hierarchical directory and file tree from flat file audits.
  * Recursively groups tests by directory and file, summing all metrics
- * bottom-up so that every directory and file contains exact summed counts.
+ * bottom-up so that every directory and file contains exact summed counts and rates.
  */
 export function buildHierarchicalTree(fileAudits: FileAudit[], rootPath = "tests"): DirectoryNode {
     const rootNode: DirectoryNode = {
@@ -943,8 +1070,12 @@ export async function runPipelineAudit(options: {
         consoleCalls.push(...calls);
     }
 
-    // 5. Aggregate summary statistics
+    // 5. Aggregate summary statistics and collect all tests
     let totalTests = 0;
+    let functionalTestsCount = 0;
+    let compliantTestsCount = 0;
+    let nonCompliantTestsCount = 0;
+
     const testsByCategory: Record<TestCategory, number> = {
         unit: 0,
         integration: 0,
@@ -965,7 +1096,8 @@ export async function runPipelineAudit(options: {
     let quarantinedTestsCount = 0;
     let quarantineTicketComplianceCount = 0;
 
-    const nonCompliantTests: AuditReport["nonCompliantTests"] = [];
+    const allTests: TestCaseAudit[] = [];
+    const nonCompliantTests: TestCaseAudit[] = [];
     const repeatedSetups: RepeatedSetupBlock[] = [];
     const inlinedHtmlSnippets: InlinedHtmlSnippet[] = [];
 
@@ -975,17 +1107,19 @@ export async function runPipelineAudit(options: {
 
         for (const tc of fa.tests) {
             totalTests++;
+            allTests.push(tc);
+
+            if (tc.isCompliant) {
+                compliantTestsCount++;
+            } else {
+                nonCompliantTestsCount++;
+                nonCompliantTests.push(tc);
+            }
+
             testsByCategory[tc.category]++;
 
             if (tc.hasCategoryPrefix) {
                 categoryPrefixCount++;
-            } else {
-                nonCompliantTests.push({
-                    file: tc.file,
-                    line: tc.line,
-                    name: tc.name,
-                    issue: "Missing authorized Level 1 category prefix (unit:, integration:, e2e:, bench:)",
-                });
             }
 
             if (tc.hasStrictLevel2Prefix) {
@@ -994,20 +1128,18 @@ export async function runPipelineAudit(options: {
                 componentTokenCount++;
             } else {
                 missingComponentCount++;
-                nonCompliantTests.push({
-                    file: tc.file,
-                    line: tc.line,
-                    name: tc.name,
-                    issue: "Missing Level 2 target component prefix (<category>: <Component>: <behavior>)",
-                });
             }
 
-            if (tc.assertionCount === 1) {
-                singleAssertionCount++;
-            } else if (tc.assertionCount > 1) {
-                multiAssertionCount++;
-            } else {
-                zeroAssertionCount++;
+            // Benchmark tests measure throughput and are excluded from AAA single-assertion counts
+            if (tc.type === "test") {
+                functionalTestsCount++;
+                if (tc.assertionCount === 1) {
+                    singleAssertionCount++;
+                } else if (tc.assertionCount > 1) {
+                    multiAssertionCount++;
+                } else {
+                    zeroAssertionCount++;
+                }
             }
 
             if (tc.isIgnored) {
@@ -1030,6 +1162,11 @@ export async function runPipelineAudit(options: {
         targetDirectory: relTarget,
         totalTestFiles: fileAudits.length,
         totalTests,
+        functionalTestsCount,
+        compliantTestsCount,
+        compliantTestsRate: totalTests > 0 ? (compliantTestsCount / totalTests) * 100 : 0,
+        nonCompliantTestsCount,
+        nonCompliantTestsRate: totalTests > 0 ? (nonCompliantTestsCount / totalTests) * 100 : 0,
         testsByCategory,
         categoryPrefixComplianceRate: totalTests > 0 ? (categoryPrefixCount / totalTests) * 100 : 0,
         strictLevel2PrefixCount,
@@ -1039,11 +1176,11 @@ export async function runPipelineAudit(options: {
         missingComponentCount,
         missingComponentRate: totalTests > 0 ? (missingComponentCount / totalTests) * 100 : 0,
         singleAssertionCount,
-        singleAssertionRate: totalTests > 0 ? (singleAssertionCount / totalTests) * 100 : 0,
+        singleAssertionRate: functionalTestsCount > 0 ? (singleAssertionCount / functionalTestsCount) * 100 : 0,
         multiAssertionCount,
-        multiAssertionRate: totalTests > 0 ? (multiAssertionCount / totalTests) * 100 : 0,
+        multiAssertionRate: functionalTestsCount > 0 ? (multiAssertionCount / functionalTestsCount) * 100 : 0,
         zeroAssertionCount,
-        zeroAssertionRate: totalTests > 0 ? (zeroAssertionCount / totalTests) * 100 : 0,
+        zeroAssertionRate: functionalTestsCount > 0 ? (zeroAssertionCount / functionalTestsCount) * 100 : 0,
         quarantinedTestsCount,
         quarantineTicketComplianceCount,
         consoleCalls: consoleSummary,
@@ -1060,11 +1197,12 @@ export async function runPipelineAudit(options: {
         },
         summary,
         hierarchy,
+        allTests,
+        nonCompliantTests,
         files: fileAudits,
         consoleCalls,
         repeatedSetups,
         inlinedHtmlSnippets,
-        nonCompliantTests,
     };
 }
 
@@ -1087,7 +1225,19 @@ function renderTerminalDashboard(report: AuditReport): void {
     console.log(`Total Test Files: ${s.totalTestFiles}`);
     console.log(`Total Tests:      ${s.totalTests}`);
     console.log("--------------------------------------------------------------------------------");
-    console.log("1. TEST PYRAMID & CATEGORY DISTRIBUTION (Level 1)");
+    console.log("1. OVERALL COMPLIANCE (All Tests)");
+    console.log(
+        `   - Compliant Tests:     ${s.compliantTestsCount.toString().padStart(4)} (${
+            s.compliantTestsRate.toFixed(1)
+        }%)`,
+    );
+    console.log(
+        `   - Non-Compliant Tests: ${s.nonCompliantTestsCount.toString().padStart(4)} (${
+            s.nonCompliantTestsRate.toFixed(1)
+        }%)`,
+    );
+    console.log("--------------------------------------------------------------------------------");
+    console.log("2. TEST PYRAMID & CATEGORY DISTRIBUTION (Level 1)");
     console.log(
         `   - Unit Tests:         ${s.testsByCategory.unit.toString().padStart(4)} (${
             ((s.testsByCategory.unit / s.totalTests) * 100).toFixed(1)
@@ -1110,7 +1260,7 @@ function renderTerminalDashboard(report: AuditReport): void {
     );
     console.log(`   - Category Prefix Compliance: ${s.categoryPrefixComplianceRate.toFixed(1)}%`);
     console.log("--------------------------------------------------------------------------------");
-    console.log("2. TWO-LEVEL TEST PREFIX AUDIT (docs/test-design.org)");
+    console.log("3. TWO-LEVEL TEST PREFIX AUDIT (docs/test-design.org)");
     console.log(
         `   - Strict Two-Level (<cat>: <Comp>: <desc>): ${s.strictLevel2PrefixCount.toString().padStart(4)} (${
             s.strictLevel2PrefixRate.toFixed(1)
@@ -1127,7 +1277,12 @@ function renderTerminalDashboard(report: AuditReport): void {
         }%)`,
     );
     console.log("--------------------------------------------------------------------------------");
-    console.log("3. ARRANGE-ACT-ASSERT (AAA) SINGLE-ASSERTION DISCIPLINE");
+    console.log("4. ARRANGE-ACT-ASSERT (AAA) SINGLE-ASSERTION DISCIPLINE");
+    console.log(
+        `   - Functional Tests Evaluated:       ${
+            s.functionalTestsCount.toString().padStart(4)
+        } (Excludes ${s.testsByCategory.bench} benchmark${s.testsByCategory.bench === 1 ? "" : "s"})`,
+    );
     console.log(
         `   - Exactly 1 Assertion (Compliant):  ${s.singleAssertionCount.toString().padStart(4)} (${
             s.singleAssertionRate.toFixed(1)
@@ -1144,13 +1299,13 @@ function renderTerminalDashboard(report: AuditReport): void {
         }%)`,
     );
     console.log("--------------------------------------------------------------------------------");
-    console.log("4. TELEMETRY & CONSOLE CALL AUDIT (Within Test Scope)");
+    console.log("5. TELEMETRY & CONSOLE CALL AUDIT (Within Test Scope)");
     console.log(`   - Total Unmanaged console.* calls: ${s.consoleCalls.total}`);
     console.log(`     * In Test Suites:                ${s.consoleCalls.test}`);
     console.log(`     * In Test Fixtures:              ${s.consoleCalls.fixture}`);
     console.log(`     * In Test Scripts:               ${s.consoleCalls.script}`);
     console.log("--------------------------------------------------------------------------------");
-    console.log("5. TEST ENVIRONMENT SETUP & FIXTURES");
+    console.log("6. TEST ENVIRONMENT SETUP & FIXTURES");
     console.log(`   - Inlined HTML Snippets:             ${report.inlinedHtmlSnippets.length}`);
     console.log(`   - Repeated / Large Setup Routines:   ${report.repeatedSetups.length}`);
     console.log(`   - Quarantined Tests (ignore: true):  ${s.quarantinedTestsCount}`);

@@ -4,7 +4,7 @@ import { setupTestDom } from "../../fixtures/dom_fixture.ts";
 import { OrgObjectRenderer } from "../../../src/languages/org/views/OrgObjectRenderer.tsx";
 import { parseOrgInline } from "../../../src/languages/org/ast/inlineParser.ts";
 
-Deno.test("unit: OrgObjectRenderer renders bold elements", () => {
+Deno.test("unit: OrgObjectRenderer: renders bold elements", () => {
     const { cleanup } = setupTestDom();
     try {
         const parsed = parseOrgInline("Normal *bold* text");
@@ -17,7 +17,7 @@ Deno.test("unit: OrgObjectRenderer renders bold elements", () => {
     }
 });
 
-Deno.test("unit: OrgObjectRenderer renders italic elements", () => {
+Deno.test("unit: OrgObjectRenderer: renders italic elements", () => {
     const { cleanup } = setupTestDom();
     try {
         const parsed = parseOrgInline("Normal /italic/ text");
@@ -30,7 +30,7 @@ Deno.test("unit: OrgObjectRenderer renders italic elements", () => {
     }
 });
 
-Deno.test("unit: OrgObjectRenderer renders underline elements", () => {
+Deno.test("unit: OrgObjectRenderer: renders underline elements", () => {
     const { cleanup } = setupTestDom();
     try {
         const parsed = parseOrgInline("Normal _underline_ text");
@@ -43,7 +43,7 @@ Deno.test("unit: OrgObjectRenderer renders underline elements", () => {
     }
 });
 
-Deno.test("unit: OrgObjectRenderer renders strike elements", () => {
+Deno.test("unit: OrgObjectRenderer: renders strike elements", () => {
     const { cleanup } = setupTestDom();
     try {
         const parsed = parseOrgInline("Normal +strike+ text");
@@ -56,7 +56,7 @@ Deno.test("unit: OrgObjectRenderer renders strike elements", () => {
     }
 });
 
-Deno.test("unit: OrgObjectRenderer renders inline code elements", () => {
+Deno.test("unit: OrgObjectRenderer: renders inline code elements", () => {
     const { cleanup } = setupTestDom();
     try {
         const parsed = parseOrgInline("Normal ~code~ text");
@@ -69,7 +69,7 @@ Deno.test("unit: OrgObjectRenderer renders inline code elements", () => {
     }
 });
 
-Deno.test("unit: OrgObjectRenderer renders inline verbatim elements", () => {
+Deno.test("unit: OrgObjectRenderer: renders inline verbatim elements", () => {
     const { cleanup } = setupTestDom();
     try {
         const parsed = parseOrgInline("Normal =verbatim= text");
@@ -82,7 +82,7 @@ Deno.test("unit: OrgObjectRenderer renders inline verbatim elements", () => {
     }
 });
 
-Deno.test("unit: OrgObjectRenderer renders external links with target blank", () => {
+Deno.test("unit: OrgObjectRenderer: renders external links with target blank", () => {
     const { cleanup } = setupTestDom();
     try {
         const parsed = parseOrgInline("[[https://example.com][Example Site]]");
@@ -95,7 +95,7 @@ Deno.test("unit: OrgObjectRenderer renders external links with target blank", ()
     }
 });
 
-Deno.test("unit: OrgObjectRenderer routes image extension links to InlineImageView", () => {
+Deno.test("unit: OrgObjectRenderer: routes image extension links to InlineImageView", () => {
     const { cleanup } = setupTestDom();
     try {
         const parsed = parseOrgInline("[[https://example.com/logo.png][Logo Preview]]");
@@ -108,7 +108,7 @@ Deno.test("unit: OrgObjectRenderer routes image extension links to InlineImageVi
     }
 });
 
-Deno.test("unit: OrgObjectRenderer dispatches onNavigateInternal on internal headline link click", () => {
+Deno.test("unit: OrgObjectRenderer: dispatches onNavigateInternal on internal headline link click", () => {
     const { cleanup } = setupTestDom();
     try {
         let navigatedTarget = "";
@@ -130,7 +130,7 @@ Deno.test("unit: OrgObjectRenderer dispatches onNavigateInternal on internal hea
     }
 });
 
-Deno.test("unit: OrgObjectRenderer renders LaTeX math fragments", () => {
+Deno.test("unit: OrgObjectRenderer: renders LaTeX math fragments", () => {
     const { cleanup } = setupTestDom();
     try {
         const parsed = parseOrgInline("Energy equation: $E = mc^2$");
@@ -143,7 +143,7 @@ Deno.test("unit: OrgObjectRenderer renders LaTeX math fragments", () => {
     }
 });
 
-Deno.test("unit: OrgObjectRenderer renders Greek entity symbols", () => {
+Deno.test("unit: OrgObjectRenderer: renders Greek entity symbols", () => {
     const { cleanup } = setupTestDom();
     try {
         const parsed = parseOrgInline("Symbol \\alpha");
@@ -156,7 +156,7 @@ Deno.test("unit: OrgObjectRenderer renders Greek entity symbols", () => {
     }
 });
 
-Deno.test("unit: OrgObjectRenderer renders macro definitions", () => {
+Deno.test("unit: OrgObjectRenderer: renders macro definitions", () => {
     const { cleanup } = setupTestDom();
     try {
         const parsed = parseOrgInline("Macro {{{version(2.0)}}}");
@@ -169,7 +169,7 @@ Deno.test("unit: OrgObjectRenderer renders macro definitions", () => {
     }
 });
 
-Deno.test("unit: OrgObjectRenderer renders statistics cookie pills", () => {
+Deno.test("unit: OrgObjectRenderer: renders statistics cookie pills", () => {
     const { cleanup } = setupTestDom();
     try {
         const parsed = parseOrgInline("Cookie [2/5]");
@@ -182,7 +182,7 @@ Deno.test("unit: OrgObjectRenderer renders statistics cookie pills", () => {
     }
 });
 
-Deno.test("unit: OrgObjectRenderer renders forced line breaks", () => {
+Deno.test("unit: OrgObjectRenderer: renders forced line breaks", () => {
     const { cleanup } = setupTestDom();
     try {
         const parsed = parseOrgInline("Break \\\\ next");

@@ -12,13 +12,13 @@ function loadRawFixture(filename: string) {
     return doc;
 }
 
-Deno.test("unit: GEMINI_SELECTORS locates turn container in single-turn.html", () => {
+Deno.test("unit: GEMINI_SELECTORS: locates turn container in single-turn.html", () => {
     const doc = loadRawFixture("single-turn.html");
     const turns = doc.querySelectorAll(GEMINI_SELECTORS.TURN_CONTAINER);
     assertEquals(turns.length, 1);
 });
 
-Deno.test("unit: GeminiScraper recognizes completed turn footer in single-turn.html", () => {
+Deno.test("unit: GeminiScraper: recognizes completed turn footer in single-turn.html", () => {
     const doc = loadRawFixture("single-turn.html");
     const turns = doc.querySelectorAll(GEMINI_SELECTORS.TURN_CONTAINER);
     const turnEl = turns[0] as unknown as HTMLElement;
@@ -27,19 +27,19 @@ Deno.test("unit: GeminiScraper recognizes completed turn footer in single-turn.h
     assertEquals(isCompleted, true);
 });
 
-Deno.test("unit: GEMINI_SELECTORS discovers conversation turns in raw-with-plain-org-and-mixed.html", () => {
+Deno.test("unit: GEMINI_SELECTORS: discovers conversation turns in raw-with-plain-org-and-mixed.html", () => {
     const doc = loadRawFixture("raw-with-plain-org-and-mixed.html");
     const turns = doc.querySelectorAll(GEMINI_SELECTORS.TURN_CONTAINER);
     assertEquals(turns.length, 4);
 });
 
-Deno.test("unit: GEMINI_SELECTORS discovers code blocks across turns in raw-with-plain-org-and-mixed.html", () => {
+Deno.test("unit: GEMINI_SELECTORS: discovers code blocks across turns in raw-with-plain-org-and-mixed.html", () => {
     const doc = loadRawFixture("raw-with-plain-org-and-mixed.html");
     const codeBlocks = doc.querySelectorAll(GEMINI_SELECTORS.CODE_BLOCK);
     assertEquals(codeBlocks.length, 4);
 });
 
-Deno.test("unit: GeminiScraper extracts non-empty raw text from data-island", () => {
+Deno.test("unit: GeminiScraper: extracts non-empty raw text from data-island", () => {
     const doc = loadRawFixture("raw-with-plain-org-and-mixed.html");
     const scraper = new GeminiScraper();
     const firstBlock = doc.querySelector(GEMINI_SELECTORS.CODE_BLOCK);
@@ -47,7 +47,7 @@ Deno.test("unit: GeminiScraper extracts non-empty raw text from data-island", ()
     assertNotEquals(text.trim(), "");
 });
 
-Deno.test("unit: GeminiScraper classifies ambiguous Org code blocks via content heuristics", () => {
+Deno.test("unit: GeminiScraper: classifies ambiguous Org code blocks via content heuristics", () => {
     const doc = loadRawFixture("raw-with-plain-org-and-mixed.html");
     const scraper = new GeminiScraper();
     const codeBlocks = Array.from(doc.querySelectorAll(GEMINI_SELECTORS.CODE_BLOCK));
@@ -58,7 +58,7 @@ Deno.test("unit: GeminiScraper classifies ambiguous Org code blocks via content 
     assertEquals(orgBlocks.length, 3);
 });
 
-Deno.test("unit: GeminiScraper preserves explicit python language hint", () => {
+Deno.test("unit: GeminiScraper: preserves explicit python language hint", () => {
     const doc = loadRawFixture("raw-with-plain-org-and-mixed.html");
     const scraper = new GeminiScraper();
     const codeBlocks = Array.from(doc.querySelectorAll(GEMINI_SELECTORS.CODE_BLOCK));
@@ -69,7 +69,7 @@ Deno.test("unit: GeminiScraper preserves explicit python language hint", () => {
     assertEquals(pythonBlock?.languageHint, "python");
 });
 
-Deno.test("unit: GeminiScraper parses code block ref from first.html fixture", () => {
+Deno.test("unit: GeminiScraper: parses code block ref from first.html fixture", () => {
     const doc = loadRawFixture("first.html");
     const scraper = new GeminiScraper();
     const codeBlock = doc.querySelector(GEMINI_SELECTORS.CODE_BLOCK);
@@ -77,7 +77,7 @@ Deno.test("unit: GeminiScraper parses code block ref from first.html fixture", (
     assertNotEquals(parsed, null);
 });
 
-Deno.test("unit: GeminiScraper marks settled state for complete turn in first.html", () => {
+Deno.test("unit: GeminiScraper: marks settled state for complete turn in first.html", () => {
     const doc = loadRawFixture("first.html");
     const scraper = new GeminiScraper();
     const codeBlock = doc.querySelector(GEMINI_SELECTORS.CODE_BLOCK);
@@ -85,7 +85,7 @@ Deno.test("unit: GeminiScraper marks settled state for complete turn in first.ht
     assertEquals(parsed?.isSettled, true);
 });
 
-Deno.test("unit: GeminiThemeAuthority reports current theme string", () => {
+Deno.test("unit: GeminiThemeAuthority: reports current theme string", () => {
     const authority = new GeminiThemeAuthority();
     try {
         const theme = authority.getTheme();

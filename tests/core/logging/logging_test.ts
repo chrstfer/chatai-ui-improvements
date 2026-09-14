@@ -13,7 +13,7 @@ import {
 } from "../../../src/core/logging/index.ts";
 import { setupTestDom } from "../../fixtures/dom_fixture.ts";
 
-Deno.test("unit: RunlevelManager defaults to DEBUG level in dev mode", () => {
+Deno.test("unit: RunlevelManager: defaults to DEBUG level in dev mode", () => {
     // Arrange & Act
     const mgr = new RunlevelManager("dev");
 
@@ -21,7 +21,7 @@ Deno.test("unit: RunlevelManager defaults to DEBUG level in dev mode", () => {
     assertEquals(mgr.getEffectiveLogLevel(), LogLevel.DEBUG);
 });
 
-Deno.test("unit: RunlevelManager defaults to WARN level in test mode", () => {
+Deno.test("unit: RunlevelManager: defaults to WARN level in test mode", () => {
     // Arrange & Act
     const mgr = new RunlevelManager("test");
 
@@ -29,7 +29,7 @@ Deno.test("unit: RunlevelManager defaults to WARN level in test mode", () => {
     assertEquals(mgr.getEffectiveLogLevel(), LogLevel.WARN);
 });
 
-Deno.test("unit: RunlevelManager defaults to WARN level in prod mode", () => {
+Deno.test("unit: RunlevelManager: defaults to WARN level in prod mode", () => {
     // Arrange & Act
     const mgr = new RunlevelManager("prod");
 
@@ -37,7 +37,7 @@ Deno.test("unit: RunlevelManager defaults to WARN level in prod mode", () => {
     assertEquals(mgr.getEffectiveLogLevel(), LogLevel.WARN);
 });
 
-Deno.test("unit: RunlevelManager enables all levels when log level is DEBUG", () => {
+Deno.test("unit: RunlevelManager: enables all levels when log level is DEBUG", () => {
     // Arrange
     const mgr = new RunlevelManager("dev");
 
@@ -48,7 +48,7 @@ Deno.test("unit: RunlevelManager enables all levels when log level is DEBUG", ()
     assertEquals(debugEnabled, true);
 });
 
-Deno.test("unit: RunlevelManager filters DEBUG and INFO when log level is WARN", () => {
+Deno.test("unit: RunlevelManager: filters DEBUG and INFO when log level is WARN", () => {
     // Arrange
     const mgr = new RunlevelManager("prod");
 
@@ -59,7 +59,7 @@ Deno.test("unit: RunlevelManager filters DEBUG and INFO when log level is WARN",
     assertEquals(debugEnabled, false);
 });
 
-Deno.test("unit: RunlevelManager supports dynamic log level override", () => {
+Deno.test("unit: RunlevelManager: supports dynamic log level override", () => {
     // Arrange
     const mgr = new RunlevelManager("prod");
 
@@ -70,7 +70,7 @@ Deno.test("unit: RunlevelManager supports dynamic log level override", () => {
     assertEquals(mgr.getEffectiveLogLevel(), LogLevel.DEBUG);
 });
 
-Deno.test("unit: RunlevelManager resets to runlevel default when override cleared", () => {
+Deno.test("unit: RunlevelManager: resets to runlevel default when override cleared", () => {
     // Arrange
     const mgr = new RunlevelManager("prod");
     mgr.setLogLevel(LogLevel.DEBUG);
@@ -82,7 +82,7 @@ Deno.test("unit: RunlevelManager resets to runlevel default when override cleare
     assertEquals(mgr.getEffectiveLogLevel(), LogLevel.WARN);
 });
 
-Deno.test("unit: LogRingBuffer initializes with zero entries", () => {
+Deno.test("unit: LogRingBuffer: initializes with zero entries", () => {
     // Arrange & Act
     const buffer = new LogRingBuffer(3);
 
@@ -90,7 +90,7 @@ Deno.test("unit: LogRingBuffer initializes with zero entries", () => {
     assertEquals(buffer.size, 0);
 });
 
-Deno.test("unit: LogRingBuffer appends entries in sequential order", () => {
+Deno.test("unit: LogRingBuffer: appends entries in sequential order", () => {
     // Arrange
     const buffer = new LogRingBuffer(3);
 
@@ -102,7 +102,7 @@ Deno.test("unit: LogRingBuffer appends entries in sequential order", () => {
     assertEquals(buffer.getEntries().map((e) => e.message), ["msg 1", "msg 2"]);
 });
 
-Deno.test("unit: LogRingBuffer evicts oldest entry when exceeding capacity", () => {
+Deno.test("unit: LogRingBuffer: evicts oldest entry when exceeding capacity", () => {
     // Arrange
     const buffer = new LogRingBuffer(3);
     buffer.push({ timestamp: 1, level: LogLevel.INFO, scope: "Test", message: "msg 1" });
@@ -116,7 +116,7 @@ Deno.test("unit: LogRingBuffer evicts oldest entry when exceeding capacity", () 
     assertEquals(buffer.getEntries().map((e) => e.message), ["msg 2", "msg 3", "msg 4"]);
 });
 
-Deno.test("unit: LogRingBuffer clear removes all stored entries", () => {
+Deno.test("unit: LogRingBuffer: clear removes all stored entries", () => {
     // Arrange
     const buffer = new LogRingBuffer(3);
     buffer.push({ timestamp: 1, level: LogLevel.INFO, scope: "Test", message: "msg 1" });
@@ -128,7 +128,7 @@ Deno.test("unit: LogRingBuffer clear removes all stored entries", () => {
     assertEquals(buffer.size, 0);
 });
 
-Deno.test("unit: CoreLogger child logger appends child scope segment with chevron separator", () => {
+Deno.test("unit: CoreLogger: child logger appends child scope segment with chevron separator", () => {
     // Arrange
     const rootLogger = createLogger("Adapter");
 
@@ -139,7 +139,7 @@ Deno.test("unit: CoreLogger child logger appends child scope segment with chevro
     assertEquals(childLogger.scope, "Adapter > Scraper");
 });
 
-Deno.test("unit: CoreLogger dispatches log entries to registered custom sink", () => {
+Deno.test("unit: CoreLogger: dispatches log entries to registered custom sink", () => {
     // Arrange
     CoreLogger.resetForTesting("dev");
     const captured: string[] = [];
@@ -160,7 +160,7 @@ Deno.test("unit: CoreLogger dispatches log entries to registered custom sink", (
     }
 });
 
-Deno.test("unit: CoreLogger stops dispatching to sink after unsubscribe", () => {
+Deno.test("unit: CoreLogger: stops dispatching to sink after unsubscribe", () => {
     // Arrange
     CoreLogger.resetForTesting("dev");
     const captured: string[] = [];
@@ -178,7 +178,7 @@ Deno.test("unit: CoreLogger stops dispatching to sink after unsubscribe", () => 
     assertEquals(captured, ["First"]);
 });
 
-Deno.test("unit: CoreLogger stores emitted entries in shared ring buffer", () => {
+Deno.test("unit: CoreLogger: stores emitted entries in shared ring buffer", () => {
     // Arrange
     CoreLogger.resetForTesting("dev");
     const logger = createLogger("StoreTest");
@@ -191,7 +191,7 @@ Deno.test("unit: CoreLogger stores emitted entries in shared ring buffer", () =>
     assertEquals(entries.some((e) => e.message === "Buffered message"), true);
 });
 
-Deno.test("unit: isExtensionError returns false for third-party host script errors", () => {
+Deno.test("unit: CoreLogger: isExtensionError returns false for third-party host script errors", () => {
     // Arrange
     const hostError = {
         filename: "https://www.gstatic.com/chat/app.js",
@@ -206,7 +206,7 @@ Deno.test("unit: isExtensionError returns false for third-party host script erro
     assertEquals(result, false);
 });
 
-Deno.test("unit: isExtensionError detects extension error by extension scheme in filename", () => {
+Deno.test("unit: CoreLogger: isExtensionError detects extension error by extension scheme in filename", () => {
     // Arrange
     const extError = {
         filename: "moz-extension://1234-uuid/dist/dev/gemini-chunk.js",
@@ -221,7 +221,7 @@ Deno.test("unit: isExtensionError detects extension error by extension scheme in
     assertEquals(result, true);
 });
 
-Deno.test("unit: isExtensionError detects extension error by stack frame path", () => {
+Deno.test("unit: CoreLogger: isExtensionError detects extension error by stack frame path", () => {
     // Arrange
     const extError = {
         message: "TypeError: null is not an object",
@@ -237,7 +237,7 @@ Deno.test("unit: isExtensionError detects extension error by stack frame path", 
     assertEquals(result, true);
 });
 
-Deno.test("unit: installBrowserHooks registers error and lifecycle listeners on window", () => {
+Deno.test("unit: CoreLogger: installBrowserHooks registers error and lifecycle listeners on window", () => {
     // Arrange
     CoreLogger.resetForTesting("dev");
     const registered = new Set<string>();
@@ -255,7 +255,7 @@ Deno.test("unit: installBrowserHooks registers error and lifecycle listeners on 
     sub.uninstall();
 });
 
-Deno.test("unit: installBrowserHooks uninstalls all registered event listeners cleanly", () => {
+Deno.test("unit: CoreLogger: installBrowserHooks uninstalls all registered event listeners cleanly", () => {
     // Arrange
     CoreLogger.resetForTesting("dev");
     const registered = new Set<string>();
@@ -273,7 +273,7 @@ Deno.test("unit: installBrowserHooks uninstalls all registered event listeners c
     assertEquals(registered.size, 0);
 });
 
-Deno.test("unit: installBrowserHooks logs host error at DEBUG level with prefix", () => {
+Deno.test("unit: CoreLogger: installBrowserHooks logs host error at DEBUG level with prefix", () => {
     // Arrange
     CoreLogger.resetForTesting("dev");
     let errorHandler: ((ev: unknown) => void) | undefined;
@@ -302,7 +302,7 @@ Deno.test("unit: installBrowserHooks logs host error at DEBUG level with prefix"
     }
 });
 
-Deno.test("unit: installBrowserHooks logs extension error at ERROR level", () => {
+Deno.test("unit: CoreLogger: installBrowserHooks logs extension error at ERROR level", () => {
     // Arrange
     CoreLogger.resetForTesting("dev");
     let errorHandler: ((ev: unknown) => void) | undefined;
@@ -333,7 +333,7 @@ Deno.test("unit: installBrowserHooks logs extension error at ERROR level", () =>
     }
 });
 
-Deno.test("unit: installPreactHooks records component instantiation and mounting telemetry", () => {
+Deno.test("unit: CoreLogger: installPreactHooks records component instantiation and mounting telemetry", () => {
     // Arrange
     CoreLogger.resetForTesting("dev");
     const { doc, cleanup } = setupTestDom({
@@ -363,7 +363,7 @@ Deno.test("unit: installPreactHooks records component instantiation and mounting
     }
 });
 
-Deno.test("unit: installPreactHooks records component destruction telemetry upon unmount", () => {
+Deno.test("unit: CoreLogger: installPreactHooks records component destruction telemetry upon unmount", () => {
     // Arrange
     CoreLogger.resetForTesting("dev");
     const { doc, cleanup } = setupTestDom({
@@ -394,7 +394,7 @@ Deno.test("unit: installPreactHooks records component destruction telemetry upon
     }
 });
 
-Deno.test("unit: installConsoleApi binds API handle to window target object", () => {
+Deno.test("unit: CoreLogger: installConsoleApi binds API handle to window target object", () => {
     // Arrange
     const fakeWin: Record<string, unknown> = {};
 
@@ -405,7 +405,7 @@ Deno.test("unit: installConsoleApi binds API handle to window target object", ()
     assertEquals(fakeWin.__AI_CHAT_UI__, api);
 });
 
-Deno.test("unit: installConsoleApi dynamic setLogLevel filters lower level logs", () => {
+Deno.test("unit: CoreLogger: installConsoleApi dynamic setLogLevel filters lower level logs", () => {
     // Arrange
     CoreLogger.resetForTesting("dev");
     const fakeWin: Record<string, unknown> = {};
@@ -421,7 +421,7 @@ Deno.test("unit: installConsoleApi dynamic setLogLevel filters lower level logs"
     assertEquals(entries.some((e) => e.message === "Filtered out debug message"), false);
 });
 
-Deno.test("unit: installConsoleApi dynamic setRunlevel updates active runlevel", () => {
+Deno.test("unit: CoreLogger: installConsoleApi dynamic setRunlevel updates active runlevel", () => {
     // Arrange
     CoreLogger.resetForTesting("dev");
     const fakeWin: Record<string, unknown> = {};
@@ -434,7 +434,7 @@ Deno.test("unit: installConsoleApi dynamic setRunlevel updates active runlevel",
     assertEquals(CoreLogger.getRunlevelManager().getRunlevel(), "prod");
 });
 
-Deno.test("unit: CoreLogger child scope creates nested category hierarchy and records entry", () => {
+Deno.test("unit: CoreLogger: child scope creates nested category hierarchy and records entry", () => {
     // Arrange
     CoreLogger.resetForTesting("dev");
     const parent = createLogger("Parent");
@@ -448,7 +448,7 @@ Deno.test("unit: CoreLogger child scope creates nested category hierarchy and re
     assertEquals(entry?.scope, "Parent > Child > Grandchild");
 });
 
-Deno.test("unit: CoreLogger resetForTesting flushes LogTape sinks and ring buffer cleanly", () => {
+Deno.test("unit: CoreLogger: resetForTesting flushes LogTape sinks and ring buffer cleanly", () => {
     // Arrange
     CoreLogger.resetForTesting("dev");
     const logger = createLogger("FlushTest");
@@ -461,7 +461,7 @@ Deno.test("unit: CoreLogger resetForTesting flushes LogTape sinks and ring buffe
     assertEquals(CoreLogger.getRingBuffer().size, 0);
 });
 
-Deno.test("unit: CoreLogger sink exception does not disrupt logging execution", () => {
+Deno.test("unit: CoreLogger: sink exception does not disrupt logging execution", () => {
     // Arrange
     CoreLogger.resetForTesting("dev");
     const unsubscribe = CoreLogger.addSink(() => {
