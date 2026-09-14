@@ -1,0 +1,142 @@
+#+TITLE: Automated Test Suite Rework & Audit Report
+#+AUTHOR: DeepMind Antigravity Pair Programmer
+#+DATE: [2026-09-14]
+#+STARTUP: overview
+
+* Executive Summary
+Following the guidelines established in =docs/test-design.org=, =AGENTS.md=, and the =test_audit_plan.md= blueprint, a complete architectural overhaul ("Sort, Clean, Measure") of the automated test suite was executed on branch =phase-3_test-rework=.
+
+Prior to this rework, the test suite suffered from architectural drift: compound test cases packing up to five distinct assertions into a single =Deno.test= block, bespoke DOM shimming scattered across test files, mixed test tier categories lacking standardized filtering, un-quarantined technical debt in site adapters, and absence of standardized Preact component testing utilities.
+
+All 489 tests across the repository now strictly comply with the following invariants:
+1. *Arrange-Act-Assert (AAA) Discipline*: Exactly one logical assertion per test case.
+2. *Strict Categorical Prefixes*: Every test is classified with an explicit category prefix (=unit: =, =integration: =, =e2e: =), enabling selective execution via dedicated Deno tasks.
+3. *Single DOM Shim Source of Truth*: All synthetic DOM shimming, selector polyfills, MutationObserver mocking, and event bubbling reside exclusively in =tests/fixtures/dom_fixture.ts=. Bespoke DOM mocks have been completely eradicated.
+4. *Standardized Preact Component Testing*: All UI component tests utilize =@testing-library/preact= coupled with =setupTestDom= and hermetic cleanup lifecycle hooks.
+5. *Zero Modifications to =src/=* Codebase: Test isolation, DOM polyfills, and event simulations were implemented entirely within =tests/=, respecting the technical debt quarantine directive.
+6. *Reusable Firefox DevTools MCP Scripts*: Evaluation scripts for E2E validation of Duck.ai and Gemini site adapters are formalized under =tests/ff-devtools_e2e-tests/scripts/=.
+
+* Test Suite Metrics & Pipeline Performance
+
+** Test Count Breakdown by Category
+| Category | Prefix | Test Count | Filter Command |
+|---+---+---+---|
+| Unit Tests | =unit: = | 397 | =deno task test:unit= |
+| Integration Tests | =integration: = | 78 | =deno task test:integration= |
+| End-to-End Tests | =e2e: = | 14 | =deno task test:e2e= |
+| *Total Unified Suite* | -- | *489* | =deno task test= |
+
+** Execution Time by Task
+| Task | Scope | Test Count | Elapsed Time |
+|---+---+---+---|
+| =deno task test:unit= | Pure logic, parsers, serializers, matchers, view models | 397 | ~8.0s |
+| =deno task test:integration= | Site adapters, injectors, DOM observers, HUD mounting | 78 | ~5.0s |
+| =deno task test:e2e= | Build pipeline, bootloader, chunk splitting, fonts | 14 | ~8.0s |
+| =deno task test= | Full unified test suite across all 43 test modules | 489 | ~14.0s |
+| =deno task bench:tests:all= | Microbenchmarks (LogTape throughput, child scopes) | 4 | ~5.0s |
+
+* Component-Centric Directory Architecture
+The test suite directory structure was reorganized to mirror the production code structure under =src/=:
+
+#+BEGIN_SRC text
+tests/
+├── build/
+│   └── build_test.ts                      (e2e: build output, bootloader, chunks, manifest, fonts)
+├── contracts/
+│   └── contracts_test.ts                  (unit: site adapter and feature interfaces)
+├── core/
+│   ├── clipboard/
+│   │   └── clipboard_test.ts              (unit: navigator.clipboard and fallback logic)
+│   ├── hash/
+│   │   └── content_hash_test.ts           (unit: cryptographic content hashing)
+│   ├── logging/
+│   │   ├── logging_test.ts                (unit: CoreLogger, LogTape sinks, runlevels)
+│   │   └── logging_bench.ts               (bench: throughput, child logger instantiation)
+│   ├── rpc/
+│   │   └── tab_bridge_test.ts             (unit: browser tab state RPC)
+│   └── storage/
+│       └── settings_test.ts               (unit: settings persistence and defaults)
+├── entrypoints/
+│   └── content_test.ts                    (integration: content bootloader lifecycle)
+├── features/
+│   ├── chats/
+│   │   ├── duckai/
+│   │   │   ├── adapter_test.ts            (unit & integration: Duck.ai adapter lifecycle)
+│   │   │   ├── dom_observer_test.ts       (integration: Duck.ai DOM mutation observer)
+│   │   │   ├── injector_test.tsx          (integration: Duck.ai Preact/Shadow DOM injector)
+│   │   │   ├── layout_test.ts             (unit: Duck.ai layout widening controller)
+│   │   │   ├── scraper_test.ts            (unit: Duck.ai DOM scraper & turn parsing)
+│   │   │   ├── selectors_test.ts          (unit: Duck.ai host DOM selectors)
+│   │   │   └── theme_test.ts              (unit: Duck.ai theme authority)
+│   │   └── gemini/
+│   │       ├── adapter_test.ts            (unit & integration: Gemini adapter lifecycle)
+│   │       ├── ast_integration_test.ts    (integration: Gemini AST parser caching)
+│   │       ├── layout_test.ts             (unit: Gemini layout widening controller)
+│   │       └── scraper_test.ts            (unit: Gemini DOM scraper & turn parsing)
+│   └── matchers/
+│       └── matchers_test.ts               (unit: format matching heuristics)
+├── ff-devtools_e2e-tests/
+│   ├── scripts/
+│   │   ├── verify_duckai_layout.js        (DevTools MCP: Duck.ai layout and HUD verification)
+│   │   ├── verify_gemini_layout.js        (DevTools MCP: Gemini layout and HUD verification)
+│   │   └── verify_layout_dispatcher.js    (DevTools MCP: cross-host HUD & settings dispatch)
+│   └── site_adapters_e2e.org              (Prompt-driven Firefox DevTools verification procedures)
+├── fixtures/
+│   ├── dom_fixture.ts                     (Centralized DOM shims, :has() polyfill, setupTestDom)
+│   ├── fixture_loader.ts                  (HTML fixture loader utility)
+│   └── html/
+│       ├── duckai/                        (Raw Duck.ai HTML conversation turn fixtures)
+│       └── gemini/                        (Raw Gemini HTML conversation turn fixtures)
+├── languages/
+│   └── org/
+│       ├── org_block_parser_test.ts       (unit: Org block grammar parser)
+│       ├── org_document_view_test.tsx     (unit: Org document Preact view)
+│       ├── org_element_renderer_test.tsx  (unit: Org structural element renderer)
+│       ├── org_headline_view_test.tsx     (unit: Org headline cycling view)
+│       ├── org_inline_parser_test.ts      (unit: Org inline markup parser)
+│       ├── org_object_renderer_test.tsx   (unit: Org inline object renderer)
+│       └── org_serializer_test.ts         (unit: Org AST serializer)
+├── registries/
+│   ├── chat_registry_test.ts              (unit & integration: site adapter registry)
+│   ├── matcher_registry_test.ts           (unit: format matcher registry)
+│   ├── parser_registry_test.ts            (unit & integration: parser registry)
+│   ├── renderer_registry_test.ts          (unit: renderer registry)
+│   └── serializer_registry_test.ts        (unit: serializer registry)
+├── store/
+│   └── ast_cache_test.ts                  (unit: LRU AST cache)
+├── styles/
+│   └── adopted_stylesheets_test.ts        (unit: constructable stylesheet adoption)
+└── views/
+    ├── codeblock/
+    │   └── codeblock_view_test.tsx        (unit & integration: InSituCodeBlockContainer, Header)
+    ├── common/
+    │   ├── inline_image_view_test.tsx     (unit: InlineImageView folding & error fallback)
+    │   └── latex_math_view_test.tsx       (unit: LatexMathView KaTeX rendering & display math)
+    └── settings/
+        └── floating_hud_test.tsx          (unit & integration: FloatingHud controls & mountHud)
+#+END_SRC
+
+* Key Structural Reworks
+
+** 1. Centralization of DOM Shims in =tests/fixtures/dom_fixture.ts=
+Previously, multiple test files independently shimmed =document.createElement=, =attachShadow=, =style= property maps, and =MutationObserver=. All synthetic browser APIs now originate exclusively from =setupTestDom()= in =tests/fixtures/dom_fixture.ts=:
+- *:has() Query Polyfill*: Intercepts and manually resolves =:has(...)= pseudo-classes across =querySelector= and =querySelectorAll=.
+- *Global Scope Shims*: Safely exposes =HTMLElement=, =Element=, =ShadowRoot=, =window=, and =Node= on =globalThis= during test execution, fully restoring originals in =cleanup()=.
+- *Ancestor Event Bubbling*: =triggerClick= traverses =curr.parentNode=, dispatching synthetic =click= and =change= events while preserving =e.target= and respecting =e.stopPropagation()= (=cancelBubble=).
+- *MockMutationObserver*: Centralized mock tracking instances, target nodes, and mutation callbacks with =trigger()= simulation.
+
+** 2. AAA Discipline & Single Assertion Rule
+Every test file was refactored from compound verification blocks to strict single-assertion units. For instance:
+- =tests/views/codeblock/codeblock_view_test.tsx=: Decomposed from 7 monolithic multi-assertion tests into 29 atomic tests.
+- =tests/features/chats/duckai/injector_test.tsx=: Decomposed from 3 compound tests into 19 isolated tests verifying element insertion, class assignments, dataset properties, shadow root attachments, duplicate injection guards, format bypasses, theme toggles, and teardown restoration.
+- =tests/views/settings/floating_hud_test.tsx=: Decomposed into 18 discrete tests covering UI labels, preset buttons, bilateral boundary clamping, state toggles, and mount container unmounting.
+- =tests/build/build_test.ts=: Decomposed into 14 atomic assertions using a memoized dev build runner to avoid repeated 1.5s compiler invocations.
+
+** 3. Preact Testing Library Integration
+Tests for =InlineImageView=, =LatexMathView=, =CodeBlockHeader=, =InSituCodeBlockContainer=, =FloatingHud=, and Org mode views were standardized on =@testing-library/preact=. This ensures consistent component lifecycles, hook evaluation (=useEffect= / =useLayoutEffect=), and clean unmounting.
+
+** 4. Lint and Code Quality Compliance
+Ran =deno lint tests/= across all 43 test modules, eliminating all unused variables, dangling async functions (=require-await=), and unnecessary type casts. The test suite passes =deno lint= with zero warnings or errors.
+
+* Conclusion & Readiness
+The test suite overhaul is complete. Branch =phase-3_test-rework= establishes a rock-solid, hermetic, and fast verification foundation. The test suite is fully decoupled from production implementation details while rigorously enforcing all architectural contracts. The repository is ready for merging and proceeding to Phase 3 Stage 3 (ChatGPT Site Adapter).

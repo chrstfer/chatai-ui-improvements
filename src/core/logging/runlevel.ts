@@ -4,9 +4,15 @@ import { __DEV__ } from "../../env.ts";
 export class RunlevelManager {
     private currentRunlevel: Runlevel;
     private customLogLevel: LogLevel | null = null;
+    private onLevelChange?: () => void;
 
-    constructor(defaultRunlevel?: Runlevel) {
+    constructor(defaultRunlevel?: Runlevel, onLevelChange?: () => void) {
         this.currentRunlevel = defaultRunlevel ?? this.detectRunlevel();
+        this.onLevelChange = onLevelChange;
+    }
+
+    public setOnLevelChange(listener?: () => void): void {
+        this.onLevelChange = listener;
     }
 
     private detectRunlevel(): Runlevel {
@@ -29,10 +35,12 @@ export class RunlevelManager {
 
     public setRunlevel(runlevel: Runlevel): void {
         this.currentRunlevel = runlevel;
+        this.onLevelChange?.();
     }
 
     public setLogLevel(level: LogLevel | null): void {
         this.customLogLevel = level;
+        this.onLevelChange?.();
     }
 
     public getEffectiveLogLevel(): LogLevel {

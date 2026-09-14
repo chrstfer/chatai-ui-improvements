@@ -277,6 +277,21 @@ chat-window > chat-window-content > infinite-scroller > div.conversation-contain
         └── <gem-icon-button> (Overflow menu ...)
 #+END_EXAMPLE
 
+* Test Architecture & Verification Domain
+
+** 1. Test Pyramid Tiers & Execution Scopes
+- *Unit Tests (~unit:~)* :: Fast (sub-millisecond to <10ms), hermetic, in-memory tests verifying pure logic, AST parsers, serializers, tokenizer rules, matchers, and isolated Preact components without disk compilation or host DOM overhead. Executed via ~deno task test:unit~.
+- *Integration Tests (~integration:~)* :: Seam tests verifying multi-module collaboration across site adapters, DOM observers, Preact portal mounting, and reactive storage state, running against the standardized DOM fixture. Executed via ~deno task test:integration~.
+- *End-to-End (E2E) Tests (~e2e:~)* :: High-fidelity verification validating full system behavior across two distinct modalities:
+  1. *Software-Defined E2E*: Headless script-level tests validating bundled extension artifacts (~dist/dev/~), multi-adapter code-splitting, manifest declarations, and content script bootstrapping. Executed via ~deno task test:e2e~.
+  2. *Prompt-Defined E2E*: Living specifications (~tests/ff-devtools_e2e-tests/*.org~) executed against real browsers via Firefox DevTools MCP using provider-specific, reusable evaluation scripts.
+
+** 2. Test Discipline & Harness Standards
+- *Single-Assertion AAA Discipline* :: Strict testing invariant where every automated test is structured as Arrange-Act-Assert verifying exactly one logical assertion, guaranteeing instant root-cause identification without masked cascading failures.
+- *DOM Fixture Authority (~tests/fixtures/dom_fixture.ts~)* :: The single canonical source of truth for all test DOM polyfills (including ~:has()~ selector interception, style stubs, and storage resets). Individual test suites must never define bespoke DOM shims.
+- *Component Testing Standard (~@testing-library/preact~)* :: Standardized Preact component test harness executing accessible queries (~getByRole~, ~getByText~) against clean DOM containers for unit tests, supplemented by targeted ~renderInShadow~ for explicit Shadow Root isolation verification.
+- *Technical Debt Quarantine* :: The policy of marking tests that expose known ~src/~ technical debt with ~ignore: true~ and explicit tracking annotations rather than making premature modifications to production source code during test refactoring.
+
 * Planned Features & Roadmap
 See [[file:docs/roadmap.org][docs/roadmap.org]] for the backlog and planned feature milestones.
 

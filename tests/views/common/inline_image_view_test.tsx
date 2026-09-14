@@ -1,144 +1,228 @@
 import { assertEquals, assertNotEquals } from "@std/assert";
-import { DOMParser } from "@b-fuze/deno-dom";
-import { render } from "preact";
+import { cleanup, render } from "@testing-library/preact";
+import { setupTestDom, triggerClick } from "../../fixtures/dom_fixture.ts";
 import { InlineImageView } from "../../../src/views/common/InlineImageView.tsx";
-
-function setupDom() {
-    const doc = new DOMParser().parseFromString(
-        '<!DOCTYPE html><html><body><div id="mount-point"></div></body></html>',
-        "text/html",
-    );
-    if (!doc) throw new Error("Failed to create mock DOM");
-
-    interface GlobalDomScope {
-        document?: unknown;
-        Node?: unknown;
-    }
-    const scope = globalThis as unknown as GlobalDomScope;
-    const origDoc = scope.document;
-    const origNode = scope.Node;
-
-    const origCreateElement = doc.createElement.bind(doc);
-    doc.createElement = (tag: string) => {
-        const el = origCreateElement(tag);
-        (el as unknown as { style: Record<string, string> }).style = {};
-        return el;
-    };
-
-    scope.document = doc;
-    scope.Node = doc.body.constructor;
-
-    const root = doc.getElementById("mount-point") as unknown as HTMLElement;
-
-    return {
-        doc,
-        root,
-        cleanup: () => {
-            render(null, root);
-            scope.document = origDoc;
-            scope.Node = origNode;
-        },
-    };
-}
-
-function triggerClick(el: unknown) {
-    if (el && typeof (el as { dispatchEvent?: unknown }).dispatchEvent === "function") {
-        (el as { dispatchEvent: (ev: Event) => void }).dispatchEvent(
-            new Event("click", { bubbles: true }),
-        );
-    }
-}
 
 const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
 
-Deno.test("InlineImageView: Renders collapsible image preview with caption and new-tab link", async () => {
-    const { root, cleanup } = setupDom();
+Deno.test("unit: InlineImageView renders figure with inline-image-container class", () => {
+    const { cleanup: domCleanup } = setupTestDom();
     try {
-        render(
+        const { container } = render(
             <InlineImageView
                 src="https://example.com/figure.png"
                 title="System Architecture Diagram"
                 alt="Architecture Diagram"
             />,
-            root,
         );
+        const figure = container.querySelector("figure.inline-image-container");
+        assertNotEquals(figure, null);
+    } finally {
+        cleanup();
+        domCleanup();
+    }
+});
 
-        const figure = root.querySelector("figure.inline-image-container");
-        assertNotEquals(figure, null, "Must have inline-image-container class");
-
-        // Verify caption text
-        const caption = root.querySelector("figcaption");
-        assertNotEquals(caption, null);
+Deno.test("unit: InlineImageView renders figcaption with title text", () => {
+    const { cleanup: domCleanup } = setupTestDom();
+    try {
+        const { container } = render(
+            <InlineImageView
+                src="https://example.com/figure.png"
+                title="System Architecture Diagram"
+                alt="Architecture Diagram"
+            />,
+        );
+        const caption = container.querySelector("figcaption");
         assertEquals(caption?.textContent?.includes("System Architecture Diagram"), true);
+    } finally {
+        cleanup();
+        domCleanup();
+    }
+});
 
-        // Verify new-tab link
-        const link = root.querySelector('a[href="https://example.com/figure.png"]') as HTMLAnchorElement;
-        assertNotEquals(link, null);
-        assertEquals(link.getAttribute("target"), "_blank");
-        assertEquals(link.getAttribute("rel"), "noopener noreferrer");
+Deno.test("unit: InlineImageView renders link to image source with _blank target", () => {
+    const { cleanup: domCleanup } = setupTestDom();
+    try {
+        const { container } = render(
+            <InlineImageView
+                src="https://example.com/figure.png"
+                title="System Architecture Diagram"
+                alt="Architecture Diagram"
+            />,
+        );
+        const link = container.querySelector('a[href="https://example.com/figure.png"]');
+        assertEquals(link?.getAttribute("target"), "_blank");
+    } finally {
+        cleanup();
+        domCleanup();
+    }
+});
 
-        // Verify image rendered initially
-        const img = root.querySelector("img");
-        assertNotEquals(img, null);
+Deno.test("unit: InlineImageView renders link to image source with noopener noreferrer rel", () => {
+    const { cleanup: domCleanup } = setupTestDom();
+    try {
+        const { container } = render(
+            <InlineImageView
+                src="https://example.com/figure.png"
+                title="System Architecture Diagram"
+                alt="Architecture Diagram"
+            />,
+        );
+        const link = container.querySelector('a[href="https://example.com/figure.png"]');
+        assertEquals(link?.getAttribute("rel"), "noopener noreferrer");
+    } finally {
+        cleanup();
+        domCleanup();
+    }
+});
+
+Deno.test("unit: InlineImageView renders img with specified src attribute", () => {
+    const { cleanup: domCleanup } = setupTestDom();
+    try {
+        const { container } = render(
+            <InlineImageView
+                src="https://example.com/figure.png"
+                title="System Architecture Diagram"
+                alt="Architecture Diagram"
+            />,
+        );
+        const img = container.querySelector("img");
         assertEquals(img?.getAttribute("src"), "https://example.com/figure.png");
+    } finally {
+        cleanup();
+        domCleanup();
+    }
+});
+
+Deno.test("unit: InlineImageView renders img with specified alt attribute", () => {
+    const { cleanup: domCleanup } = setupTestDom();
+    try {
+        const { container } = render(
+            <InlineImageView
+                src="https://example.com/figure.png"
+                title="System Architecture Diagram"
+                alt="Architecture Diagram"
+            />,
+        );
+        const img = container.querySelector("img");
         assertEquals(img?.getAttribute("alt"), "Architecture Diagram");
-
-        // Test folding
-        triggerClick(caption);
-        await sleep(20);
-        assertEquals(root.querySelector("img"), null, "Image must be hidden when folded");
-
-        // Test unfolding
-        triggerClick(caption);
-        await sleep(20);
-        assertNotEquals(root.querySelector("img"), null, "Image must be restored when unfolded");
     } finally {
         cleanup();
+        domCleanup();
     }
 });
 
-Deno.test("InlineImageView: Renders error banner on broken image source", async () => {
-    const { root, cleanup } = setupDom();
+Deno.test("unit: InlineImageView hides img when figcaption is clicked to fold", async () => {
+    const { cleanup: domCleanup } = setupTestDom();
     try {
-        render(<InlineImageView src="https://example.com/broken.jpg" />, root);
+        const { container } = render(
+            <InlineImageView
+                src="https://example.com/figure.png"
+                title="System Architecture Diagram"
+                alt="Architecture Diagram"
+            />,
+        );
+        const caption = container.querySelector("figcaption");
+        assertNotEquals(caption, null);
+        triggerClick(caption!);
+        await sleep(20);
+        assertEquals(container.querySelector("img"), null);
+    } finally {
+        cleanup();
+        domCleanup();
+    }
+});
 
-        const img = root.querySelector("img");
+Deno.test("unit: InlineImageView restores img when figcaption is clicked twice to unfold", async () => {
+    const { cleanup: domCleanup } = setupTestDom();
+    try {
+        const { container } = render(
+            <InlineImageView
+                src="https://example.com/figure.png"
+                title="System Architecture Diagram"
+                alt="Architecture Diagram"
+            />,
+        );
+        const caption = container.querySelector("figcaption");
+        assertNotEquals(caption, null);
+        triggerClick(caption!);
+        await sleep(20);
+        triggerClick(caption!);
+        await sleep(20);
+        assertNotEquals(container.querySelector("img"), null);
+    } finally {
+        cleanup();
+        domCleanup();
+    }
+});
+
+Deno.test("unit: InlineImageView renders error banner when image triggers error event", async () => {
+    const { cleanup: domCleanup } = setupTestDom();
+    try {
+        const { container } = render(<InlineImageView src="https://example.com/broken.jpg" />);
+        const img = container.querySelector("img");
         assertNotEquals(img, null);
-
-        // Trigger error event
-        if (img && typeof img.dispatchEvent === "function") {
-            img.dispatchEvent(new Event("error"));
-        }
+        img!.dispatchEvent(new Event("error"));
         await sleep(20);
-
-        // Verify error fallback banner
-        const errorBanner = root.querySelector(".inline-image-error");
-        assertNotEquals(errorBanner, null, "Must display inline-image-error on image error");
-        assertEquals(errorBanner?.textContent?.includes("Failed to preview image"), true);
-
-        const errorLink = errorBanner?.querySelector("a") as HTMLAnchorElement;
-        assertNotEquals(errorLink, null);
-        assertEquals(errorLink.getAttribute("href"), "https://example.com/broken.jpg");
+        const errorBanner = container.querySelector(".inline-image-error");
+        assertNotEquals(errorBanner, null);
     } finally {
         cleanup();
+        domCleanup();
     }
 });
 
-Deno.test("InlineImageView: Zero org- prefixes in element class names", () => {
-    const { root, cleanup } = setupDom();
+Deno.test("unit: InlineImageView error banner contains failure message", async () => {
+    const { cleanup: domCleanup } = setupTestDom();
     try {
-        render(<InlineImageView src="https://example.com/test.png" title="Generic" />, root);
+        const { container } = render(<InlineImageView src="https://example.com/broken.jpg" />);
+        const img = container.querySelector("img");
+        assertNotEquals(img, null);
+        img!.dispatchEvent(new Event("error"));
+        await sleep(20);
+        const errorBanner = container.querySelector(".inline-image-error");
+        assertEquals(errorBanner?.textContent?.includes("Failed to preview image"), true);
+    } finally {
+        cleanup();
+        domCleanup();
+    }
+});
 
-        const allElements = root.querySelectorAll("*");
+Deno.test("unit: InlineImageView error banner contains link to image source", async () => {
+    const { cleanup: domCleanup } = setupTestDom();
+    try {
+        const { container } = render(<InlineImageView src="https://example.com/broken.jpg" />);
+        const img = container.querySelector("img");
+        assertNotEquals(img, null);
+        img!.dispatchEvent(new Event("error"));
+        await sleep(20);
+        const errorLink = container.querySelector(".inline-image-error a");
+        assertEquals(errorLink?.getAttribute("href"), "https://example.com/broken.jpg");
+    } finally {
+        cleanup();
+        domCleanup();
+    }
+});
+
+Deno.test("unit: InlineImageView contains zero org- prefixed class names", () => {
+    const { cleanup: domCleanup } = setupTestDom();
+    try {
+        const { container } = render(
+            <InlineImageView src="https://example.com/test.png" title="Generic" />,
+        );
+        const allElements = container.querySelectorAll("*");
+        let hasOrgPrefix = false;
         for (const el of allElements) {
             const className = (el as HTMLElement).getAttribute?.("class") || "";
-            assertEquals(
-                className.includes("org-"),
-                false,
-                `Element must not contain org- class name: ${className}`,
-            );
+            if (className.includes("org-")) {
+                hasOrgPrefix = true;
+                break;
+            }
         }
+        assertEquals(hasOrgPrefix, false);
     } finally {
         cleanup();
+        domCleanup();
     }
 });

@@ -1,7 +1,8 @@
 import { assertEquals } from "@std/assert";
-import { copyTextToClipboard } from "../src/core/utils/clipboard.ts";
+import { copyTextToClipboard } from "../../../src/core/utils/clipboard.ts";
 
-Deno.test("copyTextToClipboard: Primary path succeeds via navigator.clipboard.writeText", async () => {
+Deno.test("unit: copyTextToClipboard writes text directly to navigator clipboard", async () => {
+    // Arrange
     let writtenText = "";
     const originalClipboard = (navigator as unknown as { clipboard?: unknown }).clipboard;
 
@@ -17,6 +18,60 @@ Deno.test("copyTextToClipboard: Primary path succeeds via navigator.clipboard.wr
             writable: true,
         });
 
+        // Act
+        await copyTextToClipboard("Hello World");
+
+        // Assert
+        assertEquals(writtenText, "Hello World");
+    } finally {
+        Object.defineProperty(navigator, "clipboard", {
+            value: originalClipboard,
+            configurable: true,
+            writable: true,
+        });
+    }
+});
+
+Deno.test("unit: copyTextToClipboard returns true when primary navigator clipboard succeeds", async () => {
+    // Arrange
+    const originalClipboard = (navigator as unknown as { clipboard?: unknown }).clipboard;
+
+    try {
+        Object.defineProperty(navigator, "clipboard", {
+            value: {
+                writeText: () => Promise.resolve(),
+            },
+            configurable: true,
+            writable: true,
+        });
+
+        // Act
+        const result = await copyTextToClipboard("Test Payload");
+
+        // Assert
+        assertEquals(result, true);
+    } finally {
+        Object.defineProperty(navigator, "clipboard", {
+            value: originalClipboard,
+            configurable: true,
+            writable: true,
+        });
+    }
+});
+
+Deno.test("unit: copyTextToClipboard bypasses host fallback when primary write succeeds", async () => {
+    // Arrange
+    const originalClipboard = (navigator as unknown as { clipboard?: unknown }).clipboard;
+
+    try {
+        Object.defineProperty(navigator, "clipboard", {
+            value: {
+                writeText: () => Promise.resolve(),
+            },
+            configurable: true,
+            writable: true,
+        });
+
         let fallbackTriggered = false;
         const mockHost = {
             querySelector: () => {
@@ -25,13 +80,13 @@ Deno.test("copyTextToClipboard: Primary path succeeds via navigator.clipboard.wr
             },
         } as unknown as HTMLElement;
 
-        const result = await copyTextToClipboard("Hello World", {
+        // Act
+        await copyTextToClipboard("Hello World", {
             enableHostFallback: true,
             hostFallbackElement: mockHost,
         });
 
-        assertEquals(result, true);
-        assertEquals(writtenText, "Hello World");
+        // Assert
         assertEquals(fallbackTriggered, false);
     } finally {
         Object.defineProperty(navigator, "clipboard", {
@@ -42,7 +97,8 @@ Deno.test("copyTextToClipboard: Primary path succeeds via navigator.clipboard.wr
     }
 });
 
-Deno.test("copyTextToClipboard: Falls back to host native copy button when primary rejects", async () => {
+Deno.test("unit: copyTextToClipboard triggers host native copy button when primary write rejects", async () => {
+    // Arrange
     const originalClipboard = (navigator as unknown as { clipboard?: unknown }).clipboard;
 
     try {
@@ -70,12 +126,13 @@ Deno.test("copyTextToClipboard: Falls back to host native copy button when prima
             },
         } as unknown as HTMLElement;
 
-        const result = await copyTextToClipboard("Fallback Text", {
+        // Act
+        await copyTextToClipboard("Fallback Text", {
             enableHostFallback: true,
             hostFallbackElement: mockHost,
         });
 
-        assertEquals(result, true);
+        // Assert
         assertEquals(buttonClicked, true);
     } finally {
         Object.defineProperty(navigator, "clipboard", {
@@ -86,7 +143,8 @@ Deno.test("copyTextToClipboard: Falls back to host native copy button when prima
     }
 });
 
-Deno.test("copyTextToClipboard: Does not trigger fallback when enableHostFallback is false", async () => {
+Deno.test("unit: copyTextToClipboard returns false without triggering host button when fallback is disabled", async () => {
+    // Arrange
     const originalClipboard = (navigator as unknown as { clipboard?: unknown }).clipboard;
 
     try {
@@ -106,12 +164,13 @@ Deno.test("copyTextToClipboard: Does not trigger fallback when enableHostFallbac
             },
         } as unknown as HTMLElement;
 
-        const result = await copyTextToClipboard("Test", {
+        // Act
+        await copyTextToClipboard("Test", {
             enableHostFallback: false,
             hostFallbackElement: mockHost,
         });
 
-        assertEquals(result, false);
+        // Assert
         assertEquals(buttonClicked, false);
     } finally {
         Object.defineProperty(navigator, "clipboard", {
@@ -122,7 +181,8 @@ Deno.test("copyTextToClipboard: Does not trigger fallback when enableHostFallbac
     }
 });
 
-Deno.test("copyTextToClipboard: Returns false when primary rejects and native copy button not found", async () => {
+Deno.test("unit: copyTextToClipboard returns false when primary rejects and native button is missing", async () => {
+    // Arrange
     const originalClipboard = (navigator as unknown as { clipboard?: unknown }).clipboard;
 
     try {
@@ -138,11 +198,13 @@ Deno.test("copyTextToClipboard: Returns false when primary rejects and native co
             querySelector: () => null,
         } as unknown as HTMLElement;
 
+        // Act
         const result = await copyTextToClipboard("Test", {
             enableHostFallback: true,
             hostFallbackElement: mockHost,
         });
 
+        // Assert
         assertEquals(result, false);
     } finally {
         Object.defineProperty(navigator, "clipboard", {

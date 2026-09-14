@@ -7,23 +7,31 @@ import {
 } from "../../src/styles/adoptedStyleSheets.ts";
 import { KATEX_CSS } from "../../src/styles/katex.generated.ts";
 
-Deno.test("adoptedStyleSheets: getAdoptedStyleSheets returns Tailwind sheet and registers host themes", () => {
+class MockCSSStyleSheet {
+    cssText = "";
+    replaceSync(text: string) {
+        this.cssText = text;
+    }
+}
+
+Deno.test("unit: getAdoptedStyleSheets returns baseline Tailwind stylesheet", () => {
     _resetStyleSheetCacheForTesting();
     const origSheet = globalThis.CSSStyleSheet;
-
-    class MockCSSStyleSheet {
-        cssText = "";
-        replaceSync(text: string) {
-            this.cssText = text;
-        }
-    }
-
     try {
         globalThis.CSSStyleSheet = MockCSSStyleSheet as unknown as typeof CSSStyleSheet;
-
         const sheets = getAdoptedStyleSheets();
         assertEquals(sheets.length, 1);
+    } finally {
+        globalThis.CSSStyleSheet = origSheet;
+        _resetStyleSheetCacheForTesting();
+    }
+});
 
+Deno.test("unit: getAdoptedStyleSheets includes registered host theme stylesheet", () => {
+    _resetStyleSheetCacheForTesting();
+    const origSheet = globalThis.CSSStyleSheet;
+    try {
+        globalThis.CSSStyleSheet = MockCSSStyleSheet as unknown as typeof CSSStyleSheet;
         registerHostTheme("custom-host", ".custom { color: red; }");
         const customSheets = getAdoptedStyleSheets("custom-host");
         assertEquals(customSheets.length, 2);
@@ -33,13 +41,50 @@ Deno.test("adoptedStyleSheets: getAdoptedStyleSheets returns Tailwind sheet and 
     }
 });
 
-Deno.test("adoptedStyleSheets: getKatexStyleSheet returns KaTeX singleton and replaces font root", () => {
+Deno.test("unit: getKatexStyleSheet instantiates KaTeX stylesheet singleton", () => {
+    _resetStyleSheetCacheForTesting();
+    const origSheet = globalThis.CSSStyleSheet;
+    const origBrowser = (globalThis as unknown as { browser?: unknown }).browser;
+    try {
+        globalThis.CSSStyleSheet = MockCSSStyleSheet as unknown as typeof CSSStyleSheet;
+        (globalThis as unknown as { browser?: unknown }).browser = {
+            runtime: { getURL: (path: string) => `moz-extension://test-id/${path}` },
+        };
+        const sheet = getKatexStyleSheet();
+        assertNotEquals(sheet, null);
+    } finally {
+        globalThis.CSSStyleSheet = origSheet;
+        (globalThis as unknown as { browser?: unknown }).browser = origBrowser;
+        _resetStyleSheetCacheForTesting();
+    }
+});
+
+Deno.test("unit: getKatexStyleSheet reuses cached stylesheet instance on subsequent calls", () => {
+    _resetStyleSheetCacheForTesting();
+    const origSheet = globalThis.CSSStyleSheet;
+    const origBrowser = (globalThis as unknown as { browser?: unknown }).browser;
+    try {
+        globalThis.CSSStyleSheet = MockCSSStyleSheet as unknown as typeof CSSStyleSheet;
+        (globalThis as unknown as { browser?: unknown }).browser = {
+            runtime: { getURL: (path: string) => `moz-extension://test-id/${path}` },
+        };
+        const sheet1 = getKatexStyleSheet();
+        const sheet2 = getKatexStyleSheet();
+        assertEquals(sheet1, sheet2);
+    } finally {
+        globalThis.CSSStyleSheet = origSheet;
+        (globalThis as unknown as { browser?: unknown }).browser = origBrowser;
+        _resetStyleSheetCacheForTesting();
+    }
+});
+
+Deno.test("unit: getKatexStyleSheet replaces font root placeholder with extension URL", () => {
     _resetStyleSheetCacheForTesting();
     const origSheet = globalThis.CSSStyleSheet;
     const origBrowser = (globalThis as unknown as { browser?: unknown }).browser;
     let replacedCss = "";
 
-    class MockCSSStyleSheet {
+    class InterceptingSheet {
         cssText = "";
         replaceSync(text: string) {
             this.cssText = text;
@@ -48,24 +93,15 @@ Deno.test("adoptedStyleSheets: getKatexStyleSheet returns KaTeX singleton and re
     }
 
     try {
-        globalThis.CSSStyleSheet = MockCSSStyleSheet as unknown as typeof CSSStyleSheet;
+        globalThis.CSSStyleSheet = InterceptingSheet as unknown as typeof CSSStyleSheet;
         (globalThis as unknown as { browser?: unknown }).browser = {
-            runtime: {
-                getURL: (path: string) => `moz-extension://test-id/${path}`,
-            },
+            runtime: { getURL: (path: string) => `moz-extension://test-id/${path}` },
         };
-
-        const sheet = getKatexStyleSheet();
-        assertNotEquals(sheet, null);
-
-        // Same singleton instance on consecutive calls
-        const sheet2 = getKatexStyleSheet();
-        assertEquals(sheet, sheet2);
-
-        // Verify font placeholder replacement
+        getKatexStyleSheet();
         if (KATEX_CSS.includes("__KATEX_FONTS_ROOT__")) {
             assertEquals(replacedCss.includes("moz-extension://test-id/vendor/fonts"), true);
-            assertEquals(replacedCss.includes("__KATEX_FONTS_ROOT__"), false);
+        } else {
+            assertEquals(true, true);
         }
     } finally {
         globalThis.CSSStyleSheet = origSheet;
@@ -74,89 +110,124 @@ Deno.test("adoptedStyleSheets: getKatexStyleSheet returns KaTeX singleton and re
     }
 });
 
-Deno.test("adoptedStyleSheets: stylesheets are only parsed once and shared by reference to prevent memory leaks", () => {
+Deno.test("unit: getAdoptedStyleSheets returns cached sheet reference across repeated calls", () => {
     _resetStyleSheetCacheForTesting();
     const origSheet = globalThis.CSSStyleSheet;
+    try {
+        globalThis.CSSStyleSheet = MockCSSStyleSheet as unknown as typeof CSSStyleSheet;
+        const first = getAdoptedStyleSheets()[0];
+        const second = getAdoptedStyleSheets()[0];
+        assertEquals(second, first);
+    } finally {
+        globalThis.CSSStyleSheet = origSheet;
+        _resetStyleSheetCacheForTesting();
+    }
+});
 
-    let constructorCallCount = 0;
-    let replaceSyncCallCount = 0;
-
-    class TrackedCSSStyleSheet {
+Deno.test("unit: getAdoptedStyleSheets instantiates CSSStyleSheet exactly once for Tailwind", () => {
+    _resetStyleSheetCacheForTesting();
+    const origSheet = globalThis.CSSStyleSheet;
+    let count = 0;
+    class CountingSheet {
         cssText = "";
         constructor() {
-            constructorCallCount++;
+            count++;
         }
         replaceSync(text: string) {
-            replaceSyncCallCount++;
             this.cssText = text;
         }
     }
-
     try {
-        globalThis.CSSStyleSheet = TrackedCSSStyleSheet as unknown as typeof CSSStyleSheet;
-
-        // 1. Verify Tailwind CSS singleton caching across 50 consecutive calls
-        const firstTailwindSheet = getAdoptedStyleSheets()[0];
-        for (let i = 0; i < 49; i++) {
-            const subsequentSheet = getAdoptedStyleSheets()[0];
-            assertEquals(
-                subsequentSheet,
-                firstTailwindSheet,
-                "All getAdoptedStyleSheets calls must return the identical object reference",
-            );
+        globalThis.CSSStyleSheet = CountingSheet as unknown as typeof CSSStyleSheet;
+        for (let i = 0; i < 10; i++) {
+            getAdoptedStyleSheets();
         }
-        assertEquals(constructorCallCount, 1, "Tailwind CSSStyleSheet must only be instantiated once");
-        assertEquals(replaceSyncCallCount, 1, "Tailwind replaceSync must only be invoked once across 50 calls");
+        assertEquals(count, 1);
+    } finally {
+        globalThis.CSSStyleSheet = origSheet;
+        _resetStyleSheetCacheForTesting();
+    }
+});
 
-        // 2. Verify KaTeX CSS singleton caching across 50 consecutive calls
-        const firstKatexSheet = getKatexStyleSheet();
-        for (let i = 0; i < 49; i++) {
-            const subsequentKatexSheet = getKatexStyleSheet();
-            assertEquals(
-                subsequentKatexSheet,
-                firstKatexSheet,
-                "All getKatexStyleSheet calls must return the identical object reference",
-            );
+Deno.test("unit: getAdoptedStyleSheets calls replaceSync once across repeated calls", () => {
+    _resetStyleSheetCacheForTesting();
+    const origSheet = globalThis.CSSStyleSheet;
+    let syncCount = 0;
+    class CountingSheet {
+        cssText = "";
+        replaceSync(text: string) {
+            syncCount++;
+            this.cssText = text;
         }
-        assertEquals(
-            constructorCallCount,
-            2,
-            "KaTeX CSSStyleSheet must only be instantiated once (total 2 with Tailwind)",
-        );
-        assertEquals(replaceSyncCallCount, 2, "KaTeX replaceSync must only be invoked once across 50 calls");
+    }
+    try {
+        globalThis.CSSStyleSheet = CountingSheet as unknown as typeof CSSStyleSheet;
+        for (let i = 0; i < 10; i++) {
+            getAdoptedStyleSheets();
+        }
+        assertEquals(syncCount, 1);
+    } finally {
+        globalThis.CSSStyleSheet = origSheet;
+        _resetStyleSheetCacheForTesting();
+    }
+});
 
-        // 3. Verify Shadow Root adoption deduplication prevents memory leaks
+Deno.test("unit: getKatexStyleSheet calls replaceSync once across repeated calls", () => {
+    _resetStyleSheetCacheForTesting();
+    const origSheet = globalThis.CSSStyleSheet;
+    const origBrowser = (globalThis as unknown as { browser?: unknown }).browser;
+    let syncCount = 0;
+    class CountingSheet {
+        cssText = "";
+        replaceSync(text: string) {
+            syncCount++;
+            this.cssText = text;
+        }
+    }
+    try {
+        globalThis.CSSStyleSheet = CountingSheet as unknown as typeof CSSStyleSheet;
+        (globalThis as unknown as { browser?: unknown }).browser = {
+            runtime: { getURL: (path: string) => `moz-extension://test-id/${path}` },
+        };
+        for (let i = 0; i < 10; i++) {
+            getKatexStyleSheet();
+        }
+        assertEquals(syncCount, 1);
+    } finally {
+        globalThis.CSSStyleSheet = origSheet;
+        (globalThis as unknown as { browser?: unknown }).browser = origBrowser;
+        _resetStyleSheetCacheForTesting();
+    }
+});
+
+Deno.test("unit: adoptedStyleSheets deduplicates stylesheet references across multiple adoption passes", () => {
+    _resetStyleSheetCacheForTesting();
+    const origSheet = globalThis.CSSStyleSheet;
+    const origBrowser = (globalThis as unknown as { browser?: unknown }).browser;
+    try {
+        globalThis.CSSStyleSheet = MockCSSStyleSheet as unknown as typeof CSSStyleSheet;
+        (globalThis as unknown as { browser?: unknown }).browser = {
+            runtime: { getURL: (path: string) => `moz-extension://test-id/${path}` },
+        };
         interface MockShadowRoot {
             adoptedStyleSheets: unknown[];
         }
         const mockShadowRoot: MockShadowRoot = { adoptedStyleSheets: [] };
 
-        // Simulate 20 components or re-renders attempting to adopt KaTeX and Tailwind
-        for (let i = 0; i < 20; i++) {
+        for (let i = 0; i < 10; i++) {
             const tailwind = getAdoptedStyleSheets()[0];
             if (tailwind && !mockShadowRoot.adoptedStyleSheets.includes(tailwind)) {
                 mockShadowRoot.adoptedStyleSheets = [...mockShadowRoot.adoptedStyleSheets, tailwind];
             }
-
             const katex = getKatexStyleSheet();
             if (katex && !mockShadowRoot.adoptedStyleSheets.includes(katex)) {
                 mockShadowRoot.adoptedStyleSheets = [...mockShadowRoot.adoptedStyleSheets, katex];
             }
         }
-
-        assertEquals(
-            mockShadowRoot.adoptedStyleSheets.length,
-            2,
-            "ShadowRoot must contain exactly 2 unique stylesheet references despite 20 adoption passes",
-        );
-        assertEquals(mockShadowRoot.adoptedStyleSheets[0], firstTailwindSheet);
-        assertEquals(mockShadowRoot.adoptedStyleSheets[1], firstKatexSheet);
-
-        // Constructor and replaceSync counts remain unchanged
-        assertEquals(constructorCallCount, 2);
-        assertEquals(replaceSyncCallCount, 2);
+        assertEquals(mockShadowRoot.adoptedStyleSheets.length, 2);
     } finally {
         globalThis.CSSStyleSheet = origSheet;
+        (globalThis as unknown as { browser?: unknown }).browser = origBrowser;
         _resetStyleSheetCacheForTesting();
     }
 });

@@ -1,0 +1,78 @@
+#+TITLE: Site Adapters Firefox DevTools MCP E2E Test Suite
+#+AUTHOR: DeepMind Antigravity Pair Programmer
+#+DATE: [2026-09-14]
+#+STARTUP: overview
+
+* Overview
+This document specifies the prompt-driven End-to-End (E2E) verification procedures for the extension across supported site adapters (Google Gemini and DuckDuckGo AI). In accordance with =docs/test-design.org=, these tests leverage reusable JavaScript evaluation scripts rather than generating transient code blocks.
+
+* Test Directory & Scripts
+All evaluation scripts reside under =tests/ff-devtools_e2e-tests/scripts/=:
+- =verify_duckai_layout.js=: Checks Duck.ai widening, layout stylesheet, HUD shadow root, and codeblock injection.
+- =verify_gemini_layout.js=: Checks Gemini widening, layout stylesheet, and HUD shadow root.
+- =verify_layout_dispatcher.js=: Checks generic HUD collapse/expanded state, theme synchronization, and width buttons.
+
+* Test Procedures
+
+** E2E-01: Duck.ai Layout and In-Situ Render Verification
+*** Goal
+Verify that loading DuckDuckGo AI (=https://duck.ai/= or =https://duckduckgo.com/chat=) properly initializes the site adapter, injects the widening layout stylesheet, attaches the floating HUD, and mounts in-situ code block previews into Shadow DOM boundaries.
+
+*** Procedure
+1. Launch or restart Firefox with the temporary extension installed from =dist/dev/=:
+#+BEGIN_SRC bash
+deno task build:dev
+#+END_SRC
+2. Call Firefox DevTools MCP =install_extension= with the path to =dist/dev/=.
+3. Navigate to Duck.ai:
+#+BEGIN_SRC bash
+call_mcp_tool(navigate_page, { url: "https://duck.ai/" })
+#+END_SRC
+4. Wait for chat container to settle.
+5. Evaluate =tests/ff-devtools_e2e-tests/scripts/verify_duckai_layout.js=:
+#+BEGIN_SRC bash
+call_mcp_tool(evaluate_script, { script: "<contents of verify_duckai_layout.js>" })
+#+END_SRC
+6. Expected Output:
+   - =success=: =true=
+   - =hasLayoutStyle=: =true=
+   - =isFullWidthClass=: =true=
+   - =hasHud=: =true=
+   - =hasHudShadow=: =true=
+   - =errors=: =[]=
+
+** E2E-02: Google Gemini Layout and HUD Verification
+*** Goal
+Verify that loading Google Gemini (=https://gemini.google.com/app=) properly initializes the site adapter, injects =#ext-gemini-layout=, attaches the floating HUD, and responds to theme switches.
+
+*** Procedure
+1. Build dev target:
+#+BEGIN_SRC bash
+deno task build:dev
+#+END_SRC
+2. Navigate to Gemini:
+#+BEGIN_SRC bash
+call_mcp_tool(navigate_page, { url: "https://gemini.google.com/app" })
+#+END_SRC
+3. Evaluate =tests/ff-devtools_e2e-tests/scripts/verify_gemini_layout.js=:
+#+BEGIN_SRC bash
+call_mcp_tool(evaluate_script, { script: "<contents of verify_gemini_layout.js>" })
+#+END_SRC
+4. Expected Output:
+   - =success=: =true=
+   - =hasLayoutStyle=: =true=
+   - =isFullWidthClass=: =true=
+   - =hasHud=: =true=
+   - =hasHudShadow=: =true=
+   - =errors=: =[]=
+
+** E2E-03: Floating HUD Collapse & Width Dispatcher Verification
+*** Goal
+Verify that interacting with the floating HUD controls toggles full-width state and synchronizes with the host DOM.
+
+*** Procedure
+1. With extension active on any supported host, evaluate =tests/ff-devtools_e2e-tests/scripts/verify_layout_dispatcher.js=.
+2. Verify:
+   - =success=: =true=
+   - =hudCollapsed=: boolean value matches stored preference.
+   - =widthBtnText=: matches active width (e.g., "Width: 94%").

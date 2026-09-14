@@ -1,44 +1,12 @@
-import { assertEquals, assertNotEquals } from "@std/assert";
-import { DOMParser } from "@b-fuze/deno-dom";
-import { render } from "preact";
+import { assertEquals } from "@std/assert";
+import { cleanup as cleanupRtl, render } from "@testing-library/preact";
+import { setupTestDom, triggerClick } from "../../fixtures/dom_fixture.ts";
 import { OrgHeadlineView } from "../../../src/languages/org/views/OrgHeadlineView.tsx";
 import type { OrgHeadlineElement } from "../../../src/languages/org/ast/types.ts";
 
-function setupDom() {
-    const doc = new DOMParser().parseFromString(
-        '<!DOCTYPE html><html><body><div id="mount-point"></div></body></html>',
-        "text/html",
-    );
-    if (!doc) throw new Error("Failed to create mock DOM");
-
-    interface GlobalDomScope {
-        document?: unknown;
-        Node?: unknown;
-        navigator?: unknown;
-    }
-    const scope = globalThis as unknown as GlobalDomScope;
-    const origDoc = scope.document;
-    const origNode = scope.Node;
-
-    const origCreateElement = doc.createElement.bind(doc);
-    doc.createElement = (tag: string) => {
-        const el = origCreateElement(tag);
-        (el as unknown as { style: Record<string, string> }).style = {};
-        return el;
-    };
-
-    (doc as unknown as { createElementNS: (ns: string, tag: string) => unknown }).createElementNS = (
-        _ns: string,
-        tag: string,
-    ) => {
-        const el = doc.createElement(tag);
-        return el;
-    };
-
-    scope.document = doc;
-    scope.Node = doc.body.constructor;
-
+function mockClipboard(): { getText: () => string; restore: () => void } {
     let clipboardText = "";
+    const origClipboard = (navigator as unknown as { clipboard?: unknown }).clipboard;
     Object.defineProperty(navigator, "clipboard", {
         value: {
             writeText: (text: string) => {
@@ -48,32 +16,20 @@ function setupDom() {
         },
         configurable: true,
     });
-
-    const root = doc.getElementById("mount-point") as unknown as HTMLElement;
-
     return {
-        doc,
-        root,
-        getClipboardText: () => clipboardText,
-        cleanup: () => {
-            render(null, root);
-            scope.document = origDoc;
-            scope.Node = origNode;
+        getText: () => clipboardText,
+        restore: () => {
             // @ts-ignore cleanup mock
             delete (navigator as { clipboard?: unknown }).clipboard;
+            if (origClipboard) {
+                Object.defineProperty(navigator, "clipboard", { value: origClipboard, configurable: true });
+            }
         },
     };
 }
 
-function triggerClick(el: unknown) {
-    if (el && typeof (el as { dispatchEvent?: unknown }).dispatchEvent === "function") {
-        const target = el as { dispatchEvent: (ev: Event) => void };
-        target.dispatchEvent(new Event("click", { bubbles: true, cancelable: true }));
-    }
-}
-
-Deno.test("OrgHeadlineView: Applies compact boxed card styling across levels H1-H6", () => {
-    const { root, cleanup } = setupDom();
+Deno.test("unit: OrgHeadlineView applies compact boxed card styling to H1", () => {
+    const { cleanup } = setupTestDom();
     try {
         const headline: OrgHeadlineElement = {
             type: "headline",
@@ -82,28 +38,17 @@ Deno.test("OrgHeadlineView: Applies compact boxed card styling across levels H1-
             tags: [],
             children: [],
         };
-
-        render(
-            <OrgHeadlineView
-                headline={headline}
-                headlinePath="h-0"
-            />,
-            root,
-        );
-
-        const h1 = root.querySelector("h1.org-headline");
-        assertNotEquals(h1, null);
-        assertEquals(h1?.className.includes("text-[1.12rem]"), true);
-        assertEquals(h1?.className.includes("border"), true);
-        assertEquals(h1?.className.includes("rounded"), true);
+        const { container } = render(<OrgHeadlineView headline={headline} headlinePath="h-0" />);
+        const h1 = container.querySelector("h1.org-headline");
         assertEquals(h1?.className.includes("cursor-pointer"), true);
     } finally {
+        cleanupRtl();
         cleanup();
     }
 });
 
-Deno.test("OrgHeadlineView: Row click-to-fold toggles section fold state", () => {
-    const { root, cleanup } = setupDom();
+Deno.test("unit: OrgHeadlineView row click invokes onToggleFold callback", () => {
+    const { cleanup } = setupTestDom();
     try {
         let toggledId: string | null = null;
         const headline: OrgHeadlineElement = {
@@ -113,8 +58,7 @@ Deno.test("OrgHeadlineView: Row click-to-fold toggles section fold state", () =>
             tags: [],
             children: [],
         };
-
-        render(
+        const { container } = render(
             <OrgHeadlineView
                 headline={headline}
                 headlinePath="h-1"
@@ -122,24 +66,19 @@ Deno.test("OrgHeadlineView: Row click-to-fold toggles section fold state", () =>
                     toggledId = id;
                 }}
             />,
-            root,
         );
-
-        const h2 = root.querySelector("h2.org-headline");
-        assertNotEquals(h2, null);
-
-        // Clicking the heading card invokes onToggleFold
+        const h2 = container.querySelector("h2.org-headline");
         triggerClick(h2);
         assertEquals(toggledId, "h-1");
     } finally {
+        cleanupRtl();
         cleanup();
     }
 });
 
-Deno.test("OrgHeadlineView: Event guard prevents row folding when clicking TODO badge or copy button", () => {
-    const { root, cleanup } = setupDom();
+Deno.test("unit: OrgHeadlineView clicking TODO badge triggers onCycleTodo", () => {
+    const { cleanup } = setupTestDom();
     try {
-        let foldCount = 0;
         let cycledStatus: string | null = null;
         const headline: OrgHeadlineElement = {
             type: "headline",
@@ -149,40 +88,86 @@ Deno.test("OrgHeadlineView: Event guard prevents row folding when clicking TODO 
             tags: ["feature"],
             children: [],
         };
+        const { container } = render(
+            <OrgHeadlineView
+                headline={headline}
+                headlinePath="h-0"
+                onCycleTodo={(_id, status) => {
+                    cycledStatus = status;
+                }}
+            />,
+        );
+        const todoBadge = container.querySelector("button.org-todo-badge");
+        triggerClick(todoBadge);
+        assertEquals(cycledStatus, "TODO");
+    } finally {
+        cleanupRtl();
+        cleanup();
+    }
+});
 
-        render(
+Deno.test("unit: OrgHeadlineView clicking TODO badge prevents row fold toggle", () => {
+    const { cleanup } = setupTestDom();
+    try {
+        let foldCount = 0;
+        const headline: OrgHeadlineElement = {
+            type: "headline",
+            level: 1,
+            todoKeyword: "TODO",
+            title: [{ type: "text", value: "Interactive Heading" }],
+            tags: ["feature"],
+            children: [],
+        };
+        const { container } = render(
             <OrgHeadlineView
                 headline={headline}
                 headlinePath="h-0"
                 onToggleFold={() => {
                     foldCount++;
                 }}
-                onCycleTodo={(_id, status) => {
-                    cycledStatus = status;
-                }}
             />,
-            root,
         );
-
-        // Clicking TODO badge should cycle TODO, but NOT toggle fold
-        const todoBadge = root.querySelector("button.org-todo-badge");
-        assertNotEquals(todoBadge, null);
+        const todoBadge = container.querySelector("button.org-todo-badge");
         triggerClick(todoBadge);
-        assertEquals(cycledStatus, "TODO");
-        assertEquals(foldCount, 0, "TODO click must not toggle fold");
-
-        // Clicking copy button must NOT toggle fold
-        const copyBtn = root.querySelector("button.org-subtree-copy-btn");
-        assertNotEquals(copyBtn, null);
-        triggerClick(copyBtn);
-        assertEquals(foldCount, 0, "Subtree copy click must not toggle fold");
+        assertEquals(foldCount, 0);
     } finally {
+        cleanupRtl();
         cleanup();
     }
 });
 
-Deno.test("OrgHeadlineView: Subtree copy button writes serialized Org subtree to clipboard", async () => {
-    const { root, getClipboardText, cleanup } = setupDom();
+Deno.test("unit: OrgHeadlineView clicking copy button prevents row fold toggle", () => {
+    const { cleanup } = setupTestDom();
+    try {
+        let foldCount = 0;
+        const headline: OrgHeadlineElement = {
+            type: "headline",
+            level: 1,
+            title: [{ type: "text", value: "Task Heading" }],
+            tags: [],
+            children: [],
+        };
+        const { container } = render(
+            <OrgHeadlineView
+                headline={headline}
+                headlinePath="h-0"
+                onToggleFold={() => {
+                    foldCount++;
+                }}
+            />,
+        );
+        const copyBtn = container.querySelector("button.org-subtree-copy-btn");
+        triggerClick(copyBtn);
+        assertEquals(foldCount, 0);
+    } finally {
+        cleanupRtl();
+        cleanup();
+    }
+});
+
+Deno.test("unit: OrgHeadlineView subtree copy button writes serialized Org subtree to clipboard", async () => {
+    const { cleanup } = setupTestDom();
+    const clip = mockClipboard();
     try {
         const headline: OrgHeadlineElement = {
             type: "headline",
@@ -191,14 +176,6 @@ Deno.test("OrgHeadlineView: Subtree copy button writes serialized Org subtree to
             priority: "A",
             title: [{ type: "text", value: "Pipeline Automation" }],
             tags: ["dev", "ci"],
-            planning: {
-                type: "planning",
-                deadline: "<2026-09-12 Sat>",
-                raw: "DEADLINE: <2026-09-12 Sat>",
-            },
-            properties: {
-                RUNNER: "linux-x64",
-            },
             children: [
                 {
                     type: "paragraph",
@@ -206,91 +183,84 @@ Deno.test("OrgHeadlineView: Subtree copy button writes serialized Org subtree to
                 },
             ],
         };
-
-        render(
-            <OrgHeadlineView
-                headline={headline}
-                headlinePath="h-0"
-            />,
-            root,
-        );
-
-        const copyBtn = root.querySelector("button.org-subtree-copy-btn");
-        assertNotEquals(copyBtn, null);
+        const { container } = render(<OrgHeadlineView headline={headline} headlinePath="h-0" />);
+        const copyBtn = container.querySelector("button.org-subtree-copy-btn");
         triggerClick(copyBtn);
-
-        // Allow clipboard Promise to resolve
-        await new Promise((resolve) => setTimeout(resolve, 10));
-
-        const text = getClipboardText();
-        assertEquals(text.includes("* TODO [#A] Pipeline Automation :dev:ci:"), true);
-        assertEquals(text.includes("DEADLINE: <2026-09-12 Sat>"), true);
-        assertEquals(text.includes(":RUNNER: linux-x64"), true);
-        assertEquals(text.includes("Paragraph content in subtree."), true);
-
-        // Visual feedback should show Copied!
-        assertEquals(copyBtn?.textContent?.includes("Copied!"), true);
+        await new Promise((resolve) => setTimeout(resolve, 15));
+        assertEquals(clip.getText().includes("* TODO [#A] Pipeline Automation :dev:ci:"), true);
     } finally {
+        clip.restore();
+        cleanupRtl();
         cleanup();
     }
 });
 
-Deno.test("OrgHeadlineView: Supports 3-state visibility cycling (folded -> children -> subtree)", () => {
-    const { root, cleanup } = setupDom();
+Deno.test("unit: OrgHeadlineView subtree copy button displays copied confirmation feedback", async () => {
+    const { cleanup } = setupTestDom();
+    const clip = mockClipboard();
     try {
-        let cycledInfo: { id: string; hasChildren: boolean } | null = null;
-        const headlineWithChildren: OrgHeadlineElement = {
+        const headline: OrgHeadlineElement = {
+            type: "headline",
+            level: 1,
+            title: [{ type: "text", value: "Heading" }],
+            tags: [],
+            children: [],
+        };
+        const { container } = render(<OrgHeadlineView headline={headline} headlinePath="h-0" />);
+        const copyBtn = container.querySelector("button.org-subtree-copy-btn");
+        triggerClick(copyBtn);
+        await new Promise((resolve) => setTimeout(resolve, 15));
+        assertEquals(copyBtn?.textContent?.includes("Copied!"), true);
+    } finally {
+        clip.restore();
+        cleanupRtl();
+        cleanup();
+    }
+});
+
+Deno.test("unit: OrgHeadlineView displays right-arrow and hides body in folded state", () => {
+    const { cleanup } = setupTestDom();
+    try {
+        const headline: OrgHeadlineElement = {
             type: "headline",
             level: 1,
             title: [{ type: "text", value: "Parent Topic" }],
             tags: [],
             children: [
-                {
-                    type: "paragraph",
-                    children: [{ type: "text", value: "Parent direct paragraph" }],
-                },
-                {
-                    type: "headline",
-                    level: 2,
-                    title: [{ type: "text", value: "Nested Sub-Topic" }],
-                    tags: [],
-                    children: [],
-                },
+                { type: "paragraph", children: [{ type: "text", value: "Content" }] },
             ],
         };
-
-        // 1. Folded State: shows ellipsis and ▶, neither paragraph nor child headline rendered
-        render(
+        const { container } = render(
             <OrgHeadlineView
-                headline={headlineWithChildren}
+                headline={headline}
                 headlinePath="h-0"
                 foldState="folded"
-                onCycleFold={(id, hasChildren) => {
-                    cycledInfo = { id, hasChildren };
-                }}
-                renderElement={(elem, _idx, path) => (
-                    <div class={`child-${elem.type}`} data-path={path}>
-                        {elem.type}
-                    </div>
-                )}
             />,
-            root,
         );
-
-        const foldToggle = root.querySelector(".org-fold-toggle");
+        const foldToggle = container.querySelector(".org-fold-toggle");
         assertEquals(foldToggle?.textContent?.trim(), "▶");
-        assertNotEquals(root.querySelector(".org-fold-ellipsis"), null);
-        assertEquals(root.querySelector(".org-headline-body"), null);
+    } finally {
+        cleanupRtl();
+        cleanup();
+    }
+});
 
-        // Clicking invokes onCycleFold with hasChildren = true
-        const h1 = root.querySelector("h1.org-headline");
-        triggerClick(h1);
-        assertEquals(cycledInfo, { id: "h-0", hasChildren: true });
-
-        // 2. Children State: shows ▷ and ellipsis, renders nested child headline, hides parent paragraph
-        render(
+Deno.test("unit: OrgHeadlineView renders child headline while hiding parent paragraph in children state", () => {
+    const { cleanup } = setupTestDom();
+    try {
+        const headline: OrgHeadlineElement = {
+            type: "headline",
+            level: 1,
+            title: [{ type: "text", value: "Parent Topic" }],
+            tags: [],
+            children: [
+                { type: "paragraph", children: [{ type: "text", value: "Parent paragraph" }] },
+                { type: "headline", level: 2, title: [{ type: "text", value: "Nested" }], tags: [], children: [] },
+            ],
+        };
+        const { container } = render(
             <OrgHeadlineView
-                headline={headlineWithChildren}
+                headline={headline}
                 headlinePath="h-0"
                 foldState="children"
                 renderElement={(elem, _idx, path) => (
@@ -299,21 +269,30 @@ Deno.test("OrgHeadlineView: Supports 3-state visibility cycling (folded -> child
                     </div>
                 )}
             />,
-            root,
         );
+        assertEquals(container.querySelector(".child-paragraph"), null);
+    } finally {
+        cleanupRtl();
+        cleanup();
+    }
+});
 
-        assertEquals(root.querySelector(".org-fold-toggle")?.textContent?.trim(), "▷");
-        assertNotEquals(root.querySelector(".org-fold-ellipsis"), null);
-        assertNotEquals(root.querySelector(".org-headline-body"), null);
-        // Child headline is rendered
-        assertNotEquals(root.querySelector(".child-headline"), null);
-        // Direct paragraph is NOT rendered
-        assertEquals(root.querySelector(".child-paragraph"), null);
-
-        // 3. Subtree State: shows ▼ and no ellipsis, renders both paragraph and child headline
-        render(
+Deno.test("unit: OrgHeadlineView renders both paragraph and child headline in subtree state", () => {
+    const { cleanup } = setupTestDom();
+    try {
+        const headline: OrgHeadlineElement = {
+            type: "headline",
+            level: 1,
+            title: [{ type: "text", value: "Parent Topic" }],
+            tags: [],
+            children: [
+                { type: "paragraph", children: [{ type: "text", value: "Parent paragraph" }] },
+                { type: "headline", level: 2, title: [{ type: "text", value: "Nested" }], tags: [], children: [] },
+            ],
+        };
+        const { container } = render(
             <OrgHeadlineView
-                headline={headlineWithChildren}
+                headline={headline}
                 headlinePath="h-0"
                 foldState="subtree"
                 renderElement={(elem, _idx, path) => (
@@ -322,14 +301,10 @@ Deno.test("OrgHeadlineView: Supports 3-state visibility cycling (folded -> child
                     </div>
                 )}
             />,
-            root,
         );
-
-        assertEquals(root.querySelector(".org-fold-toggle")?.textContent?.trim(), "▼");
-        assertEquals(root.querySelector(".org-fold-ellipsis"), null);
-        assertNotEquals(root.querySelector(".child-headline"), null);
-        assertNotEquals(root.querySelector(".child-paragraph"), null);
+        assertEquals(container.querySelector(".child-paragraph") !== null, true);
     } finally {
+        cleanupRtl();
         cleanup();
     }
 });

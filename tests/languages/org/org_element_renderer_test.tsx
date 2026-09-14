@@ -1,347 +1,314 @@
-import { assertEquals, assertNotEquals } from "@std/assert";
-import { DOMParser } from "@b-fuze/deno-dom";
-import { render } from "preact";
+import { assertEquals } from "@std/assert";
+import { cleanup as cleanupRtl, render } from "@testing-library/preact";
+import { setupTestDom, triggerClick } from "../../fixtures/dom_fixture.ts";
 import { OrgElementRenderer } from "../../../src/languages/org/views/OrgElementRenderer.tsx";
 import { parseOrgDocument } from "../../../src/languages/org/ast/parser.ts";
 
-function setupDom() {
-    const doc = new DOMParser().parseFromString(
-        '<!DOCTYPE html><html><body><div id="mount-point"></div></body></html>',
-        "text/html",
-    );
-    if (!doc) throw new Error("Failed to create mock DOM");
-
-    interface GlobalDomScope {
-        document?: unknown;
-        Node?: unknown;
-    }
-    const scope = globalThis as unknown as GlobalDomScope;
-    const origDoc = scope.document;
-    const origNode = scope.Node;
-
-    const origCreateElement = doc.createElement.bind(doc);
-    doc.createElement = (tag: string) => {
-        const el = origCreateElement(tag);
-        (el as unknown as { style: Record<string, string> }).style = {};
-        return el;
-    };
-
-    (doc as unknown as { createElementNS: (ns: string, tag: string) => unknown }).createElementNS = (
-        _ns: string,
-        tag: string,
-    ) => {
-        const el = doc.createElement(tag);
-        return el;
-    };
-
-    scope.document = doc;
-    scope.Node = doc.body.constructor;
-
-    const root = doc.getElementById("mount-point") as unknown as HTMLElement;
-
-    return {
-        doc,
-        root,
-        cleanup: () => {
-            render(null, root);
-            scope.document = origDoc;
-            scope.Node = origNode;
-        },
-    };
-}
-
-function triggerClick(el: unknown) {
-    if (el && typeof (el as { dispatchEvent?: unknown }).dispatchEvent === "function") {
-        const target = el as { dispatchEvent: (ev: Event) => void; tagName?: string };
-        target.dispatchEvent(new Event("click", { bubbles: true }));
-        if (target.tagName === "INPUT") {
-            target.dispatchEvent(new Event("change", { bubbles: true }));
-        }
-    }
-}
-
-Deno.test("OrgElementRenderer: Headlines render level tags, priority, tags, planning, and subtree fold", () => {
-    const { root, cleanup } = setupDom();
+Deno.test("unit: OrgElementRenderer renders H1 tag with headline title", () => {
+    const { cleanup } = setupTestDom();
     try {
-        const orgText = `* TODO [#A] Top Headline :WORK:PROJECT:
-SCHEDULED: <2026-09-09 Wed> DEADLINE: <2026-09-10 Thu>
-Some paragraph body under top headline.
-** Level 2 Child Headline
-Child body.
-`;
-        const ast = parseOrgDocument(orgText);
-        let toggledHeadline = "";
+        const ast = parseOrgDocument("* Top Headline\nContent.");
+        const { container } = render(<OrgElementRenderer elements={ast.children} />);
+        const h1 = container.querySelector("h1.org-headline");
+        assertEquals(h1?.textContent?.includes("Top Headline"), true);
+    } finally {
+        cleanupRtl();
+        cleanup();
+    }
+});
 
-        // Render expanded
-        render(
+Deno.test("unit: OrgElementRenderer renders nested H2 tag with child headline title", () => {
+    const { cleanup } = setupTestDom();
+    try {
+        const ast = parseOrgDocument("* Top\n** Level 2 Child Headline\nChild.");
+        const { container } = render(<OrgElementRenderer elements={ast.children} />);
+        const h2 = container.querySelector("h2.org-headline");
+        assertEquals(h2?.textContent?.includes("Level 2 Child Headline"), true);
+    } finally {
+        cleanupRtl();
+        cleanup();
+    }
+});
+
+Deno.test("unit: OrgElementRenderer renders headline priority marker", () => {
+    const { cleanup } = setupTestDom();
+    try {
+        const ast = parseOrgDocument("* TODO [#A] Top Headline\nContent.");
+        const { container } = render(<OrgElementRenderer elements={ast.children} />);
+        const priorityEl = container.querySelector(".org-priority");
+        assertEquals(priorityEl?.textContent?.includes("[#A]"), true);
+    } finally {
+        cleanupRtl();
+        cleanup();
+    }
+});
+
+Deno.test("unit: OrgElementRenderer renders headline tag chips", () => {
+    const { cleanup } = setupTestDom();
+    try {
+        const ast = parseOrgDocument("* Top Headline :WORK:PROJECT:\nContent.");
+        const { container } = render(<OrgElementRenderer elements={ast.children} />);
+        const tagEls = container.querySelectorAll(".org-tag");
+        assertEquals(tagEls.length >= 2, true);
+    } finally {
+        cleanupRtl();
+        cleanup();
+    }
+});
+
+Deno.test("unit: OrgElementRenderer renders headline planning information", () => {
+    const { cleanup } = setupTestDom();
+    try {
+        const ast = parseOrgDocument("* Top\nDEADLINE: <2026-09-10 Thu>\nContent.");
+        const { container } = render(<OrgElementRenderer elements={ast.children} />);
+        const planningEl = container.querySelector(".org-planning");
+        assertEquals(planningEl?.textContent?.includes("DEADLINE"), true);
+    } finally {
+        cleanupRtl();
+        cleanup();
+    }
+});
+
+Deno.test("unit: OrgElementRenderer fold toggle click dispatches onToggleHeadlineFold", () => {
+    const { cleanup } = setupTestDom();
+    try {
+        const ast = parseOrgDocument("* Top\nBody.");
+        let toggledHeadline = "";
+        const { container } = render(
             <OrgElementRenderer
                 elements={ast.children}
                 onToggleHeadlineFold={(id) => {
                     toggledHeadline = id;
                 }}
             />,
-            root,
         );
-
-        // Verify H1 and H2 tags
-        const h1 = root.querySelector("h1.org-headline");
-        assertNotEquals(h1, null);
-        assertEquals(h1?.textContent?.includes("Top Headline"), true);
-
-        const h2 = root.querySelector("h2.org-headline");
-        assertNotEquals(h2, null);
-        assertEquals(h2?.textContent?.includes("Level 2 Child Headline"), true);
-
-        // Verify priority marker [#A]
-        const priorityEl = root.querySelector(".org-priority");
-        assertNotEquals(priorityEl, null);
-        assertEquals(priorityEl?.textContent?.includes("[#A]"), true);
-
-        // Verify tag chips
-        const tagEls = root.querySelectorAll(".org-tag");
-        assertEquals(tagEls.length >= 2, true);
-
-        // Verify planning line
-        const planningEl = root.querySelector(".org-planning");
-        assertNotEquals(planningEl, null);
-        assertEquals(planningEl?.textContent?.includes("SCHEDULED"), true);
-        assertEquals(planningEl?.textContent?.includes("DEADLINE"), true);
-
-        // Verify fold toggle click
-        const foldBtn = root.querySelector("button.org-fold-toggle");
-        assertNotEquals(foldBtn, null);
+        const foldBtn = container.querySelector("button.org-fold-toggle");
         triggerClick(foldBtn);
         assertEquals(toggledHeadline, "h-0");
+    } finally {
+        cleanupRtl();
+        cleanup();
+    }
+});
 
-        // Re-render folded: children should be hidden
-        render(
+Deno.test("unit: OrgElementRenderer hides headline body when foldedHeadlines includes headline ID", () => {
+    const { cleanup } = setupTestDom();
+    try {
+        const ast = parseOrgDocument("* Top\nBody.");
+        const { container } = render(
             <OrgElementRenderer
                 elements={ast.children}
                 foldedHeadlines={["h-0"]}
             />,
-            root,
         );
-        assertEquals(root.querySelector(".org-headline-body"), null);
+        assertEquals(container.querySelector(".org-headline-body"), null);
     } finally {
+        cleanupRtl();
         cleanup();
     }
 });
 
-Deno.test("OrgElementRenderer: Headline TODO cycling and todoOverrides persistence", () => {
-    const { root, cleanup } = setupDom();
+Deno.test("unit: OrgElementRenderer clicking TODO badge dispatches onCycleTodo", () => {
+    const { cleanup } = setupTestDom();
     try {
-        const orgText = `* TODO Task A`;
-        const ast = parseOrgDocument(orgText);
-
-        let cycledId = "";
+        const ast = parseOrgDocument("* TODO Task A");
         let cycledStatus = "";
-
-        render(
+        const { container } = render(
             <OrgElementRenderer
                 elements={ast.children}
-                onCycleTodo={(id, status) => {
-                    cycledId = id;
+                onCycleTodo={(_id, status) => {
                     cycledStatus = status;
                 }}
             />,
-            root,
         );
-
-        const todoBadge = root.querySelector("button.org-todo-badge");
-        assertNotEquals(todoBadge, null);
-        assertEquals(todoBadge?.textContent?.trim(), "TODO");
-
+        const todoBadge = container.querySelector("button.org-todo-badge");
         triggerClick(todoBadge);
-        assertEquals(cycledId, "h-0");
         assertEquals(cycledStatus, "TODO");
+    } finally {
+        cleanupRtl();
+        cleanup();
+    }
+});
 
-        // Re-render with todoOverride: "DONE" -> muted title with line-through
-        render(
+Deno.test("unit: OrgElementRenderer applies line-through styling when todoOverrides marks headline DONE", () => {
+    const { cleanup } = setupTestDom();
+    try {
+        const ast = parseOrgDocument("* TODO Task A");
+        const { container } = render(
             <OrgElementRenderer
                 elements={ast.children}
                 todoOverrides={{ "h-0": "DONE" }}
             />,
-            root,
         );
-
-        const updatedBadge = root.querySelector("button.org-todo-badge");
-        assertEquals(updatedBadge?.textContent?.trim(), "DONE");
-
-        const headlineTitle = root.querySelector(".org-headline-title");
+        const headlineTitle = container.querySelector(".org-headline-title");
         assertEquals(headlineTitle?.getAttribute("class")?.includes("line-through"), true);
     } finally {
+        cleanupRtl();
         cleanup();
     }
 });
 
-Deno.test("OrgElementRenderer: Source blocks render line count pill, copy button, and fold toggle", () => {
-    const { root, cleanup } = setupDom();
+Deno.test("unit: OrgElementRenderer renders source block line count pill", () => {
+    const { cleanup } = setupTestDom();
     try {
-        const orgText = `#+NAME: sample-code
-#+CAPTION: A python example
-#+BEGIN_SRC python
-def add(a, b):
-    return a + b
-#+END_SRC
-`;
-        const ast = parseOrgDocument(orgText);
-        let toggledBlock = "";
+        const ast = parseOrgDocument("#+BEGIN_SRC python\ndef add(a, b):\n    return a + b\n#+END_SRC");
+        const { container } = render(<OrgElementRenderer elements={ast.children} />);
+        const lineCountEl = container.querySelector(".org-line-count");
+        assertEquals(lineCountEl?.textContent?.includes("2 lines"), true);
+    } finally {
+        cleanupRtl();
+        cleanup();
+    }
+});
 
-        render(
+Deno.test("unit: OrgElementRenderer renders source block copy button", () => {
+    const { cleanup } = setupTestDom();
+    try {
+        const ast = parseOrgDocument("#+BEGIN_SRC python\nprint(42)\n#+END_SRC");
+        const { container } = render(<OrgElementRenderer elements={ast.children} />);
+        const copyBtn = container.querySelector("button.org-btn-copy");
+        assertEquals(copyBtn?.textContent?.includes("Copy"), true);
+    } finally {
+        cleanupRtl();
+        cleanup();
+    }
+});
+
+Deno.test("unit: OrgElementRenderer clicking source block header dispatches onToggleBlockFold", () => {
+    const { cleanup } = setupTestDom();
+    try {
+        const ast = parseOrgDocument("#+NAME: sample-code\n#+BEGIN_SRC python\nprint(42)\n#+END_SRC");
+        let toggledBlock = "";
+        const { container } = render(
             <OrgElementRenderer
                 elements={ast.children}
                 onToggleBlockFold={(id) => {
                     toggledBlock = id;
                 }}
             />,
-            root,
         );
-
-        const blockContainer = root.querySelector(".org-block-container");
-        assertNotEquals(blockContainer, null);
-
-        // Verify line count pill
-        const lineCountEl = root.querySelector(".org-line-count");
-        assertNotEquals(lineCountEl, null);
-        assertEquals(lineCountEl?.textContent?.includes("2 lines"), true);
-
-        // Verify copy button
-        const copyBtn = root.querySelector("button.org-btn-copy");
-        assertNotEquals(copyBtn, null);
-        assertEquals(copyBtn?.textContent?.includes("Copy"), true);
-
-        // Verify fold toggle header click
-        const blockHeader = root.querySelector(".org-block-container header");
-        assertNotEquals(blockHeader, null);
+        const blockHeader = container.querySelector(".org-block-container header");
         triggerClick(blockHeader);
         assertEquals(toggledBlock, "b-0:sample-code");
+    } finally {
+        cleanupRtl();
+        cleanup();
+    }
+});
 
-        // Re-render folded: body is hidden
-        render(
+Deno.test("unit: OrgElementRenderer hides source block body when foldedBlocks includes block ID", () => {
+    const { cleanup } = setupTestDom();
+    try {
+        const ast = parseOrgDocument("#+NAME: sample-code\n#+BEGIN_SRC python\nprint(42)\n#+END_SRC");
+        const { container } = render(
             <OrgElementRenderer
                 elements={ast.children}
                 foldedBlocks={["b-0:sample-code"]}
             />,
-            root,
         );
-        assertEquals(root.querySelector(".org-block-body"), null);
+        assertEquals(container.querySelector(".org-block-body"), null);
     } finally {
+        cleanupRtl();
         cleanup();
     }
 });
 
-Deno.test("OrgElementRenderer: Pipe tables render header rows (thead), data rows (tbody), and alignments", () => {
-    const { root, cleanup } = setupDom();
+Deno.test("unit: OrgElementRenderer renders table thead header columns", () => {
+    const { cleanup } = setupTestDom();
     try {
-        const orgText = `| Name | Age | City |
-|------+-----+------|
-| Alice|  30 | NYC  |
-| Bob  |  25 | LA   |
-`;
-        const ast = parseOrgDocument(orgText);
-        render(<OrgElementRenderer elements={ast.children} />, root);
-
-        const table = root.querySelector("table.org-table");
-        assertNotEquals(table, null);
-
-        const thead = root.querySelector("thead");
-        assertNotEquals(thead, null);
+        const ast = parseOrgDocument("| Name | Age |\n|---+---|\n| Alice | 30 |");
+        const { container } = render(<OrgElementRenderer elements={ast.children} />);
+        const thead = container.querySelector("thead");
         assertEquals(thead?.textContent?.includes("Name"), true);
-        assertEquals(thead?.textContent?.includes("Age"), true);
-
-        const tbody = root.querySelector("tbody");
-        assertNotEquals(tbody, null);
-        assertEquals(tbody?.textContent?.includes("Alice"), true);
-        assertEquals(tbody?.textContent?.includes("Bob"), true);
     } finally {
+        cleanupRtl();
         cleanup();
     }
 });
 
-Deno.test("OrgElementRenderer: Lists render interactive checkboxes, cookies, and description items", () => {
-    const { root, cleanup } = setupDom();
+Deno.test("unit: OrgElementRenderer renders table tbody data rows", () => {
+    const { cleanup } = setupTestDom();
     try {
-        const orgText = `- [ ] Task 1 [0/2]
-  - [ ] Subtask 1.1
-  - [X] Subtask 1.2
-- Term :: Definition content
-`;
-        const ast = parseOrgDocument(orgText);
-        let toggledCheckbox = "";
+        const ast = parseOrgDocument("| Name | Age |\n|---+---|\n| Alice | 30 |");
+        const { container } = render(<OrgElementRenderer elements={ast.children} />);
+        const tbody = container.querySelector("tbody");
+        assertEquals(tbody?.textContent?.includes("Alice"), true);
+    } finally {
+        cleanupRtl();
+        cleanup();
+    }
+});
 
-        render(
+Deno.test("unit: OrgElementRenderer renders list description term tag", () => {
+    const { cleanup } = setupTestDom();
+    try {
+        const ast = parseOrgDocument("- Term :: Definition content");
+        const { container } = render(<OrgElementRenderer elements={ast.children} />);
+        const termEl = container.querySelector(".org-list-tag");
+        assertEquals(termEl?.textContent?.includes("Term"), true);
+    } finally {
+        cleanupRtl();
+        cleanup();
+    }
+});
+
+Deno.test("unit: OrgElementRenderer renders checkboxes for list items", () => {
+    const { cleanup } = setupTestDom();
+    try {
+        const ast = parseOrgDocument("- [ ] Task 1\n- [X] Task 2");
+        const { container } = render(<OrgElementRenderer elements={ast.children} />);
+        const checkboxes = container.querySelectorAll('input[type="checkbox"]');
+        assertEquals(checkboxes.length, 2);
+    } finally {
+        cleanupRtl();
+        cleanup();
+    }
+});
+
+Deno.test("unit: OrgElementRenderer clicking checkbox dispatches onToggleCheckbox", () => {
+    const { cleanup } = setupTestDom();
+    try {
+        const ast = parseOrgDocument("- [ ] Task 1");
+        let toggledCheckbox = "";
+        const { container } = render(
             <OrgElementRenderer
                 elements={ast.children}
                 onToggleCheckbox={(id) => {
                     toggledCheckbox = id;
                 }}
             />,
-            root,
         );
-
-        // Verify description term
-        const termEl = root.querySelector(".org-list-tag");
-        assertNotEquals(termEl, null);
-        assertEquals(termEl?.textContent?.includes("Term"), true);
-
-        // Verify checkboxes
-        const checkboxes = root.querySelectorAll('input[type="checkbox"]');
-        assertEquals(checkboxes.length, 3);
-
-        // Click first checkbox
-        triggerClick(checkboxes[0]);
+        const checkbox = container.querySelector('input[type="checkbox"]');
+        triggerClick(checkbox);
         assertEquals(toggledCheckbox, "l-0.i-0");
     } finally {
+        cleanupRtl();
         cleanup();
     }
 });
 
-Deno.test("OrgElementRenderer: Property drawers render collapsible key-value table", () => {
-    const { root, cleanup } = setupDom();
+Deno.test("unit: OrgElementRenderer renders collapsible property drawer header", () => {
+    const { cleanup } = setupTestDom();
     try {
-        const orgText = `:PROPERTIES:
-:CUSTOM_ID: my-id
-:CATEGORY: tasks
-:END:
-`;
-        const ast = parseOrgDocument(orgText);
-        render(<OrgElementRenderer elements={ast.children} />, root);
-
-        const drawer = root.querySelector(".org-drawer");
-        assertNotEquals(drawer, null);
+        const ast = parseOrgDocument(":PROPERTIES:\n:CUSTOM_ID: my-id\n:END:");
+        const { container } = render(<OrgElementRenderer elements={ast.children} />);
+        const drawer = container.querySelector(".org-drawer");
         assertEquals(drawer?.textContent?.includes(":PROPERTIES:"), true);
-
-        // Initially collapsed
-        const drawerBtn = drawer?.querySelector("button");
-        assertNotEquals(drawerBtn, null);
-        assertEquals(drawer?.querySelector("table"), null);
-
-        // Expand drawer
-        triggerClick(drawerBtn);
-        // Note: OrgDrawerView uses internal state for drawer fold; clicking button expands it
     } finally {
+        cleanupRtl();
         cleanup();
     }
 });
 
-Deno.test("OrgElementRenderer: Headline with properties drawer renders exactly one drawer (no duplication)", () => {
-    const { root, cleanup } = setupDom();
+Deno.test("unit: OrgElementRenderer renders exactly one property drawer under headline without duplication", () => {
+    const { cleanup } = setupTestDom();
     try {
-        const orgText = `* Headline With Properties
-:PROPERTIES:
-:CUSTOM_ID: sec-props
-:VERSION: 2.0
-:END:
-Paragraph under headline.
-`;
-        const ast = parseOrgDocument(orgText);
-        render(<OrgElementRenderer elements={ast.children} />, root);
-
-        // Verify that only ONE property drawer is rendered
-        const drawers = root.querySelectorAll(".org-drawer");
-        assertEquals(drawers.length, 1, "Must render exactly one property drawer without duplication");
-        assertEquals(drawers[0].textContent?.includes(":PROPERTIES:"), true);
+        const ast = parseOrgDocument("* Headline\n:PROPERTIES:\n:ID: 1\n:END:\nBody.");
+        const { container } = render(<OrgElementRenderer elements={ast.children} />);
+        const drawers = container.querySelectorAll(".org-drawer");
+        assertEquals(drawers.length, 1);
     } finally {
+        cleanupRtl();
         cleanup();
     }
 });

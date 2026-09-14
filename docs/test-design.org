@@ -1,0 +1,229 @@
+#+TITLE: Test Design Standards & Architecture
+#+AUTHOR: AI Chat UI Improvements Team
+#+DATE: 2026-09-13
+#+OPTIONS: toc:2 num:t
+
+* Overview
+
+This document codifies the testing principles, architectural requirements, naming conventions, fixture management, and execution pipelines for the AI Chat UI Improvements extension.
+
+Every automated test suite in the repository—spanning unit tests, integration harnesses, software-defined E2E workflows, and prompt-defined browser automation—must adhere to these standards.
+
+* Core Testing Principles
+
+** AAA Test Design (Arrange, Act, Assert)
+Every automated test must be explicitly structured into three distinct phases:
+1. *Arrange*: Prepare preconditions, instantiate isolated mock environments, configure input parameters, and mount necessary fixtures.
+2. *Act*: Invoke the single operation, function call, or interface method under test across its module seam.
+3. *Assert*: Verify the expected outcome, return value, or emitted side-effect.
+
+#+BEGIN_SRC typescript
+// Example: Strict AAA structure
+Deno.test("unit: OrgParser extracts headline title and level correctly", () => {
+    // 1. Arrange
+    const text = "* Top Level Headline";
+
+    // 2. Act
+    const ast = parseOrgDocument(text);
+
+    // 3. Assert
+    assertEquals(ast.children[0].title, "Top Level Headline");
+});
+#+END_SRC
+
+*** The Single Assertion Rule
+Each test must verify *exactly one logical assertion*.
+- *Diagnostic Precision*: When an assertion fails, the failure immediately isolates the exact broken invariant without masking subsequent checks.
+- *Atomic Specifications*: Tests become readable behavioral contracts rather than long-running procedural scripts.
+- *Compound Value Verification*: When asserting structural integrity on an immutable composite object (e.g., an AST node or parsed token), assert equivalence on the complete value object in a single ~assertEquals~ rather than scattering multiple assertions across individual fields.
+- *Multi-Effect Separation*: If a single user action produces multiple distinct effects (e.g. updating a DOM class and broadcasting a storage event), implement two separate tests: one asserting the DOM state change, and another asserting the dispatched event.
+
+** Concise Structured Logging & Failure Reporting
+- *Lifecycle Logging*: Tests should log in a concise but detailed way as test suites are set up, progressed, and torn down (using structured contextual tags like ~[AI Chat UI] [Test > Component]~).
+- *Informative Failure Messages*: Test failures must detail exactly what broke and under what circumstances. Descriptive test names, descriptive custom assertion messages, and contextual logs are crucial for immediate root-cause identification without requiring step-through debugging.
+
+** Component-Centric Test Directory Organization
+- *Grouped by Component, Not by Category*: The ~tests/~ directory must be organized by the components and features being tested (mirroring the ~src/~ modular layout), rather than split into artificial top-level ~unit/~, ~integration/~, or ~e2e/~ folders.
+- *Colocated Tiers*: Unit tests and integration tests for a component live together within that component's test directory (e.g., ~tests/features/chats/duckai/~ holds both unit tests for selectors/theme and integration tests for the adapter and DOM observer).
+- *Categorization via Names & Tasks*: Test tier categorization is achieved via explicit test name prefixes (~unit:~, ~integration:~, ~e2e:~) and Deno task filters, preserving component cohesion and directory locality.
+
+** Strict Test Independence & State Isolation
+Tests must be completely hermetic and independent. No test may rely on the side-effects of a prior test, nor may it leak state that contaminates subsequent tests. Test suites must pass deterministically when executed in random order or in isolation.
+
+- *Global Environment Teardown*: Tests that touch ~globalThis~ (e.g., ~document~, ~window~, ~customElements~, ~localStorage~, ~chrome.storage~) must clean up all modifications in a ~finally~ block or use a scoped harness hook:
+#+BEGIN_SRC typescript
+const { doc, cleanup } = setupTestDom({ html: mockHtml });
+try {
+    // Test body
+} finally {
+    cleanup(); // Guarantees global state restoration
+}
+#+END_SRC
+- *Active Observer & Listener Teardown*: Every ~MutationObserver~, ~ResizeObserver~, interval timer, and DOM event listener created in a test must be explicitly disconnected or unsubscribed.
+- *Shared Singleton & Cache Invalidation*: State in shared singletons (e.g. ~defaultAstCache~, ~SettingsStore~ caches, or dynamic registries) must be reset or isolated using dedicated reset methods between tests.
+- *Fixture Immutability*: Tests must instantiate fresh fixture instances or clone DOM trees rather than mutating shared fixture references in place.
+
+** Fail Fast
+Tests must fail rapidly upon encountering an unexpected state or regression:
+- *Tight Async Timeouts*: Do not use arbitrary multi-second delays or sleep timers. Debounce settlement checks in mock DOM tests should use tight windows (50ms–200ms).
+- *Early Precondition Checks*: Check essential preconditions early. If a required container element is not mounted, fail immediately rather than attempting deep property navigation on ~null~.
+- *Deno CLI Fail-Fast*: The test runner supports ~--fail-fast~ to immediately halt execution upon the first failure during iterative development.
+
+** Descriptive Test Naming & Category Prefixes
+Test names are primary documentation. Long, expressive test names are strongly preferred over terse or cryptic ones.
+
+*** Structure
+~[category]: [Module/Class] [scenario or condition] [expected behavior or invariant]~
+
+*** Category Prefixes
+Every test name must start with its lowercase category prefix followed by a colon:
+- ~unit: ~: Pure unit tests running in memory.
+- ~integration: ~: Multi-module seam tests, host DOM adapters, and Preact mount lifecycles.
+- ~e2e: ~: End-to-end user journeys and full pipeline tests.
+- ~bench: ~: Microbenchmarks and throughput performance measurements.
+
+*** Examples
+- ~unit: KaTeX delimiter parser extracts display math with double dollar signs~
+- ~unit: SettingsStore returns default preset when storage value is uninitialized~
+- ~integration: DuckAiDomObserver ignores pre-rendered actions while stop button is active~
+- ~integration: FloatingHud mounts into dedicated shadow root and syncs theme signal~
+- ~e2e: InSituCodeBlockContainer renders OrgDocumentView inside sibling shadow root without mutating host data island~
+- ~bench: CoreLogger filtered log throughput (DEBUG silenced at WARN level)~
+
+** Microbenchmark Design & Setup/Reset Isolation (~bench:~)
+Benchmarks measure operational latency, throughput, and CPU/memory efficiency under load.
+To produce statistically valid measurements that reflect actual production performance:
+
+*** 1. The Pure Measurement Window Rule
+Benchmarks must measure *only* the specific operation or algorithm under test.
+Setup, fixture allocation, DOM generation, runlevel configuration, state resets, and teardown must *never* execute inside the timed measurement window.
+
+*** 2. Mandatory Use of Deno Benchmark Context (~b.start()~ / ~b.end()~)
+When a benchmark requires pre-iteration arrangement or post-iteration cleanup, author the benchmark using Deno's benchmark context parameter (~b: Deno.BenchContext~):
+1. Execute all setup, environment overrides, logger resets, and fixture preparations *before* ~b.start()~.
+2. Place the timed operation between ~b.start()~ and ~b.end()~.
+3. Perform any resource restoration or console recovery *after* ~b.end()~.
+
+#+BEGIN_SRC typescript
+// Correct: Setup and teardown are strictly isolated outside the measurement window
+Deno.bench("bench: CoreLogger active log throughput", (b) => {
+    // 1. Untimed Setup / Pre-arrangement
+    CoreLogger.resetForTesting("dev");
+    const logger = createLogger("BenchmarkActive");
+    silenceConsole();
+
+    // 2. Timed Measurement Window
+    b.start();
+    for (let i = 0; i < 1000; i++) {
+        logger.info("Active log message", { index: i, status: "ok" });
+    }
+    b.end();
+
+    // 3. Untimed Teardown
+    restoreConsole();
+});
+#+END_SRC
+
+*** 3. Anti-Pattern: Reset and Setup Pollution Inside Timed Iterations
+Never include destructive resets (e.g. ~resetSync()~, ~configureSync()~, cache invalidation, or DOM teardown) inside the timed benchmarking loop unless the explicit objective of the benchmark is to measure the performance of that reset/teardown operation itself:
+
+#+BEGIN_SRC typescript
+// Anti-Pattern: Setup and reset code included inside timed iterations skews results
+Deno.bench("bench: Filtered logs (INCORRECT)", () => {
+    CoreLogger.resetForTesting("prod"); // BAD: Reconfiguration runs inside every timed iteration!
+    const logger = createLogger("Benchmark");
+    logger.debug("Filtered");
+});
+#+END_SRC
+
+*** 4. Batch Sizing & Statistical Resolution
+For ultra-fast operations (sub-microsecond operations like filtered logs, AST node checks, or cache lookups), execute batches of 1,000 to 10,000 operations per benchmark iteration to minimize timer resolution noise and accurately amortize Deno benchmark harness overhead.
+
+* The Test Pyramid
+
+The repository enforces a three-tier test pyramid balancing execution velocity, seam coverage, and real-world browser fidelity:
+
+#+BEGIN_SRC text
+          / \
+         /   \
+        / E2E \       Selective high-fidelity user journeys
+       /-------\      (Software-defined + Prompt-defined MCP)
+      / Integr. \     Moderate volume: Seam interactions, adapters,
+     /-----------\    DOM fixtures, Preact component mounting
+    /    Unit     \   High volume: Fast, hermetic, pure logic,
+   /---------------\  parsers, scrapers, data models
+#+END_SRC
+
+** Tier 1: Unit Tests (~unit:~)
+- *Scope*: Core logic modules, Org-mode AST parsers, tokenizer rules, format matchers, data sanitizers, and pure utility functions.
+- *Execution Profile*: Pure in-memory execution; zero browser process, zero network I/O, sub-millisecond execution.
+- *Seam Rule*: Exercises the public interface of a deep module without touching internal private state.
+
+** Tier 2: Integration Tests (~integration:~)
+- *Scope*: Interactions across module seams:
+  - Host site adapters (Gemini, Duck.ai, future providers) interacting with mock DOM chat turns.
+  - DOM mutation observers tracking response life cycles (~onResponseDiscovered~, ~onResponseStreaming~, ~onResponseSettled~).
+  - Declarative Preact components mounting into host shadow roots via portals (~createPortal~).
+  - Storage persistence syncing with reactive UI state.
+- *Execution Profile*: Runs against ~@b-fuze/deno-dom~ using the shared test harness in ~tests/fixtures/dom_fixture.ts~ (with ~:has()~ query polyfills, style stubs, and storage isolation).
+- *Execution Speed*: 5ms to 50ms per test.
+
+** Tier 3: End-to-End Tests (~e2e:~)
+E2E testing validates complete user journeys and end-to-end integration. In this project, E2E tests are split into two complementary modalities:
+
+*** 1. Software-Defined E2E Tests (Preferred for Automatable Invariants)
+- *Preference Principle*: If an invariant or workflow can be verified with automated software-defined E2E tests rather than agent-controlled MCP browser sessions, *always prefer the software-defined E2E test*. Software tests run deterministically in CI, execute in seconds, and require no live browser state setup.
+- *Scope*: Bundled extension artifacts (~dist/dev/~), content script entrypoints, simulated full turn pipelines, manifest verification, and cross-module message routing.
+- *Task*: Executed via ~deno task test:e2e~.
+
+*** 2. Prompt-Defined Firefox DevTools MCP Tests (Live Browser Verification)
+- Living specifications stored in Org-mode files under ~tests/ff-devtools_e2e-tests/*.org~.
+- *Purpose*: Real-browser verification against live third-party AI chat web applications (Duck.ai, Gemini, ChatGPT, Claude) to validate real CSS layout interactions, host DOM mutations, and browser security contexts (Shadow DOM, CSP).
+- *Reusable Evaluation Scripts*: ~tests/ff-devtools_e2e-tests/~ must include reusable test automation scripts (e.g. ~tests/ff-devtools_e2e-tests/scripts/~) to be evaluated via MCP's ~evaluate_script~ rather than having agents author ad-hoc DOM queries and verification snippets anew during each test run.
+- *Specification Structure*:
+  1. *Prerequisites*: Target URL, extension build (~dist/dev/~), initial viewport dimensions.
+  2. *Action Script*: Structured sequence of MCP tool calls and reusable evaluation scripts.
+  3. *Verification Points*: DOM element queries, computed style checks, shadow root inspection, and theme synchronization assertions.
+  4. *Visual Artifacts*: Mandatory screenshots captured into artifact storage documenting visual states.
+
+* Test Fixtures & Shared Harnesses
+
+To ensure DRY test suites, eliminate brittle test duplication, and guarantee DOM consistency:
+
+#+BEGIN_SRC text
+tests/fixtures/
+├── dom_fixture.ts             # Centralized DOM harness: all DOM shims, :has() polyfill, style stubs, storage reset
+├── html/                      # Realistic static HTML snapshots of host chat turns
+│   ├── gemini/
+│   │   ├── standard_turn.html
+│   │   └── math_code_turn.html
+│   └── duckai/
+│       ├── raw_duckai_turn.html
+│       └── raw_duckai_math_turn.html
+└── data/                      # Sample Org documents, Markdown snippets, KaTeX formulas
+#+END_SRC
+
+- *Consistent Test DOM*: While not every single test requires importing the DOM fixture (e.g. pure unit tests testing string parsers do not), *all shims that affect or simulate the DOM must reside exclusively in ~tests/fixtures/dom_fixture.ts~*. Having a single, consistent, shared test DOM across the entire test suite is mandatory.
+- *No Bespoke DOM Shims*: Test files must never define their own DOM shims, storage mocks, or ~:has()~ query workarounds.
+- *Real-World Snapshots*: HTML fixtures should originate from real captured DOM turns rather than synthetic approximations.
+
+* Deno Task Execution Pipeline
+
+The test runner is orchestrated via categorized Deno tasks in ~deno.json~:
+
+| Command                     | Target Category            | Filter Rule                           |
+|-----------------------------+----------------------------+---------------------------------------|
+| ~deno task test:unit~        | Unit Tests                 | ~--filter "unit:"~                    |
+| ~deno task test:integration~ | Integration Tests          | ~--filter "integration:"~             |
+| ~deno task test:e2e~         | Software-Defined E2E Tests | ~--filter "e2e:"~                     |
+| ~deno task test~             | Full Test Pipeline         | Runs all automated tiers sequentially |
+
+Prompt-defined MCP tests (~tests/ff-devtools_e2e-tests/*.org~) are run on-demand or during milestone stage verifications using the standardized reusable evaluation scripts.
+
+* Codebase Design & Seam Discipline for Testing
+
+Applying ~/codebase-design~ principles to test construction:
+
+1. *The Interface is the Test Surface*: Callers and tests cross the same seam. Tests must exercise the module via its public facade/adapter contract. Never inspect private intermediate refs, internal observers, or non-exported subsystem variables.
+2. *Accept Dependencies, Don't Hardcode*: Modules should accept dependencies (such as DOM documents, storage adapters, or format matchers) rather than reaching into global scope, making them naturally testable with lightweight fakes.
+3. *Return Results, Avoid Unobserved Side-Effects*: Pure AST parsers and data transform modules must return deterministic data structures that can be asserted directly with zero side-effects.

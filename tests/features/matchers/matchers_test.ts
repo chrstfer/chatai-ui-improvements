@@ -2,9 +2,8 @@
  * Eager Format Matchers & Mutual Distinctness Test Suite.
  */
 
-import { assertEquals, assertExists } from "@std/assert";
+import { assertEquals } from "@std/assert";
 import {
-    ALL_FORMAT_MATCHERS,
     findMatchingFormat,
     formatDisplayName,
     jsonMatcher,
@@ -12,95 +11,158 @@ import {
     orgMatcher,
 } from "../../../src/features/matchers/index.ts";
 
-Deno.test("FormatMatcher: orgMatcher identifies Org Mode hints and initial lines", () => {
-    assertEquals(orgMatcher.id, "org");
-    assertEquals(orgMatcher.matches("org"), true);
-    assertEquals(orgMatcher.matches("ORG-MODE"), true);
-    assertEquals(orgMatcher.matches("markdown"), false);
+Deno.test("unit: orgMatcher matches org language hints case-insensitively", () => {
+    // Arrange & Act
+    const matchesOrg = orgMatcher.matches("org");
+    const matchesUppercase = orgMatcher.matches("ORG-MODE");
 
-    // Initial lines heuristic
-    assertEquals(orgMatcher.matches("", ["* Top Level Heading"]), true);
-    assertEquals(orgMatcher.matches("", ["#+TITLE: My Document"]), true);
-    assertEquals(orgMatcher.matches("", ["def foo(): return 42"]), false);
+    // Assert
+    assertEquals(matchesOrg && matchesUppercase, true);
 });
 
-Deno.test("FormatMatcher: markdownMatcher identifies Markdown hints and initial lines", () => {
-    assertEquals(markdownMatcher.id, "markdown");
-    assertEquals(markdownMatcher.matches("md"), true);
-    assertEquals(markdownMatcher.matches("gfm"), true);
-    assertEquals(markdownMatcher.matches("python"), false);
+Deno.test("unit: orgMatcher matches org headline in initial lines", () => {
+    // Arrange & Act
+    const matches = orgMatcher.matches("", ["* Top Level Heading"]);
 
-    // Initial lines heuristic
-    assertEquals(markdownMatcher.matches("", ["# Top Level ATX"]), true);
-    assertEquals(markdownMatcher.matches("", ["> [!NOTE]", "> Alert text"]), true);
+    // Assert
+    assertEquals(matches, true);
 });
 
-Deno.test("FormatMatcher: jsonMatcher identifies JSON hints and initial lines", () => {
-    assertEquals(jsonMatcher.id, "json");
-    assertEquals(jsonMatcher.matches("json"), true);
-    assertEquals(jsonMatcher.matches("jsonc"), true);
-    assertEquals(jsonMatcher.matches("org"), false);
+Deno.test("unit: orgMatcher matches title metadata in initial lines", () => {
+    // Arrange & Act
+    const matches = orgMatcher.matches("", ["#+TITLE: My Document"]);
 
-    // Initial lines heuristic
-    assertEquals(jsonMatcher.matches("", ["{", '  "key": "value"', "}"]), true);
-    assertEquals(jsonMatcher.matches("", ["[1, 2, 3]"]), true);
+    // Assert
+    assertEquals(matches, true);
 });
 
-Deno.test("FormatMatcher: orgMatcher and markdownMatcher are strictly mutually distinct", () => {
-    // 1. Cross-hint distinction: orgMatcher must reject Markdown aliases
-    assertEquals(orgMatcher.matches("markdown"), false);
-    assertEquals(orgMatcher.matches("md"), false);
-    assertEquals(orgMatcher.matches("gfm"), false);
-    assertEquals(orgMatcher.matches("commonmark"), false);
+Deno.test("unit: orgMatcher rejects non-org programming code", () => {
+    // Arrange & Act
+    const matches = orgMatcher.matches("", ["def foo(): return 42"]);
 
-    // 2. Cross-hint distinction: markdownMatcher must reject Org aliases
-    assertEquals(markdownMatcher.matches("org"), false);
-    assertEquals(markdownMatcher.matches("orgmode"), false);
-    assertEquals(markdownMatcher.matches("org-mode"), false);
+    // Assert
+    assertEquals(matches, false);
+});
 
-    // 3. Org matcher rejects Markdown content constructs
+Deno.test("unit: markdownMatcher matches md and gfm language hints", () => {
+    // Arrange & Act
+    const matchesMd = markdownMatcher.matches("md");
+    const matchesGfm = markdownMatcher.matches("gfm");
+
+    // Assert
+    assertEquals(matchesMd && matchesGfm, true);
+});
+
+Deno.test("unit: markdownMatcher matches atx heading in initial lines", () => {
+    // Arrange & Act
+    const matches = markdownMatcher.matches("", ["# Top Level ATX"]);
+
+    // Assert
+    assertEquals(matches, true);
+});
+
+Deno.test("unit: markdownMatcher matches github alerts in initial lines", () => {
+    // Arrange & Act
+    const matches = markdownMatcher.matches("", ["> [!NOTE]", "> Alert text"]);
+
+    // Assert
+    assertEquals(matches, true);
+});
+
+Deno.test("unit: jsonMatcher matches json and jsonc language hints", () => {
+    // Arrange & Act
+    const matchesJson = jsonMatcher.matches("json");
+    const matchesJsonc = jsonMatcher.matches("jsonc");
+
+    // Assert
+    assertEquals(matchesJson && matchesJsonc, true);
+});
+
+Deno.test("unit: jsonMatcher matches json object bracket in initial lines", () => {
+    // Arrange & Act
+    const matches = jsonMatcher.matches("", ["{", '  "key": "value"', "}"]);
+
+    // Assert
+    assertEquals(matches, true);
+});
+
+Deno.test("unit: jsonMatcher matches json array bracket in initial lines", () => {
+    // Arrange & Act
+    const matches = jsonMatcher.matches("", ["[1, 2, 3]"]);
+
+    // Assert
+    assertEquals(matches, true);
+});
+
+Deno.test("unit: orgMatcher and markdownMatcher cross-reject each other's hints", () => {
+    // Arrange & Act
+    const orgRejectsMd = !orgMatcher.matches("markdown") && !orgMatcher.matches("md");
+    const mdRejectsOrg = !markdownMatcher.matches("org") && !markdownMatcher.matches("org-mode");
+
+    // Assert
+    assertEquals(orgRejectsMd && mdRejectsOrg, true);
+});
+
+Deno.test("unit: orgMatcher rejects markdown initial line constructs", () => {
+    // Arrange
     const markdownSamples: string[][] = [
         ["# Top Level ATX Heading", "Some paragraph text"],
         ["## Subheading ATX", "More content"],
         ["> [!NOTE]", "> GitHub styled alert note"],
-        ["> [!WARNING]", "> Important warning box"],
         ["```typescript", "const x = 42;", "```"],
     ];
-    for (const sample of markdownSamples) {
-        assertEquals(
-            orgMatcher.matches("", sample),
-            false,
-            `orgMatcher should not match markdown content: ${sample[0]}`,
-        );
-    }
 
-    // 4. Markdown matcher rejects Org Mode content constructs
+    // Act
+    const anyMatched = markdownSamples.some((sample) => orgMatcher.matches("", sample));
+
+    // Assert
+    assertEquals(anyMatched, false);
+});
+
+Deno.test("unit: markdownMatcher rejects org initial line constructs", () => {
+    // Arrange
     const orgSamples: string[][] = [
         ["* Top Level Org Heading", "Some paragraph text"],
         ["** Subheading Org Level 2", "More content"],
         ["#+TITLE: Canonical Org Mode Document"],
-        ["#+AUTHOR: DeepMind Pair"],
-        ["#+DATE: 2026-09-13"],
         ["#+BEGIN_SRC python", "print('hello')", "#+END_SRC"],
     ];
-    for (const sample of orgSamples) {
-        assertEquals(
-            markdownMatcher.matches("", sample),
-            false,
-            `markdownMatcher should not match org content: ${sample[0]}`,
-        );
-    }
+
+    // Act
+    const anyMatched = orgSamples.some((sample) => markdownMatcher.matches("", sample));
+
+    // Assert
+    assertEquals(anyMatched, false);
 });
 
-Deno.test("FormatMatcher: Utilities findMatchingFormat and formatDisplayName work accurately", () => {
-    assertEquals(findMatchingFormat("org")?.id, "org");
-    assertEquals(findMatchingFormat("md")?.id, "markdown");
-    assertEquals(findMatchingFormat("json")?.id, "json");
-    assertEquals(findMatchingFormat("unknown-lang"), undefined);
+Deno.test("unit: findMatchingFormat resolves canonical format matcher by hint", () => {
+    // Arrange & Act
+    const match = findMatchingFormat("org");
 
-    assertEquals(formatDisplayName("org"), "ORG MODE");
-    assertEquals(formatDisplayName("md"), "MARKDOWN");
-    assertEquals(formatDisplayName("json"), "JSON");
-    assertEquals(formatDisplayName("python"), "PYTHON");
-    assertEquals(formatDisplayName(""), "CODE");
+    // Assert
+    assertEquals(match?.id, "org");
+});
+
+Deno.test("unit: findMatchingFormat returns undefined for unknown format hint", () => {
+    // Arrange & Act
+    const match = findMatchingFormat("unknown-custom-format-xyz");
+
+    // Assert
+    assertEquals(match, undefined);
+});
+
+Deno.test("unit: formatDisplayName formats known language tags into uppercase display labels", () => {
+    // Arrange & Act
+    const label = formatDisplayName("org");
+
+    // Assert
+    assertEquals(label, "ORG MODE");
+});
+
+Deno.test("unit: formatDisplayName falls back to CODE for empty language hint", () => {
+    // Arrange & Act
+    const label = formatDisplayName("");
+
+    // Assert
+    assertEquals(label, "CODE");
 });

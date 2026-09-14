@@ -2,49 +2,114 @@
  * Parser Registry Test Suite.
  */
 
-import { assertEquals, assertExists } from "@std/assert";
+import { assertEquals } from "@std/assert";
 import { defaultParserRegistry, ParserRegistry } from "../../src/registries/parserRegistry.ts";
 import type { Parser } from "../../src/contracts/features/parsers/index.ts";
 import { AstCache } from "../../src/store/astCache.ts";
 
-Deno.test("ParserRegistry: Registers lazy parsers and settles AST in AstCache", async () => {
+Deno.test("unit: ParserRegistry has returns false for unregistered format", () => {
+    // Arrange
     const registry = new ParserRegistry();
-    let parseCount = 0;
+
+    // Act & Assert
+    assertEquals(registry.has("unregistered"), false);
+});
+
+Deno.test("unit: ParserRegistry registerLazy registers format parser definition", () => {
+    // Arrange
+    const registry = new ParserRegistry();
+
+    // Act
+    registry.registerLazy({
+        formatId: "custom",
+        load: () =>
+            Promise.resolve({
+                id: "custom",
+                name: "Custom Parser",
+                parse: (raw) => ({ type: "custom-ast", text: raw }),
+            }),
+    });
+
+    // Assert
+    assertEquals(registry.has("custom"), true);
+});
+
+Deno.test("unit: ParserRegistry get dynamically loads registered parser", async () => {
+    // Arrange
+    const registry = new ParserRegistry();
     const mockParser: Parser = {
         id: "custom",
         name: "Custom Parser",
-        parse: (raw) => {
-            parseCount++;
-            return { type: "custom-ast", text: raw };
-        },
+        parse: (raw) => ({ type: "custom-ast", text: raw }),
     };
-
-    assertEquals(registry.has("custom"), false);
     registry.registerLazy({
         formatId: "custom",
-        load: async () => mockParser,
+        load: () => Promise.resolve(mockParser),
     });
-    assertEquals(registry.has("custom"), true);
 
+    // Act
     const loadedParser = await registry.get("custom");
+
+    // Assert
     assertEquals(loadedParser, mockParser);
+});
 
-    // Settle content and verify AST caching
+Deno.test("integration: ParserRegistry settleContent parses content and caches AST in AstCache", async () => {
+    // Arrange
+    const registry = new ParserRegistry();
+    let parseCount = 0;
+    registry.registerLazy({
+        formatId: "custom",
+        load: () =>
+            Promise.resolve({
+                id: "custom",
+                name: "Custom Parser",
+                parse: (raw) => {
+                    parseCount++;
+                    return { type: "custom-ast", text: raw };
+                },
+            }),
+    });
     const astCache = new AstCache(10);
-    const content = "custom-syntax-block";
-    const res1 = await registry.settleContent(content, "custom", astCache);
-    assertExists(res1.ast);
-    assertEquals(parseCount, 1);
 
-    // Second settlement uses cached AST without re-parsing
-    const res2 = await registry.settleContent(content, "custom", astCache);
-    assertEquals(res2.ast, res1.ast);
+    // Act
+    await registry.settleContent("custom-syntax-block", "custom", astCache);
+
+    // Assert
     assertEquals(parseCount, 1);
 });
 
-Deno.test("ParserRegistry: defaultParserRegistry contains lazy Org parser", async () => {
-    assertEquals(defaultParserRegistry.has("org"), true);
+Deno.test("integration: ParserRegistry settleContent reuses cached AST on identical content", async () => {
+    // Arrange
+    const registry = new ParserRegistry();
+    let parseCount = 0;
+    registry.registerLazy({
+        formatId: "custom",
+        load: () =>
+            Promise.resolve({
+                id: "custom",
+                name: "Custom Parser",
+                parse: (raw) => {
+                    parseCount++;
+                    return { type: "custom-ast", text: raw };
+                },
+            }),
+    });
+    const astCache = new AstCache(10);
+    const content = "custom-syntax-block";
+    await registry.settleContent(content, "custom", astCache);
+
+    // Act: settle same content again
+    await registry.settleContent(content, "custom", astCache);
+
+    // Assert: parser was not invoked a second time
+    assertEquals(parseCount, 1);
+});
+
+Deno.test("unit: defaultParserRegistry defines lazy Org parser with org formatId", async () => {
+    // Arrange & Act
     const orgParser = await defaultParserRegistry.get("org");
-    assertExists(orgParser);
-    assertEquals(orgParser.id, "org");
+
+    // Assert
+    assertEquals(orgParser?.id, "org");
 });

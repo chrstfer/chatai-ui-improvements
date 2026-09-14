@@ -41,7 +41,23 @@ When conducting step-by-step reasoning or deep analysis using the `seq/thinking`
 
 ## Software Engineering & Design Principles
 - **DRY & SOLID with Prioritized Encapsulation**: Code written MUST follow DRY and SOLID principles with high priority placed on deep module encapsulation. Feature module entrypoints (e.g., `index.ts` barrels) MUST only export public facade/adapter contracts and keep internal implementation details (e.g., internal selectors, private intermediate refs, observers, DOM injectors, and layout controllers) encapsulated rather than blanket re-exporting internal subsystems.
-- **Common Test Fixtures & Shared Test Harnesses**: Tests MUST use common fixtures and shared test harnesses under `tests/fixtures/` where similar components are needed for testing. For instance, all host adapter tests and DOM-dependent test suites MUST use common test DOM utilities (such as `tests/fixtures/test_dom_helper.ts` for `:has()` query polyfills, style declarations, and storage resets) rather than duplicating bespoke DOM shims across test files.
+- **Common Test Fixtures & Shared Test Harnesses**: Tests MUST use common fixtures and shared test harnesses under `tests/fixtures/` where similar components are needed for testing. All shims that affect or simulate the DOM must reside exclusively in `tests/fixtures/dom_fixture.ts` (for `:has()` query polyfills, style declarations, and storage resets) rather than duplicating bespoke DOM shims across test files.
+
+## Test Design & Auditing Standards
+Follow the rules documented in `docs/test-design.org` whenever designing, implementing, refactoring, or auditing tests:
+- **AAA & Single Assertion**: Structure tests strictly as Arrange-Act-Assert with exactly one logical assertion per test.
+- **Strict Independence & State Isolation**: Tests must be hermetic and leave zero global, observer, or storage residue.
+- **Test Pyramid**: High-volume fast unit tests, moderate integration tests on DOM fixtures, and selective E2E tests (preferring software-defined E2E; prompt-defined Firefox DevTools MCP tests stored in `tests/ff-devtools_e2e-tests/*.org` with reusable evaluation scripts).
+- **Descriptive Categorized Naming**: Long, descriptive names prefixed by test category (`unit: `, `integration: `, `e2e: `).
+- **Component-Centric Organization**: Group tests by component/feature under test (mirroring `src/`), not by test tier directory silos.
+- **Fail Fast & Concise Logging**: Tests must fail fast with concise structured logging and descriptive failure context.
+- **Selective Task Execution Policy**: Avoid running expensive test suites when codebase changes do not warrant them:
+  - Run `deno task test:unit` when actively modifying pure logic, parsers, serializers, matchers, or data models.
+  - Run `deno task test:integration` when modifying host adapters, DOM observers, or UI components.
+  - Run `deno task test:e2e` or the complete `deno task test` pipeline ONLY when modifying `build.ts`, `manifest.json`, entrypoint bootstrapping, or when preparing milestone commits.
+- **Benchmark Isolation & Setup Exclusion**: Microbenchmarks (`bench: `) must measure pure operational performance. Setup, fixture generation, runlevel changes, and state resets must NEVER run inside the timed benchmark window. Use Deno benchmark context (`b.start()` / `b.end()`) to strictly isolate the measurement window.
+- **Technical Debt Quarantine**: When test refactoring uncovers failures caused by known technical debt in `src/`, do NOT prematurely mutate `src/`. Mark the test as quarantined using `ignore: true` in `Deno.test` with an explicit comment detailing the debt and linking to the upcoming `CONTEXT.org` audit item.
+
 
 ## Work Breakdown & Planning Labels
 - **Iteration Label Disambiguation**: The roadmap and meta-plans already define top-level **Phases** (e.g. Phase 1, Phase 2, Phase 3) and sub-milestone **Stages** (e.g. Stage 1, Stage 2). NEVER re-use "Phase" or "Stage" labels for substeps in work breakdown plans or iteration lists. Use **Step**, **Part**, or **Iteration** for execution substeps.

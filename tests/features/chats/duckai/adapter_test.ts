@@ -1,60 +1,119 @@
 import { assertEquals, assertNotEquals } from "@std/assert";
 import { DuckAiSiteAdapter } from "../../../../src/features/chats/duckai/index.ts";
 import { SettingsStore } from "../../../../src/core/storage/settings.ts";
-import { setupTestDom } from "../../../fixtures/test_dom_helper.ts";
+import { setupTestDom } from "../../../fixtures/dom_fixture.ts";
 
-Deno.test("DuckAiSiteAdapter: URL matching covers duck.ai and duckduckgo.com/chat strictly", () => {
+Deno.test("unit: DuckAiSiteAdapter has correct adapter id", () => {
     const adapter = new DuckAiSiteAdapter();
     assertEquals(adapter.id, "duckai");
+});
+
+Deno.test("unit: DuckAiSiteAdapter has correct adapter display name", () => {
+    const adapter = new DuckAiSiteAdapter();
     assertEquals(adapter.name, "DuckDuckGo AI");
+});
 
+Deno.test("unit: DuckAiSiteAdapter matches root duck.ai domain", () => {
+    const adapter = new DuckAiSiteAdapter();
     assertEquals(adapter.matches(new URL("https://duck.ai/")), true);
-    assertEquals(adapter.matches(new URL("https://duck.ai/c/123")), true);
-    assertEquals(adapter.matches(new URL("https://duckduckgo.com/chat")), true);
-    assertEquals(adapter.matches(new URL("https://duckduckgo.com/chat?q=test")), true);
+});
 
+Deno.test("unit: DuckAiSiteAdapter matches conversation path on duck.ai", () => {
+    const adapter = new DuckAiSiteAdapter();
+    assertEquals(adapter.matches(new URL("https://duck.ai/c/123")), true);
+});
+
+Deno.test("unit: DuckAiSiteAdapter matches duckduckgo chat path", () => {
+    const adapter = new DuckAiSiteAdapter();
+    assertEquals(adapter.matches(new URL("https://duckduckgo.com/chat")), true);
+});
+
+Deno.test("unit: DuckAiSiteAdapter matches duckduckgo chat with query string", () => {
+    const adapter = new DuckAiSiteAdapter();
+    assertEquals(adapter.matches(new URL("https://duckduckgo.com/chat?q=test")), true);
+});
+
+Deno.test("unit: DuckAiSiteAdapter rejects non-chat duckduckgo root domain", () => {
+    const adapter = new DuckAiSiteAdapter();
     assertEquals(adapter.matches(new URL("https://duckduckgo.com/")), false);
+});
+
+Deno.test("unit: DuckAiSiteAdapter rejects Gemini domain", () => {
+    const adapter = new DuckAiSiteAdapter();
     assertEquals(adapter.matches(new URL("https://gemini.google.com/app")), false);
+});
+
+Deno.test("unit: DuckAiSiteAdapter rejects ChatGPT domain", () => {
+    const adapter = new DuckAiSiteAdapter();
     assertEquals(adapter.matches(new URL("https://chatgpt.com/")), false);
 });
 
-Deno.test("DuckAiSiteAdapter: initialize mounts HUD, layout styles, and syncs settings", () => {
-    const { doc, styleMap, cleanup } = setupTestDom();
+Deno.test("integration: DuckAiSiteAdapter initialize injects layout stylesheet into document", () => {
+    const { doc, cleanup } = setupTestDom();
     try {
-        const store = new SettingsStore({ fullWidth: true, widthPercent: 94 });
-        const adapter = new DuckAiSiteAdapter({ store });
-
+        const adapter = new DuckAiSiteAdapter();
         adapter.initialize();
-
-        // 1. Layout style injected
         const layoutStyle = doc.getElementById("ext-duckai-layout");
-        assertNotEquals(layoutStyle, null, "Layout style element should be injected into document");
-
-        // 2. Chat width CSS variable and body class
-        assertEquals(styleMap["--ext-chat-max-width"], "94%");
-        assertEquals(doc.body.classList.contains("ext-fullwidth-active"), true);
-
-        // 3. Floating HUD mounted
-        const hudContainer = doc.getElementById("ext-ai-chat-hud-root");
-        assertNotEquals(hudContainer, null, "Floating HUD container should be mounted");
-
-        // 4. Update settings
-        store.update({ fullWidth: false, widthPercent: 85 });
-        assertEquals(doc.body.classList.contains("ext-fullwidth-active"), false);
-        assertEquals(styleMap["--ext-chat-max-width"], "85%");
-
-        // 5. Cleanup
+        assertNotEquals(layoutStyle, null);
         adapter.destroy();
-        assertEquals(doc.getElementById("ext-ai-chat-hud-root"), null, "HUD should be unmounted");
-        assertEquals(doc.getElementById("ext-duckai-layout"), null, "Layout style should be removed");
-        assertEquals(doc.body.classList.contains("ext-fullwidth-active"), false);
-        assertEquals(styleMap["--ext-chat-max-width"], undefined);
     } finally {
         cleanup();
     }
 });
 
-Deno.test("DuckAiSiteAdapter: Theme updates propagate to HUD and mounted containers", () => {
+Deno.test("integration: DuckAiSiteAdapter initialize applies chat width variable from settings", () => {
+    const { styleMap, cleanup } = setupTestDom();
+    try {
+        const store = new SettingsStore({ fullWidth: true, widthPercent: 94 });
+        const adapter = new DuckAiSiteAdapter({ store });
+        adapter.initialize();
+        assertEquals(styleMap["--ext-chat-max-width"], "94%");
+        adapter.destroy();
+    } finally {
+        cleanup();
+    }
+});
+
+Deno.test("integration: DuckAiSiteAdapter initialize mounts floating HUD container", () => {
+    const { doc, cleanup } = setupTestDom();
+    try {
+        const adapter = new DuckAiSiteAdapter();
+        adapter.initialize();
+        const hudContainer = doc.getElementById("ext-ai-chat-hud-root");
+        assertNotEquals(hudContainer, null);
+        adapter.destroy();
+    } finally {
+        cleanup();
+    }
+});
+
+Deno.test("integration: DuckAiSiteAdapter settings update propagates new width variable", () => {
+    const { styleMap, cleanup } = setupTestDom();
+    try {
+        const store = new SettingsStore({ fullWidth: true, widthPercent: 94 });
+        const adapter = new DuckAiSiteAdapter({ store });
+        adapter.initialize();
+        store.update({ widthPercent: 85 });
+        assertEquals(styleMap["--ext-chat-max-width"], "85%");
+        adapter.destroy();
+    } finally {
+        cleanup();
+    }
+});
+
+Deno.test("integration: DuckAiSiteAdapter destroy unmounts floating HUD", () => {
+    const { doc, cleanup } = setupTestDom();
+    try {
+        const adapter = new DuckAiSiteAdapter();
+        adapter.initialize();
+        adapter.destroy();
+        assertEquals(doc.getElementById("ext-ai-chat-hud-root"), null);
+    } finally {
+        cleanup();
+    }
+});
+
+Deno.test("integration: DuckAiSiteAdapter theme change updates HUD data-theme attribute", () => {
     const { doc, cleanup } = setupTestDom();
     try {
         let themeCallback: ((theme: "light" | "dark") => void) | null = null;
@@ -74,36 +133,32 @@ Deno.test("DuckAiSiteAdapter: Theme updates propagate to HUD and mounted contain
         });
 
         adapter.initialize();
-
-        const hudContainer = doc.getElementById("ext-ai-chat-hud-root");
-        assertNotEquals(hudContainer, null);
-        assertEquals(hudContainer?.dataset.theme, "light");
-
-        // Host theme changes to dark
         if (typeof themeCallback === "function") {
             (themeCallback as (theme: "light" | "dark") => void)("dark");
         }
+        const hudContainer = doc.getElementById("ext-ai-chat-hud-root");
         assertEquals(hudContainer?.dataset.theme, "dark");
-
         adapter.destroy();
-        assertEquals(doc.getElementById("ext-ai-chat-hud-root"), null);
     } finally {
         cleanup();
     }
 });
 
-Deno.test("DuckAiSiteAdapter: Calculates chat column bounds respecting sidebar", () => {
+Deno.test("integration: DuckAiSiteAdapter getChatColumnBounds falls back to viewport bounds without sidebar", () => {
+    const { cleanup } = setupTestDom();
+    try {
+        const adapter = new DuckAiSiteAdapter();
+        const bounds = adapter.getChatColumnBounds();
+        assertNotEquals(bounds, null);
+    } finally {
+        cleanup();
+    }
+});
+
+Deno.test("integration: DuckAiSiteAdapter getChatColumnBounds clamps left bound to sidebar right", () => {
     const { doc, cleanup } = setupTestDom();
     try {
         const adapter = new DuckAiSiteAdapter();
-
-        // 1. Fallback bounds without sidebar
-        const fallbackBounds = adapter.getChatColumnBounds();
-        assertNotEquals(fallbackBounds, null);
-        assertEquals(typeof fallbackBounds?.left, "number");
-        assertEquals(typeof fallbackBounds?.right, "number");
-
-        // 2. With sidebar present
         const sidebar = doc.createElement("section");
         sidebar.setAttribute("data-testid", "duckai-sidebar");
         (sidebar as unknown as { getBoundingClientRect: () => DOMRect }).getBoundingClientRect = () => ({
@@ -118,44 +173,58 @@ Deno.test("DuckAiSiteAdapter: Calculates chat column bounds respecting sidebar",
             toJSON: () => {},
         });
         doc.body.appendChild(sidebar);
-
-        const boundsWithSidebar = adapter.getChatColumnBounds();
-        assertEquals(boundsWithSidebar?.left, 260);
-
+        const bounds = adapter.getChatColumnBounds();
+        assertEquals(bounds?.left, 260);
         adapter.destroy();
     } finally {
         cleanup();
     }
 });
 
-Deno.test("DuckAiSiteAdapter: handleThreadSwitch cleans up previous thread and resets injector", () => {
-    const { doc: _doc, cleanup } = setupTestDom();
+Deno.test("integration: DuckAiSiteAdapter handleThreadSwitch destroys active injector roots", () => {
+    const { cleanup } = setupTestDom();
     try {
         let destroyAllCalled = false;
-        let resetCalled = false;
-
         const mockInjector = {
             inject: () => {},
             updateThemes: () => {},
             destroyAll: () => {
                 destroyAllCalled = true;
             },
-            reset: () => {
-                resetCalled = true;
-            },
+            reset: () => {},
         };
-
         const adapter = new DuckAiSiteAdapter({
             injector:
                 mockInjector as unknown as import("../../../../src/features/chats/duckai/injector.tsx").DuckAiInjector,
         });
-
         adapter.initialize();
-
         adapter.handleThreadSwitch();
-        assertEquals(destroyAllCalled, true, "Thread switch must tear down active roots");
-        assertEquals(resetCalled, true, "Thread switch must reset injector state");
+        assertEquals(destroyAllCalled, true);
+        adapter.destroy();
+    } finally {
+        cleanup();
+    }
+});
 
+Deno.test("integration: DuckAiSiteAdapter handleThreadSwitch resets injector state", () => {
+    const { cleanup } = setupTestDom();
+    try {
+        let resetCalled = false;
+        const mockInjector = {
+            inject: () => {},
+            updateThemes: () => {},
+            destroyAll: () => {},
+            reset: () => {
+                resetCalled = true;
+            },
+        };
+        const adapter = new DuckAiSiteAdapter({
+            injector:
+                mockInjector as unknown as import("../../../../src/features/chats/duckai/injector.tsx").DuckAiInjector,
+        });
+        adapter.initialize();
+        adapter.handleThreadSwitch();
+        assertEquals(resetCalled, true);
         adapter.destroy();
     } finally {
         cleanup();

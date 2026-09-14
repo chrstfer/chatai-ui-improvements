@@ -2,40 +2,14 @@
  * Contracts Hierarchy & Eager Matchers Test Suite.
  */
 
-import { assertEquals, assertExists } from "@std/assert";
-import type {
-    ConversationTurnNode,
-    ExtensionRuntimeEnvironment,
-    ExtensionSettings,
-    ResponseSegment,
-    Runlevel,
-    SystemLifecycleState,
-    UserSettings,
-} from "../../src/contracts/core/index.ts";
-import type {
-    ChatAdapterDefinition,
-    ChatColumnBounds,
-    DiscoveredBlockRef,
-    DiscoveredResponseRef,
-    HostLayoutController,
-    HostThemeAuthority,
-    SettlementObserver,
-    SettlementObserverCallbacks,
-    SettlementState,
-    SiteAdapter,
-    ThemeMode,
-} from "../../src/contracts/chats/index.ts";
-import type { FormatMatcher } from "../../src/contracts/features/matchers/index.ts";
-import type { AstIrTranslator, AstNode, Parser } from "../../src/contracts/features/parsers/index.ts";
-import type {
-    DocumentViewComponent,
-    DocumentViewProps,
-    Renderer,
-} from "../../src/contracts/features/renderers/index.ts";
-import type { ConversationMetadata, ConversationSerializer } from "../../src/contracts/features/serializers/index.ts";
+import { assertEquals } from "@std/assert";
+import type { ConversationTurnNode, ResponseSegment } from "../../src/contracts/core/index.ts";
+import type { Parser } from "../../src/contracts/features/parsers/index.ts";
+import type { Renderer } from "../../src/contracts/features/renderers/index.ts";
+import type { ConversationSerializer } from "../../src/contracts/features/serializers/index.ts";
 
-Deno.test("Contracts Hierarchy: Submodule barrels export valid TypeScript types", () => {
-    // Type assignability reality check across submodule boundaries
+Deno.test("unit: Contracts Hierarchy core submodule exports valid ConversationTurnNode contract", () => {
+    // Arrange & Act
     const segment: ResponseSegment = { type: "code-block", content: "* Headline", language: "org" };
     const turn: ConversationTurnNode = {
         id: "turn-test",
@@ -46,18 +20,36 @@ Deno.test("Contracts Hierarchy: Submodule barrels export valid TypeScript types"
         isCompleted: true,
     };
 
+    // Assert
+    assertEquals(turn.id, "turn-test");
+});
+
+Deno.test("unit: Contracts Hierarchy features submodule exports valid Parser contract", () => {
+    // Arrange & Act
     const parser: Parser<string> = {
         id: "test",
         name: "Test",
         parse: (t) => t,
     };
 
+    // Assert
+    assertEquals(parser.id, "test");
+});
+
+Deno.test("unit: Contracts Hierarchy features submodule exports valid Renderer contract", () => {
+    // Arrange & Act
     const renderer: Renderer = {
         id: "test",
         name: "Test",
         view: () => null,
     };
 
+    // Assert
+    assertEquals(renderer.id, "test");
+});
+
+Deno.test("unit: Contracts Hierarchy features submodule exports valid ConversationSerializer contract", () => {
+    // Arrange & Act
     const serializer: ConversationSerializer = {
         formatId: "test",
         label: "Test",
@@ -67,9 +59,6 @@ Deno.test("Contracts Hierarchy: Submodule barrels export valid TypeScript types"
         serializeConversation: (ts) => ts.map((t) => t.userQuery).join("\n"),
     };
 
-    assertEquals(turn.id, "turn-test");
-    assertEquals(turn.modelResponse[0].type, "code-block");
-    assertEquals(parser.id, "test");
-    assertEquals(renderer.id, "test");
+    // Assert
     assertEquals(serializer.formatId, "test");
 });

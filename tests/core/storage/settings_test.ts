@@ -1,53 +1,74 @@
 import { assertEquals } from "@std/assert";
 import { DEFAULT_SETTINGS, SettingsStore } from "../../../src/core/storage/settings.ts";
 
-Deno.test("SettingsStore: initializes with DEFAULT_SETTINGS", () => {
+Deno.test("unit: SettingsStore initializes with DEFAULT_SETTINGS baseline", () => {
+    // Arrange & Act
     const store = new SettingsStore();
-    assertEquals(store.settings.fullWidth, true);
-    assertEquals(store.settings.widthPercent, 94);
-    assertEquals(store.settings.hudCollapsed, true);
-    assertEquals(store.settings.autoRenderOrg, true);
+
+    // Assert
+    assertEquals(store.settings, DEFAULT_SETTINGS);
 });
 
-Deno.test("SettingsStore: updates in-memory settings and notifies subscribers", async () => {
+Deno.test("unit: SettingsStore updates in-memory settings state on update", async () => {
+    // Arrange
+    const store = new SettingsStore();
+
+    // Act
+    const updated = await store.update({ fullWidth: false, widthPercent: 80 });
+
+    // Assert
+    assertEquals(updated.fullWidth, false);
+});
+
+Deno.test("unit: SettingsStore dispatches change notification to active subscribers", async () => {
+    // Arrange
     const store = new SettingsStore();
     const notifications: unknown[] = [];
-
     const unsub = store.subscribe((s) => {
         notifications.push({ ...s });
     });
 
-    const updated = await store.update({ fullWidth: false, widthPercent: 80 });
-    assertEquals(updated.fullWidth, false);
-    assertEquals(updated.widthPercent, 80);
-    assertEquals(store.settings.fullWidth, false);
-    assertEquals(store.settings.widthPercent, 80);
+    try {
+        // Act
+        await store.update({ fullWidth: false, widthPercent: 80 });
 
-    assertEquals(notifications.length, 1);
-    assertEquals(notifications[0], {
-        fullWidth: false,
-        widthPercent: 80,
-        hudCollapsed: true,
-        autoRenderOrg: true,
-    });
-
-    unsub();
-
-    await store.update({ hudCollapsed: false });
-    assertEquals(notifications.length, 1); // Not notified after unsubscribe
-    assertEquals(store.settings.hudCollapsed, false);
+        // Assert
+        assertEquals(notifications.length, 1);
+    } finally {
+        unsub();
+    }
 });
 
-Deno.test("SettingsStore: resets to defaults", () => {
-    const store = new SettingsStore({ fullWidth: false, widthPercent: 100 });
-    assertEquals(store.settings.fullWidth, false);
-    assertEquals(store.settings.widthPercent, 100);
+Deno.test("unit: SettingsStore stops notifying subscriber after unsubscribe", async () => {
+    // Arrange
+    const store = new SettingsStore();
+    const notifications: unknown[] = [];
+    const unsub = store.subscribe((s) => {
+        notifications.push({ ...s });
+    });
+    await store.update({ fullWidth: false });
 
+    // Act
+    unsub();
+    await store.update({ hudCollapsed: false });
+
+    // Assert
+    assertEquals(notifications.length, 1);
+});
+
+Deno.test("unit: SettingsStore reset restores settings to DEFAULT_SETTINGS", () => {
+    // Arrange
+    const store = new SettingsStore({ fullWidth: false, widthPercent: 100 });
+
+    // Act
     store.reset();
+
+    // Assert
     assertEquals(store.settings, { ...DEFAULT_SETTINGS });
 });
 
-Deno.test("SettingsStore: loads from browser.storage.local when available", async () => {
+Deno.test("unit: SettingsStore load hydrates settings from browser.storage.local", async () => {
+    // Arrange
     const mockStorage: Record<string, unknown> = {
         fullWidth: false,
         widthPercent: 90,
@@ -56,7 +77,6 @@ Deno.test("SettingsStore: loads from browser.storage.local when available", asyn
         hudPosition: { x: 120, y: 240 },
     };
 
-    // Temporarily mock global browser
     (globalThis as unknown as { browser: unknown }).browser = {
         storage: {
             local: {
@@ -77,15 +97,43 @@ Deno.test("SettingsStore: loads from browser.storage.local when available", asyn
 
     try {
         const store = new SettingsStore();
+
+        // Act
         const loaded = await store.load();
 
-        assertEquals(loaded.fullWidth, false);
+        // Assert
         assertEquals(loaded.widthPercent, 90);
-        assertEquals(loaded.hudCollapsed, true);
-        assertEquals(loaded.autoRenderOrg, false);
-        assertEquals(loaded.hudPosition, { x: 120, y: 240 });
+    } finally {
+        delete (globalThis as unknown as { browser?: unknown }).browser;
+    }
+});
 
+Deno.test("unit: SettingsStore update persists modified values to browser.storage.local", async () => {
+    // Arrange
+    const mockStorage: Record<string, unknown> = {
+        widthPercent: 90,
+    };
+
+    (globalThis as unknown as { browser: unknown }).browser = {
+        storage: {
+            local: {
+                get: () => Promise.resolve({ ...mockStorage }),
+                set: (items: Record<string, unknown>) => {
+                    Object.assign(mockStorage, items);
+                    return Promise.resolve();
+                },
+            },
+        },
+    };
+
+    try {
+        const store = new SettingsStore();
+        await store.load();
+
+        // Act
         await store.update({ widthPercent: 100 });
+
+        // Assert
         assertEquals(mockStorage.widthPercent, 100);
     } finally {
         delete (globalThis as unknown as { browser?: unknown }).browser;

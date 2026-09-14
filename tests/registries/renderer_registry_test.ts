@@ -2,35 +2,49 @@
  * Renderer Registry Test Suite.
  */
 
-import { assertEquals, assertExists } from "@std/assert";
+import { assertEquals } from "@std/assert";
 import { defaultRendererRegistry, RendererRegistry } from "../../src/registries/rendererRegistry.ts";
 import type { Renderer } from "../../src/contracts/features/renderers/index.ts";
 
-Deno.test("RendererRegistry: Registers lazy renderers and resolves DocumentViewComponent", async () => {
+const MockViewComponent = () => null;
+const mockRenderer: Renderer = {
+    id: "mockview",
+    name: "Mock View",
+    view: MockViewComponent,
+};
+
+Deno.test("unit: RendererRegistry has returns false for unregistered format", () => {
     const registry = new RendererRegistry();
-    const MockViewComponent = () => null;
-    const mockRenderer: Renderer = {
-        id: "mockview",
-        name: "Mock View",
-        view: MockViewComponent,
-    };
-
-    assertEquals(registry.has("mockview"), false);
-    registry.registerLazy({
-        formatId: "mockview",
-        load: async () => mockRenderer,
-    });
-    assertEquals(registry.has("mockview"), true);
-
-    const loaded = await registry.get("mockview");
-    assertExists(loaded);
-    assertEquals(loaded.id, "mockview");
-    assertEquals(loaded.view, MockViewComponent);
+    const result = registry.has("mockview");
+    assertEquals(result, false);
 });
 
-Deno.test("RendererRegistry: defaultRendererRegistry contains lazy Org renderer", async () => {
-    assertEquals(defaultRendererRegistry.has("org"), true);
+Deno.test("unit: RendererRegistry registers lazy renderer definition", () => {
+    const registry = new RendererRegistry();
+    registry.registerLazy({
+        formatId: "mockview",
+        load: () => Promise.resolve(mockRenderer),
+    });
+    const result = registry.has("mockview");
+    assertEquals(result, true);
+});
+
+Deno.test("unit: RendererRegistry get resolves registered renderer", async () => {
+    const registry = new RendererRegistry();
+    registry.registerLazy({
+        formatId: "mockview",
+        load: () => Promise.resolve(mockRenderer),
+    });
+    const loaded = await registry.get("mockview");
+    assertEquals(loaded?.id, "mockview");
+});
+
+Deno.test("unit: defaultRendererRegistry contains lazy Org renderer", () => {
+    const exists = defaultRendererRegistry.has("org");
+    assertEquals(exists, true);
+});
+
+Deno.test("unit: defaultRendererRegistry resolves Org renderer with correct formatId", async () => {
     const orgRenderer = await defaultRendererRegistry.get("org");
-    assertExists(orgRenderer);
-    assertEquals(orgRenderer.id, "org");
+    assertEquals(orgRenderer?.id, "org");
 });

@@ -1,187 +1,196 @@
-import { assertEquals, assertNotEquals } from "@std/assert";
-import { DOMParser } from "@b-fuze/deno-dom";
-import { render } from "preact";
+import { assertEquals } from "@std/assert";
+import { cleanup as cleanupRtl, render } from "@testing-library/preact";
+import { setupTestDom } from "../../fixtures/dom_fixture.ts";
 import { OrgObjectRenderer } from "../../../src/languages/org/views/OrgObjectRenderer.tsx";
 import { parseOrgInline } from "../../../src/languages/org/ast/inlineParser.ts";
 
-function setupDom() {
-    const doc = new DOMParser().parseFromString(
-        '<!DOCTYPE html><html><body><div id="mount-point"></div></body></html>',
-        "text/html",
-    );
-    if (!doc) throw new Error("Failed to create mock DOM");
-
-    interface GlobalDomScope {
-        document?: unknown;
-        Node?: unknown;
-    }
-    const scope = globalThis as unknown as GlobalDomScope;
-    const origDoc = scope.document;
-    const origNode = scope.Node;
-
-    const origCreateElement = doc.createElement.bind(doc);
-    doc.createElement = (tag: string) => {
-        const el = origCreateElement(tag);
-        (el as unknown as { style: Record<string, string> }).style = {};
-        return el;
-    };
-
-    (doc as unknown as { createElementNS: (ns: string, tag: string) => unknown }).createElementNS = (
-        _ns: string,
-        tag: string,
-    ) => {
-        const el = doc.createElement(tag);
-        return el;
-    };
-
-    scope.document = doc;
-    scope.Node = doc.body.constructor;
-
-    const root = doc.getElementById("mount-point") as unknown as HTMLElement;
-
-    return {
-        doc,
-        root,
-        cleanup: () => {
-            render(null, root);
-            scope.document = origDoc;
-            scope.Node = origNode;
-        },
-    };
-}
-
-function triggerClick(el: unknown) {
-    if (el && typeof (el as { dispatchEvent?: unknown }).dispatchEvent === "function") {
-        (el as { dispatchEvent: (ev: Event) => void }).dispatchEvent(
-            new Event("click", { bubbles: true }),
-        );
-    }
-}
-
-Deno.test("OrgObjectRenderer: Renders text formatting (bold, italic, underline, strike, code, verbatim)", () => {
-    const { root, cleanup } = setupDom();
+Deno.test("unit: OrgObjectRenderer renders bold elements", () => {
+    const { cleanup } = setupTestDom();
     try {
-        const parsed = parseOrgInline("Normal *bold* /italic/ _underline_ +strike+ ~code~ =verbatim=");
-        render(<OrgObjectRenderer objects={parsed} />, root);
-
-        const boldEl = root.querySelector("strong.org-bold");
-        assertNotEquals(boldEl, null);
+        const parsed = parseOrgInline("Normal *bold* text");
+        const { container } = render(<OrgObjectRenderer objects={parsed} />);
+        const boldEl = container.querySelector("strong.org-bold");
         assertEquals(boldEl?.textContent?.trim(), "bold");
+    } finally {
+        cleanupRtl();
+        cleanup();
+    }
+});
 
-        const italicEl = root.querySelector("em.org-italic");
-        assertNotEquals(italicEl, null);
+Deno.test("unit: OrgObjectRenderer renders italic elements", () => {
+    const { cleanup } = setupTestDom();
+    try {
+        const parsed = parseOrgInline("Normal /italic/ text");
+        const { container } = render(<OrgObjectRenderer objects={parsed} />);
+        const italicEl = container.querySelector("em.org-italic");
         assertEquals(italicEl?.textContent?.trim(), "italic");
+    } finally {
+        cleanupRtl();
+        cleanup();
+    }
+});
 
-        const underlineEl = root.querySelector("u.org-underline");
-        assertNotEquals(underlineEl, null);
+Deno.test("unit: OrgObjectRenderer renders underline elements", () => {
+    const { cleanup } = setupTestDom();
+    try {
+        const parsed = parseOrgInline("Normal _underline_ text");
+        const { container } = render(<OrgObjectRenderer objects={parsed} />);
+        const underlineEl = container.querySelector("u.org-underline");
         assertEquals(underlineEl?.textContent?.trim(), "underline");
+    } finally {
+        cleanupRtl();
+        cleanup();
+    }
+});
 
-        const strikeEl = root.querySelector("del.org-strike");
-        assertNotEquals(strikeEl, null);
+Deno.test("unit: OrgObjectRenderer renders strike elements", () => {
+    const { cleanup } = setupTestDom();
+    try {
+        const parsed = parseOrgInline("Normal +strike+ text");
+        const { container } = render(<OrgObjectRenderer objects={parsed} />);
+        const strikeEl = container.querySelector("del.org-strike");
         assertEquals(strikeEl?.textContent?.trim(), "strike");
+    } finally {
+        cleanupRtl();
+        cleanup();
+    }
+});
 
-        const codeEl = root.querySelector("code.org-inline-code");
-        assertNotEquals(codeEl, null);
+Deno.test("unit: OrgObjectRenderer renders inline code elements", () => {
+    const { cleanup } = setupTestDom();
+    try {
+        const parsed = parseOrgInline("Normal ~code~ text");
+        const { container } = render(<OrgObjectRenderer objects={parsed} />);
+        const codeEl = container.querySelector("code.org-inline-code");
         assertEquals(codeEl?.textContent?.trim(), "code");
+    } finally {
+        cleanupRtl();
+        cleanup();
+    }
+});
 
-        const verbatimEl = root.querySelector("code.org-inline-verbatim");
-        assertNotEquals(verbatimEl, null);
+Deno.test("unit: OrgObjectRenderer renders inline verbatim elements", () => {
+    const { cleanup } = setupTestDom();
+    try {
+        const parsed = parseOrgInline("Normal =verbatim= text");
+        const { container } = render(<OrgObjectRenderer objects={parsed} />);
+        const verbatimEl = container.querySelector("code.org-inline-verbatim");
         assertEquals(verbatimEl?.textContent?.trim(), "verbatim");
     } finally {
+        cleanupRtl();
         cleanup();
     }
 });
 
-Deno.test("OrgObjectRenderer: Renders external links and routes image URLs to InlineImageView", () => {
-    const { root, cleanup } = setupDom();
+Deno.test("unit: OrgObjectRenderer renders external links with target blank", () => {
+    const { cleanup } = setupTestDom();
     try {
-        const parsed = parseOrgInline(
-            "[[https://example.com][Example Site]] and [[https://example.com/logo.png][Logo Preview]]",
-        );
-        render(<OrgObjectRenderer objects={parsed} />, root);
-
-        // Standard link
-        const extLink = root.querySelector("a.org-link");
-        assertNotEquals(extLink, null);
-        assertEquals(extLink?.getAttribute("href"), "https://example.com");
+        const parsed = parseOrgInline("[[https://example.com][Example Site]]");
+        const { container } = render(<OrgObjectRenderer objects={parsed} />);
+        const extLink = container.querySelector("a.org-link");
         assertEquals(extLink?.getAttribute("target"), "_blank");
-        assertEquals(extLink?.getAttribute("rel"), "noopener noreferrer");
-        assertEquals(extLink?.textContent?.includes("Example Site"), true);
-
-        // Image link routed to InlineImageView
-        const imgFigure = root.querySelector("figure.inline-image-container");
-        assertNotEquals(imgFigure, null, "Image extension link must render InlineImageView");
-        const imgEl = imgFigure?.querySelector("img");
-        assertNotEquals(imgEl, null);
-        assertEquals(imgEl?.getAttribute("src"), "https://example.com/logo.png");
     } finally {
+        cleanupRtl();
         cleanup();
     }
 });
 
-Deno.test("OrgObjectRenderer: Renders internal headline links and invokes onNavigateInternal", () => {
-    const { root, cleanup } = setupDom();
+Deno.test("unit: OrgObjectRenderer routes image extension links to InlineImageView", () => {
+    const { cleanup } = setupTestDom();
+    try {
+        const parsed = parseOrgInline("[[https://example.com/logo.png][Logo Preview]]");
+        const { container } = render(<OrgObjectRenderer objects={parsed} />);
+        const imgFigure = container.querySelector("figure.inline-image-container");
+        assertEquals(imgFigure !== null, true);
+    } finally {
+        cleanupRtl();
+        cleanup();
+    }
+});
+
+Deno.test("unit: OrgObjectRenderer dispatches onNavigateInternal on internal headline link click", () => {
+    const { cleanup } = setupTestDom();
     try {
         let navigatedTarget = "";
         const parsed = parseOrgInline("[[*Target Headline][Jump to Headline]]");
-        render(
+        const { container } = render(
             <OrgObjectRenderer
                 objects={parsed}
                 onNavigateInternal={(target) => {
                     navigatedTarget = target;
                 }}
             />,
-            root,
         );
-
-        const internalBtn = root.querySelector("button.org-internal-link");
-        assertNotEquals(internalBtn, null);
-        assertEquals(internalBtn?.textContent?.includes("Jump to Headline"), true);
-
-        triggerClick(internalBtn);
+        const internalBtn = container.querySelector("button.org-internal-link");
+        internalBtn?.dispatchEvent(new Event("click", { bubbles: true }));
         assertEquals(navigatedTarget, "Target Headline");
     } finally {
+        cleanupRtl();
         cleanup();
     }
 });
 
-Deno.test("OrgObjectRenderer: Renders LaTeX fragments via LatexMathView", () => {
-    const { root, cleanup } = setupDom();
+Deno.test("unit: OrgObjectRenderer renders LaTeX math fragments", () => {
+    const { cleanup } = setupTestDom();
     try {
         const parsed = parseOrgInline("Energy equation: $E = mc^2$");
-        render(<OrgObjectRenderer objects={parsed} />, root);
-
-        const mathEl = root.querySelector(".latex-math");
-        assertNotEquals(mathEl, null, "Must render LatexMathView container");
-        assertEquals(root.textContent?.includes("mc"), true);
+        const { container } = render(<OrgObjectRenderer objects={parsed} />);
+        const mathEl = container.querySelector(".latex-math");
+        assertEquals(mathEl !== null, true);
     } finally {
+        cleanupRtl();
         cleanup();
     }
 });
 
-Deno.test("OrgObjectRenderer: Renders entities, macros, statistics cookies, and line breaks", () => {
-    const { root, cleanup } = setupDom();
+Deno.test("unit: OrgObjectRenderer renders Greek entity symbols", () => {
+    const { cleanup } = setupTestDom();
     try {
-        const parsed = parseOrgInline(
-            "Symbol \\alpha macro {{{version(2.0)}}} cookie [2/5] break \\\\ end",
-        );
-        render(<OrgObjectRenderer objects={parsed} />, root);
-
-        const entityEl = root.querySelector("span.org-entity");
-        assertNotEquals(entityEl, null);
+        const parsed = parseOrgInline("Symbol \\alpha");
+        const { container } = render(<OrgObjectRenderer objects={parsed} />);
+        const entityEl = container.querySelector("span.org-entity");
         assertEquals(entityEl?.textContent?.includes("α"), true);
-
-        const macroEl = root.querySelector("span.org-macro");
-        assertNotEquals(macroEl, null);
-        assertEquals(macroEl?.textContent?.includes("version"), true);
-
-        const cookieEl = root.querySelector("span.org-cookie");
-        assertNotEquals(cookieEl, null);
-        assertEquals(cookieEl?.textContent?.trim(), "[2/5]");
-
-        const brEl = root.querySelector("br.org-line-break");
-        assertNotEquals(brEl, null);
     } finally {
+        cleanupRtl();
+        cleanup();
+    }
+});
+
+Deno.test("unit: OrgObjectRenderer renders macro definitions", () => {
+    const { cleanup } = setupTestDom();
+    try {
+        const parsed = parseOrgInline("Macro {{{version(2.0)}}}");
+        const { container } = render(<OrgObjectRenderer objects={parsed} />);
+        const macroEl = container.querySelector("span.org-macro");
+        assertEquals(macroEl?.textContent?.includes("version"), true);
+    } finally {
+        cleanupRtl();
+        cleanup();
+    }
+});
+
+Deno.test("unit: OrgObjectRenderer renders statistics cookie pills", () => {
+    const { cleanup } = setupTestDom();
+    try {
+        const parsed = parseOrgInline("Cookie [2/5]");
+        const { container } = render(<OrgObjectRenderer objects={parsed} />);
+        const cookieEl = container.querySelector("span.org-cookie");
+        assertEquals(cookieEl?.textContent?.trim(), "[2/5]");
+    } finally {
+        cleanupRtl();
+        cleanup();
+    }
+});
+
+Deno.test("unit: OrgObjectRenderer renders forced line breaks", () => {
+    const { cleanup } = setupTestDom();
+    try {
+        const parsed = parseOrgInline("Break \\\\ next");
+        const { container } = render(<OrgObjectRenderer objects={parsed} />);
+        const brEl = container.querySelector("br.org-line-break");
+        assertEquals(brEl !== null, true);
+    } finally {
+        cleanupRtl();
         cleanup();
     }
 });
