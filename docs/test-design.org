@@ -69,26 +69,33 @@ Tests must fail rapidly upon encountering an unexpected state or regression:
 - *Early Precondition Checks*: Check essential preconditions early. If a required container element is not mounted, fail immediately rather than attempting deep property navigation on ~null~.
 - *Deno CLI Fail-Fast*: The test runner supports ~--fail-fast~ to immediately halt execution upon the first failure during iterative development.
 
-** Descriptive Test Naming & Category Prefixes
-Test names are primary documentation. Long, expressive test names are strongly preferred over terse or cryptic ones.
+** Descriptive Test Naming & Two-Level Prefixes
+Test names are primary documentation. Long, expressive test names are strongly preferred over terse or cryptic ones. Every test must adopt a standardized two-level prefix structure: first the test execution category, followed immediately by the target component, class, or module under test.
 
 *** Structure
-~[category]: [Module/Class] [scenario or condition] [expected behavior or invariant]~
+~[category]: [ComponentUnderTest]: [scenario or condition] [expected behavior or invariant]~
+or
+~[category]: [ComponentUnderTest] [scenario or condition] [expected behavior or invariant]~
 
-*** Category Prefixes
+*** Category Prefixes (Level 1)
 Every test name must start with its lowercase category prefix followed by a colon:
-- ~unit: ~: Pure unit tests running in memory.
+- ~unit: ~: Pure unit tests running in memory (<10ms).
 - ~integration: ~: Multi-module seam tests, host DOM adapters, and Preact mount lifecycles.
 - ~e2e: ~: End-to-end user journeys and full pipeline tests.
 - ~bench: ~: Microbenchmarks and throughput performance measurements.
 
-*** Examples
-- ~unit: KaTeX delimiter parser extracts display math with double dollar signs~
-- ~unit: SettingsStore returns default preset when storage value is uninitialized~
-- ~integration: DuckAiDomObserver ignores pre-rendered actions while stop button is active~
-- ~integration: FloatingHud mounts into dedicated shadow root and syncs theme signal~
-- ~e2e: InSituCodeBlockContainer renders OrgDocumentView inside sibling shadow root without mutating host data island~
-- ~bench: CoreLogger filtered log throughput (DEBUG silenced at WARN level)~
+*** Target Component Prefixes (Level 2)
+Immediately following the category prefix, every test must identify the primary component, contract, or module being tested. This prevents ambiguous tests and allows filtering tests by both tier and component (e.g. ~deno test --filter "unit: FloatingHud"~):
+- Component names must match the actual source class, function, or component (e.g., ~FloatingHud~, ~OrgMatcher~, ~DuckAiSiteAdapter~, ~SettingsStore~).
+- Tests must not omit the target component or jump directly into behavior descriptions (e.g., avoid ~unit: renders title correctly~; require ~unit: FloatingHud renders title correctly~ or ~unit: FloatingHud: renders title correctly~).
+
+*** Standardized Examples
+- ~unit: KaTeX: delimiter parser extracts display math with double dollar signs~
+- ~unit: SettingsStore: returns default preset when storage value is uninitialized~
+- ~integration: DuckAiDomObserver: ignores pre-rendered actions while stop button is active~
+- ~integration: FloatingHud: mounts into dedicated shadow root and syncs theme signal~
+- ~e2e: InSituCodeBlockContainer: renders OrgDocumentView inside sibling shadow root without mutating host data island~
+- ~bench: CoreLogger: filtered log throughput (DEBUG silenced at WARN level)~
 
 ** Microbenchmark Design & Setup/Reset Isolation (~bench:~)
 Benchmarks measure operational latency, throughput, and CPU/memory efficiency under load.

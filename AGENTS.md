@@ -24,7 +24,11 @@ Format mathematical notation using vanilla Org-mode syntax:
 
 ## Sequential Thinking & Reasoning (`seq/thinking` MCP)
 When conducting step-by-step reasoning or deep analysis using the `seq/thinking` MCP tool (`seq:think`, replacing `sequentialthinking`):
-- **Descriptive Thought Labels**: Always provide concise, descriptive labels for each thought step (both in tool call metadata such as `toolAction`/`toolSummary` and at the start of the thought). Clearly specify the specific facet, hypothesis, or subsystem being analyzed rather than generic placeholders like "Thinking", "Next thought", or "Step N".
+- **Step Number & Descriptive Purpose Labeling**: Every thinking step MUST be explicitly labeled with the step number followed by a concise, descriptive purpose of the thinking step (e.g., `Step N: [Descriptive Purpose of Step]`). This rule applies across all three locations:
+  1. `toolSummary` (e.g. `Step 1: Test AST parsing design`)
+  2. `toolAction` (e.g. `Step 1: Analyzing test AST parser and discovery`)
+  3. The very start of the `thought` content itself (e.g. `Step 1: Analyzing test AST parser and discovery...`)
+  Never use generic placeholders (such as "Thinking", "Next thought", or just "Step N") lacking the specific facet, hypothesis, or subsystem being analyzed.
 - **Dynamic Depth Calibration**: Calibrate thought depth dynamically based on task complexity (typically between 4 and 32 steps) rather than forcing a rigid count:
   - **Focused checks / single-seam refactors**: 4–8 thoughts.
   - **Architectural design / standard research**: 10–16 thoughts.
