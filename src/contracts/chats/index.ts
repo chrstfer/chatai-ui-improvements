@@ -16,6 +16,7 @@ export type { HostThemeAuthority, ThemeChangeCallback, ThemeMode } from "./theme
 
 export type {
     DiscoveredBlockRef,
+    DiscoveredResponseRef,
     SettlementObserver,
     SettlementObserverCallbacks,
     SettlementState,

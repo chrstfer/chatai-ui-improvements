@@ -1,0 +1,39 @@
+@theme {
+    --ext-chat-max-width: 94%;
+}
+
+/* DuckDuckGo AI native chat stream widening */
+:is(html, body).ext-fullwidth-active {
+    --duckai-chat-max-width: var(--ext-chat-max-width, 94%) !important;
+    --duckai-chat-max-width-empty-state: var(--ext-chat-max-width, 94%) !important;
+
+    /* Message elements inside chat pane expand to full column width */
+    & main > section:not([data-testid="duckai-sidebar"]) {
+        & div[id*="-assistant-message-"],
+        & div[id*="-assistant-message-"] > :not(#_),
+        & div[data-streamdown="code-block"],
+        & .chatai-rendered-container,
+        & div[role="region"][aria-label="Table"],
+        & div[role="region"][aria-label="Table"] table,
+        & div[data-message-actions="true"] {
+            max-width: 100% !important;
+            width: 100% !important;
+            box-sizing: border-box !important;
+        }
+
+        /* User query container spans cleanly with stable 90% cap */
+        & div[data-testid="user-message"] {
+            display: flex !important;
+            flex-direction: column !important;
+            align-items: flex-end !important;
+            max-width: 100% !important;
+            width: 100% !important;
+            box-sizing: border-box !important;
+        }
+
+        & div[data-testid="user-message"] > div {
+            max-width: 90% !important;
+            box-sizing: border-box !important;
+        }
+    }
+}

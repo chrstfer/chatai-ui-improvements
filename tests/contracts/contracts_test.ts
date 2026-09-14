@@ -16,6 +16,7 @@ import type {
     ChatAdapterDefinition,
     ChatColumnBounds,
     DiscoveredBlockRef,
+    DiscoveredResponseRef,
     HostLayoutController,
     HostThemeAuthority,
     SettlementObserver,

@@ -69,3 +69,14 @@ Deno.test("ChatAdapterRegistry: defaultChatRegistry lazily resolves and loads Ge
     assertNotEquals(adapter, undefined);
     assertEquals(adapter?.id, "gemini");
 });
+
+Deno.test("ChatAdapterRegistry: defaultChatRegistry lazily resolves and loads DuckAiSiteAdapter", async () => {
+    assertEquals(defaultChatRegistry.hasMatching("https://duck.ai/"), true);
+    assertEquals(defaultChatRegistry.hasMatching("https://duckduckgo.com/chat"), true);
+    assertEquals(defaultChatRegistry.hasMatching("https://duckduckgo.com/"), false);
+
+    const adapter = await defaultChatRegistry.findAndLoad("https://duck.ai/");
+    assertNotEquals(adapter, undefined);
+    assertEquals(adapter?.id, "duckai");
+    assertEquals(adapter?.name, "DuckDuckGo AI");
+});

@@ -15,26 +15,33 @@ Deno.test("build.ts: Generates dist/dev with split chunks, bootloader, and manif
     const appJs = await Deno.readTextFile("dist/dev/app.js");
     assertNotEquals(appJs.length, 0);
 
-    // Verify split chunk was created for lazy-loaded Gemini adapter
-    let hasSplitChunk = false;
+    // Verify split chunks were created for lazy-loaded Gemini and Duck.ai adapters
+    let hasGeminiChunk = false;
+    let hasDuckAiChunk = false;
     for await (const entry of Deno.readDir("dist/dev")) {
-        if (entry.isFile && entry.name.endsWith(".js") && entry.name !== "content.js" && entry.name !== "app.js") {
-            hasSplitChunk = true;
-            break;
+        if (entry.isFile && entry.name.endsWith(".js")) {
+            if (entry.name.startsWith("gemini-")) hasGeminiChunk = true;
+            if (entry.name.startsWith("duckai-")) hasDuckAiChunk = true;
         }
     }
-    assertEquals(hasSplitChunk, true, "Native deno bundle must emit split chunk for lazy Gemini adapter");
+    assertEquals(hasGeminiChunk, true, "Native deno bundle must emit split chunk for lazy Gemini adapter");
+    assertEquals(hasDuckAiChunk, true, "Native deno bundle must emit split chunk for lazy Duck.ai adapter");
 
     // Verify manifest exists and has valid configuration
     const manifest = JSON.parse(await Deno.readTextFile("dist/dev/manifest.json"));
     assertEquals(manifest.manifest_version, 3);
-    assertEquals(manifest.content_scripts[1].js[0], "content.js");
+    assertEquals(manifest.content_scripts.length, 3);
+    assertEquals(manifest.content_scripts[1].matches.includes("https://gemini.google.com/*"), true);
+    assertEquals(manifest.content_scripts[2].matches.includes("https://duck.ai/*"), true);
+    assertEquals(manifest.content_scripts[2].matches.includes("https://duckduckgo.com/chat*"), true);
 
     // Verify web_accessible_resources includes app.js and explicitly enumerated chunks without wildcards
     const webResources = manifest.web_accessible_resources[0].resources;
     assertEquals(webResources.includes("app.js"), true);
     assertEquals(webResources.includes("*.js"), false, "Must not contain *.js wildcard");
     assertEquals(webResources.length >= 2, true, "Must enumerate generated bundle chunks explicitly");
+    assertEquals(manifest.web_accessible_resources[0].matches.includes("https://duck.ai/*"), true);
+    assertEquals(manifest.web_accessible_resources[0].matches.includes("https://duckduckgo.com/chat*"), true);
 
     // Verify Tailwind CSS was compiled and inlined
     const tailwindGenerated = await Deno.readTextFile("src/styles/tailwind.generated.ts");

@@ -5,7 +5,16 @@
 export type SettlementState = "streaming" | "settled" | "idle";
 
 /**
- * Generic reference representing a code block discovered in the host DOM.
+ * Generic reference representing a model's assistant response message in the host DOM.
+ */
+export interface DiscoveredResponseRef {
+    readonly id: string;
+    readonly element: unknown;
+    readonly isSettled: boolean;
+}
+
+/**
+ * Generic reference representing a code block discovered within a response message.
  */
 export interface DiscoveredBlockRef {
     readonly id: string;
@@ -15,12 +24,13 @@ export interface DiscoveredBlockRef {
 }
 
 /**
- * Event callbacks emitted during streaming mutation and settlement.
+ * Event callbacks emitted during assistant response message streaming mutation and settlement.
  */
-export interface SettlementObserverCallbacks<T = DiscoveredBlockRef> {
-    onBlockDiscovered: (block: T) => void;
-    onBlockStreaming: (block: T) => void;
-    onBlockSettled: (block: T) => void;
+export interface SettlementObserverCallbacks<T = DiscoveredResponseRef> {
+    onResponseDiscovered: (response: T) => void;
+    onResponseStreaming: (response: T) => void;
+    onResponseSettled: (response: T) => void;
+    onResponseRemoved?: (responseId: string) => void;
 }
 
 /**

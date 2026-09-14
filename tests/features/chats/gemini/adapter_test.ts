@@ -1,73 +1,13 @@
 import { assertEquals, assertNotEquals } from "@std/assert";
-import { DOMParser } from "@b-fuze/deno-dom";
 import { GeminiSiteAdapter } from "../../../../src/features/chats/gemini/adapter.ts";
 import { SettingsStore } from "../../../../src/core/storage/settings.ts";
+import { setupTestDom } from "../../../fixtures/test_dom_helper.ts";
 
 function setupDom() {
-    const doc = new DOMParser().parseFromString(
-        '<!DOCTYPE html><html><head></head><body><div class="scroller"></div></body></html>',
-        "text/html",
-    );
-    if (!doc) throw new Error("Failed to create mock DOM");
-
-    interface GlobalDomScope {
-        document?: unknown;
-        Node?: unknown;
-        CSSStyleSheet?: unknown;
-    }
-    const scope = globalThis as unknown as GlobalDomScope;
-    const origDoc = scope.document;
-    const origNode = scope.Node;
-
-    const styleMap: Record<string, string> = {};
-    (doc.documentElement as unknown as { style: unknown }).style = {
-        setProperty: (p: string, v: string) => {
-            styleMap[p] = v;
-        },
-        removeProperty: (p: string) => {
-            delete styleMap[p];
-        },
-        getPropertyValue: (p: string) => styleMap[p] ?? "",
-    };
-
-    const origCreateElement = doc.createElement.bind(doc);
-    const createElementShim = (tag: string) => {
-        const el = origCreateElement(tag) as unknown as HTMLElement & {
-            attachShadow: (init: { mode: string }) => unknown;
-        };
-        (el as unknown as { style: Record<string, string> }).style = {};
-        el.attachShadow = () => {
-            const shadow = origCreateElement("div") as unknown as ShadowRoot;
-            (el as unknown as { shadowRoot: unknown }).shadowRoot = shadow;
-            return shadow;
-        };
-        return el;
-    };
-
-    (doc as unknown as { createElement: (tag: string) => unknown }).createElement = createElementShim;
-    (doc as unknown as { createElementNS: (ns: string, tag: string) => unknown }).createElementNS = (
-        _ns: string,
-        tag: string,
-    ) => createElementShim(tag);
-
-    scope.document = doc;
-    scope.Node = doc.body.constructor;
-
-    if (typeof localStorage !== "undefined") {
-        localStorage.removeItem("ext_chat_ui_settings");
-    }
-
-    return {
-        doc,
-        styleMap,
-        cleanup: () => {
-            if (typeof localStorage !== "undefined") {
-                localStorage.removeItem("ext_chat_ui_settings");
-            }
-            scope.document = origDoc;
-            scope.Node = origNode;
-        },
-    };
+    return setupTestDom({
+        html: '<!DOCTYPE html><html><head></head><body><div class="scroller"></div></body></html>',
+        url: "https://gemini.google.com/app",
+    });
 }
 
 Deno.test("GeminiSiteAdapter: Matches URL contract strictly for gemini.google.com", () => {

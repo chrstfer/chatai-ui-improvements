@@ -19,11 +19,13 @@ Local org-mode files under `.scratch/<feature>/`. See `docs/agents/issue-tracker
 ### Domain docs
 Single-context (`CONTEXT.org` at repo root, `docs/adr/` for ADRs). See `docs/agents/domain.org`.
 
-## Sequential Thinking & Reasoning
-When conducting sequential thinking or deep analysis, calibrate thought depth dynamically based on task complexity (typically between 4 and 32 steps) rather than forcing a rigid count:
-- **Focused checks / single-seam refactors**: 4–8 thoughts.
-- **Architectural design / standard research**: 10–16 thoughts.
-- **Complex migrations / subtle async flows / deep algorithms**: 18–32 thoughts.
+## Sequential Thinking & Reasoning (`seq/thinking` MCP)
+When conducting step-by-step reasoning or deep analysis using the `seq/thinking` MCP tool (`seq:think`, replacing `sequentialthinking`):
+- **Descriptive Thought Labels**: Always provide concise, descriptive labels for each thought step (both in tool call metadata such as `toolAction`/`toolSummary` and at the start of the thought). Clearly specify the specific facet, hypothesis, or subsystem being analyzed (e.g., "Evaluating shadow DOM mount boundary", "Analyzing KaTeX delimiter parser") rather than generic placeholders like "Thinking", "Next thought", or "Step N".
+- **Dynamic Depth Calibration**: Calibrate thought depth dynamically based on task complexity (typically between 4 and 32 steps) rather than forcing a rigid count:
+  - **Focused checks / single-seam refactors**: 4–8 thoughts.
+  - **Architectural design / standard research**: 10–16 thoughts.
+  - **Complex migrations / subtle async flows / deep algorithms**: 18–32 thoughts.
 
 ## Preact UI & Architecture Guidelines
 - **standard deno compiler options**: The correct compiler options for Deno with preact are: "compilerOptions": { "jsx": "react-jsx", "jsxImportSource": "preact" }
@@ -36,6 +38,10 @@ When conducting sequential thinking or deep analysis, calibrate thought depth dy
 ## Code Formatting Policy
 - **Format In-Place Rather than Checking**: Never run `deno fmt --check`. Always apply formatting directly in-place with `deno fmt`.
 - **Silent Formatting Output**: Discard `deno fmt` output to null (`deno fmt > /dev/null 2>&1`) to avoid polluting execution logs.
+
+## Software Engineering & Design Principles
+- **DRY & SOLID with Prioritized Encapsulation**: Code written MUST follow DRY and SOLID principles with high priority placed on deep module encapsulation. Feature module entrypoints (e.g., `index.ts` barrels) MUST only export public facade/adapter contracts and keep internal implementation details (e.g., internal selectors, private intermediate refs, observers, DOM injectors, and layout controllers) encapsulated rather than blanket re-exporting internal subsystems.
+- **Common Test Fixtures & Shared Test Harnesses**: Tests MUST use common fixtures and shared test harnesses under `tests/fixtures/` where similar components are needed for testing. For instance, all host adapter tests and DOM-dependent test suites MUST use common test DOM utilities (such as `tests/fixtures/test_dom_helper.ts` for `:has()` query polyfills, style declarations, and storage resets) rather than duplicating bespoke DOM shims across test files.
 
 ## Work Breakdown & Planning Labels
 - **Iteration Label Disambiguation**: The roadmap and meta-plans already define top-level **Phases** (e.g. Phase 1, Phase 2, Phase 3) and sub-milestone **Stages** (e.g. Stage 1, Stage 2). NEVER re-use "Phase" or "Stage" labels for substeps in work breakdown plans or iteration lists. Use **Step**, **Part**, or **Iteration** for execution substeps.

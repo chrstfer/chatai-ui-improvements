@@ -125,3 +125,16 @@ defaultChatRegistry.register({
         return new GeminiSiteAdapter();
     },
 });
+
+// Lazy registration of DuckDuckGo AI adapter
+defaultChatRegistry.register({
+    id: "duckai",
+    name: "DuckDuckGo AI",
+    matches: (url) =>
+        url.hostname === "duck.ai" ||
+        (url.hostname === "duckduckgo.com" && url.pathname.startsWith("/chat")),
+    load: async () => {
+        const { DuckAiSiteAdapter } = await import("../features/chats/duckai/index.ts");
+        return new DuckAiSiteAdapter();
+    },
+});
