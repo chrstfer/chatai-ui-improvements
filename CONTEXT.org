@@ -1,44 +1,44 @@
 #+TITLE: AI Chat UI Improvements — Domain Context & Architecture Specification
-#+DATE: 2026-09-06
+#+DATE: 2026-09-14
 #+OPTIONS: toc:2 num:nil
 
 * Domain Glossary & Ubiquitous Language
 
 ** 1. Structural & Isolation Roles
 - *AST (Abstract Syntax Tree)* :: A pure, in-memory tree representation of parsed markup or code (e.g., Org-mode syntax nodes). It is completely decoupled from any UI framework, DOM node, or platform API.
-- *Host Application* :: The third-party web application (e.g., Gemini, ChatGPT, Claude) running in the browser tab that the extension inspects and augments.
+- *Host Application* :: The third-party web application (e.g., Gemini, DuckDuckGo AI / ~duck.ai~, ChatGPT, Claude) running in the browser tab that the extension inspects and augments.
 - *Host Node* :: A native DOM element created and managed by the Host Application's internal framework (e.g., a native ~<code-block>~ or message container).
 - *Injection Container* :: A lightweight wrapper element created by the extension and inserted as a sibling or wrapper to a Host Node to serve as the mounting anchor for custom UI.
-- *In-Situ Sibling Container* :: A dedicated container mounted as a sibling to the native ~<code-block>~ element, rendering an improved header (with equivalent and custom action buttons) and the parsed DocumentView inside an open Shadow Root while hiding the native ~<code-block>~ via ~display: none~.
+- *In-Situ Sibling Container* :: A specialized injection container mounted as an adjacent sibling to a native host code block element, attaching an open Shadow Root and rendering an improved header (with equivalent and custom action buttons) and the parsed ~DocumentView~ (via ~InSituCodeBlockContainer~) while hiding the native host code block via ~display: none~.
 - *InSituCodeBlockContainer* :: The universal Preact component mounted inside the In-Situ Sibling Container orchestrating block folding, view mode transitions ("rendered" vs "raw"), and host copy parity.
-- *Data-Island* :: The superseded native DOM element (specifically ~:scope code-block code~) retained in the DOM in a hidden state (~display: none~), serving as the authentic, unmutated payload source for scrapers and copy actions.
+- *Data-Island* :: The superseded native host code DOM element (e.g., ~:scope code-block code~ in Gemini; ~div[data-streamdown="code-block-body"] pre > code~ in Duck.ai) retained in the DOM tree in a hidden state (~display: none~), serving as the authentic, unmutated payload source for scrapers, clipboard actions, and host re-evaluations.
 - *Shadow Root Boundary* :: An encapsulated DOM subtree (~mountContainer.attachShadow({ mode: 'open' })~) isolating extension styles (~adoptedStyleSheets~) and Preact component trees from host CSS resets and global styles.
 - *Non-Destructive Host Bypass* :: The immediate non-intervention decision made by a host injector when a code block's canonical format lacks an alternate rendered view in the ~RendererRegistry~ (~rendererRegistry.has(formatId) === false~), leaving native host elements, syntax highlighting, and controls completely untouched without injecting sibling containers or hiding host DOM nodes. Matching a format via ~MatcherRegistry~ does not imply having a rendered view.
 
 ** 2. Architectural Layers & Components
 - *Pure Domain Contracts (~src/contracts/core/~, ~src/contracts/chats/~, ~src/contracts/features/*~)* :: Headless, deterministic TypeScript interfaces containing domain models, lifecycle states, and capability contracts (organized by capability submodules). Strictly decoupled from DOM, Preact, and WebExtension APIs.
-- *Feature Registries (~src/registries/~)* :: Pure TypeScript in-memory registries (~chatRegistry~, ~rendererRegistry~, ~parserRegistry~, ~serializerRegistry~, ~matcherRegistry~) managing independent capability lookup, factory dispatch, and asynchronous loading (~load: () => Promise<T>~) across the five feature pillars. Having a matcher registered does not imply having a parser or renderer.
+- *Feature Registries (~src/registries/~)* :: Pure TypeScript in-memory registries (~chatRegistry~, ~rendererRegistry~, ~parserRegistry~, ~serializerRegistry~, ~matcherRegistry~) managing independent capability lookup, factory dispatch, and asynchronous loading (~load: () => Promise<T>~) across the feature pillars. Having a matcher registered does not imply having a parser or renderer.
 - *Canonical Format ID Pipeline* :: The single-pass ingestion workflow where ~matcherRegistry.findMatching()~ resolves raw hint and lines into an immutable canonical ~formatId~. Downstream containers, parsers, and renderers consume this identifier directly with zero rematching.
 - *Five-Pillar Feature Hierarchy (~src/features/~)* :: The decoupled extension capability model organizing all platform integrations and format capabilities into five single-responsibility pillars:
   1. *Chat Host Adapters (~features/chats/~)*: Encapsulates provider-specific DOM scraping, mutation listening, stream settlement detection (~SettlementObserver~), Shadow DOM injection, and theme authority (~HostThemeAuthority~) behind the unified ~SiteAdapter~ contract. Loaded lazily by URL hostname predicate in ~ChatRegistry~.
   2. *Format Matchers (~features/matchers/~)*: Pure, synchronous, eager (0ms) heuristic matchers bundled into the bootloader to resolve language hints and leading lines into canonical ~formatId~s (implementing ~FormatMatcher~).
-  3. *Syntax Parsers (~features/parsers/~)*: Lazy, headless syntax parsers loaded on-demand during stream settlement or export to convert raw text into Abstract Syntax Trees (implementing ~Parser~).
+  3. *Syntax Parsers (~features/parsers/~ / ~features/ast/~)*: Lazy, headless syntax parsers loaded on-demand during stream settlement or export to convert raw text into Abstract Syntax Trees (implementing ~Parser~).
   4. *Document Renderers (~features/renderers/~)*: Lazy Preact presentation components mounted inside open Shadow Roots to render interactive views of parsed ASTs (implementing ~Renderer~, ~DocumentViewProps~).
   5. *Conversation Serializers (~features/serializers/~)*: Pure domain encoders converting conversational turns and branch paths into structured document syntax (implementing ~ConversationSerializer~).
 - *In-Situ Presentation Layer (~src/views/~)* :: Universal Preact components (~InSituCodeBlockContainer~, ~StructuredMessageContainer~, ~FloatingHUD~) orchestrating view modes ("rendered" vs "raw"), block folding, copy parity, and export actions inside isolated Shadow Roots.
 - *Platform & Storage Adapters (~src/core/storage/~, ~src/core/rpc/~)* :: Abstractions wrapping browser-specific runtime APIs (~browser.storage~, ~browser.runtime.sendMessage~) behind typed Promise-based contracts.
-- *Dynamic Import Bootloader (~content.js~)* :: A lightweight, zero-dependency classic content script injected by Manifest V3 that dynamically imports the extension's modular entrypoint (~import(chrome.runtime.getURL("app.js"))~), enabling isolated ES module execution, relative split chunk resolution, and full CSP compliance.
-- *Native Deno 2 Bundler (~build.ts~)* :: The build pipeline utilizing Deno 2's native ~deno bundle~ command with ~--platform browser~ and ~--code-splitting~ to emit optimized, modular JavaScript chunks without external npm bundler dependencies.
+- *Dynamic Import Bootloader (~content.js~)* :: A lightweight, zero-dependency classic content script injected by Manifest V3 that dynamically imports the extension's modular entrypoint (~import(browser.runtime.getURL("app.js"))~), enabling isolated ES module execution, relative split chunk resolution, and full CSP compliance.
+- *Native Deno 2 Bundler (~build.ts~)* :: The build pipeline utilizing Deno 2's native ~deno bundle~ command with ~--platform browser~ and ~--code-splitting~ to emit optimized, modular JavaScript chunks without external npm bundler dependencies, coupled with in-process Tailwind CSS v4 compilation and explicit manifest chunk registration.
 - *Browser Action Toolbar Toggle* :: The WebExtension action control providing one-click activation/deactivation, executing a full, non-destructive teardown (~adapter.destroy()~, ~injector.destroyAll()~) on deactivation and seamless re-mounting on activation.
 
 ** 3. Lifecycle & State Machine Concepts
 - *Micro-Debouncing (Observer Batching)* :: An execution delay (200ms minimum) applied to ~MutationObserver~ events to coalesce high-frequency DOM changes before processing.
-- *Macro-Settling (Stream Finalization)* :: The state-machine heuristic (e.g., >300ms mutation silence or presence of host completion indicators) used to determine that the LLM has finished streaming a response.
+- *Macro-Settling (Stream Finalization)* :: The state-machine heuristic (e.g., >300ms mutation silence, host completion indicators, or stop-button disappearance) used to determine that the LLM has finished streaming a response.
 - *In-Flight Phase (Streaming)* :: The transient state during token arrival where heavy AST parsing and interactive Preact mounting are suspended in favor of lightweight native/text updates.
 - *Settled Phase (Finalized)* :: The stable state reached after token generation completes, triggering full AST parsing, syntax highlighting, and interactive Preact view mounting.
 - *Mount Guard* :: Explicit HTML dataset attributes (~data-ext-processed~, ~data-ext-mounted~) set on DOM elements to make scrapers and injectors strictly idempotent across multiple observer passes.
-- *Decoupled LRU Cache* :: An in-memory cache keyed by content hash (e.g. fast FNV-1a fingerprint of code prefix, length, and canonical formatId) that stores parsed ASTs and view state independent of physical host DOM node lifecycle, surviving virtual-scroller recycling.
-- *Conversation Turn* :: The atomic conversational unit composed of a paired user query (raw string) and a model response (array of segmented child elements: ~ResponseSegment~ discriminated union covering prose, code blocks, tables, and math display), including completion status flags (~isCompleted: boolean~).
+- *Decoupled LRU Cache* :: An in-memory cache keyed by content hash (fast FNV-1a fingerprint of code prefix, length, and canonical formatId) that stores parsed ASTs and view state independent of physical host DOM node lifecycle, surviving virtual-scroller recycling.
+- *Conversation Turn* :: The atomic conversational unit composed of a paired user query (raw string) and a model response (array of segmented child elements: ~ResponseSegment~ discriminated union covering prose, code blocks, tables, and math display), including completion status flags (~isCompleted: boolean~) and deterministic lineage tracking.
 - *Conversation Tree Store* :: A persistent append-only tree repository in ~browser.storage.local~ preserving all conversation turns, edits, and regenerated branches across sessions, enforcing an internal automatic LRU eviction policy (<8MB threshold) to operate within the 10MB quota without extra permissions.
 - *Message Destruction Signal* :: Observer event triggered on DOM node removal to safely unmount Preact roots without purging persistent AST caches.
 
@@ -55,7 +55,7 @@
 - *Turn Metadata Drawer* :: Machine-readable property drawer (~:PROPERTIES: ... :END:~) affixed to conversation turn headlines containing role, indices, and timestamps.
 - *StructuredMessageContainer* :: Universal Preact container component providing a unified interface for message boxes in the DOM, orchestrating folding, collapsed summary badges, portal toolbars, and active view projection.
 - *Headline-Scoped Subtree Copy* :: Pure AST serialization (~serializeOrgSubtree~) extracting the complete textual representation of an Org headline, its planning line, property drawers, body content, and nested sub-headlines into the clipboard with green confirmation feedback.
-- *Display Math Block* :: Standalone or embedded mathematical equation delimited by ~$$...$$~, ~\[...\]~, or ~\begin{equation}...\end{equation}~ rendered as an isolated, horizontally scrollable centered block container with vertical spacing, distinct from inline LaTeX fragments.
+- *Display Math Block* :: Standalone or embedded mathematical equation delimited by ~$$...$$~, ~\[...\]~, or ~\begin{equation}...\end{equation}~ rendered as an isolated, horizontally scrollable centered block container with vertical spacing, distinct from inline LaTeX fragments. Protected by two-phase tokenization: delimited and shielded first before entity expansion.
 - *Headline Visibility Cycling* :: Canonical 3-state outline visibility cycling on Org headlines: ~folded~ (header card only, fold indicator ~▶~, title ellipsis ~...~, body and children hidden), ~children~ (direct child headlines revealed in ~folded~ state, direct paragraphs hidden), and ~subtree~ (entire hierarchy fully expanded).
 - *Descendant State Pruning* :: The policy of clearing all cached fold state entries for nested descendant headline paths (~<id>.c-...~) whenever a parent headline collapses to ~folded~, ensuring subsequent expansions start from a clean baseline.
 - *Code Block Heading Parity* :: The conceptual unification of the outer code block container header with document outline headlines, treating the block header as an encompassing top-level heading ($H_0$) whose primary folding behavior mirrors headline outline cycling rather than disjoint mode toggling.
@@ -76,7 +76,8 @@
 ** 6. Observability & Telemetry
 - *Runlevel* :: The operational execution mode of the extension (~dev~, ~test~, ~prod~) establishing baseline operational presets, dev tooling availability, and default log verbosity thresholds.
 - *Log Level* :: The severity threshold (~DEBUG~, ~INFO~, ~WARN~, ~ERROR~, ~SILENT~) determining whether a telemetry entry is emitted to native console sinks and in-memory buffers.
-- *Origin-Filtered Error* :: A browser error or unhandled Promise rejection verified via script URL (~chrome.runtime.getURL~) or stack trace to have originated strictly from the extension's execution contexts rather than host application scripts.
+- *CoreLogger* :: The centralized logging subsystem (built on LogTape under ~src/core/logging/~) providing structured, namespaced telemetry (e.g. ~ext:gemini~, ~ext:duckai~, ~ext:storage~) with dynamic runlevel filtering and in-memory ring buffer capture.
+- *Origin-Filtered Error* :: A browser error or unhandled Promise rejection verified via script URL (~browser.runtime.getURL~) or stack trace to have originated strictly from the extension's execution contexts rather than host application scripts.
 - *Diagnostic Ring Buffer* :: A fixed-capacity in-memory circular buffer retaining the latest log entries in JavaScript memory for active session inspection and automated test assertions without persistence overhead.
 
 * System Architecture & Extension Ruleset
@@ -100,7 +101,7 @@ Domain (Pure) & Registries  <-  Store / Platform Adapters  <-  Controllers / Scr
 - Direct invocation of ~browser.storage.local~ across arbitrary UI or scraper modules is forbidden; all persistent operations route through typed storage abstractions.
 - RPC message contracts use native Promise resolution over ~browser.runtime.sendMessage~ and ~browser.runtime.onMessage~.
 
-*** 1.3 DOM Scraping & Host Controllers (~src/features/chats/*/controller/~, ~src/features/chats/*/scraper/~)
+*** 1.3 DOM Scraping & Host Controllers (~src/features/chats/*/scraper.ts~, ~domObserver.ts~, ~injector.tsx~)
 - Manages host DOM inspection, mutation listening, and lifecycle orchestration.
 - May consume Browser DOM APIs, platform storage, pure domain contracts, and registries.
 - STRICTLY FORBIDDEN: Direct UI framework imports (Preact/React/JSX) and direct HTML rendering.
@@ -135,17 +136,24 @@ Domain (Pure) & Registries  <-  Store / Platform Adapters  <-  Controllers / Scr
 *** 2.3 MutationObserver Batching vs. Stream Settling
 - Mutation Batching: Wrap observer handlers in debouncing (200ms minimum) to batch continuous host streaming events. Filter out mutations originating from extension-tagged subtrees.
 - Stream Settlement State Machine:
-  - *Phase A (In-Flight / Streaming)*: Maintain native view or lightweight plaintext streaming buffer while active stream markers (mutation frequency, typing cursors) exist.
-  - *Phase B (Finalized / Settled)*: Trigger complete AST generation and Preact component mounting only after stream termination criteria are met (host completion indicators or >300ms mutation silence).
+  - *Phase A (In-Flight / Streaming)*: Maintain native view or lightweight plaintext streaming buffer while active stream markers (mutation frequency, typing cursors, stop buttons) exist.
+  - *Phase B (Finalized / Settled)*: Trigger complete AST generation and Preact component mounting only after stream termination criteria are met (host completion indicators, stop-button disappearance, or >300ms mutation silence).
 
 *** 2.4 View Lifecycle & Cleanup Registry
 - Every mounted Preact root must be registered in a centralized ~Map<string, { root: HTMLElement, destroy: () => void }>~.
 - Adapters must provide an idempotent ~destroy()~ method that runs ~render(null, shadowRoot)~, removes injected sibling containers, and restores host element visibility.
 
-*** 2.5 Incremental Component Replacement Policy
-- Replace host elements incrementally one by one, targeting individual host code blocks (~<code-block>~) as the initial mount boundary.
-- Do not attempt full message container replacements unless the vast majority of child elements are guaranteed to be custom components.
-- Conversational turn containers (~div.conversation-container[id]~) are strictly used for turn boundary discovery, lineage tracking, and persistent backup—never for full UI replacement.
+*** 2.5 The Abstract Turn & Multi-Platform Discovery
+- *Abstract Turn Contract*: The Conversation Turn is a foundational domain concept representing the paired user prompt and assistant response, its completion status (~isCompleted: boolean~), and its segmented output payload (~ResponseSegment~). The turn is an abstract model that all supported chat platforms must satisfy, but which each host realizes and bounds differently in the physical DOM:
+  1. *Gemini Composite Container*: Encapsulates both query and response within a single outer container ~div.conversation-container[id]~, containing child elements ~user-query~ (~span.user-query-container~) and ~model-response > response-container~. Completion is signaled by ~.response-container-footer message-actions[footer]~.
+  2. *Duck.ai Flat Message Stream*: Employs a decoupled message stream where user queries and assistant responses are rendered as independent sibling items (~article[data-testid="message"]~ / message stream items). The adapter dynamically associates the user message article with the subsequent assistant message article into a logical turn. Completion is signaled by ~div[data-message-actions="true"]~ and the disappearance of ~button[aria-label="Stop generating"]~.
+- *Non-Replacement Invariant*: Conversational turn containers are strictly used for turn boundary discovery, lineage tracking, and persistent backup—never for full UI replacement. In-situ augmentation targets individual code blocks incrementally.
+
+*** 2.6 SPA Route Changes & In-Session Chat Switch Resilience
+- Single Page Applications (Gemini, Duck.ai) navigate between conversations client-side without full page reloads.
+- Adapters must intercept History API state transitions by hooking ~window.popstate~ and wrapping ~history.pushState~ / ~history.replaceState~.
+- Route changes compare URL pathnames and root container identities to differentiate in-chat prompt submissions from true conversation switches.
+- On conversation switch, the adapter synchronously invokes ~teardown()~ on the active session (unmounting mounted Preact roots via ~injector.destroyAll()~, disconnecting active mutation observers, and resetting in-flight turn contexts), then re-binds observers to the newly mounted stream container.
 
 ** 3. View Encapsulation & Memory Management
 
@@ -166,9 +174,20 @@ src/
 ├── manifest.json
 ├── index.ts                     # Extension root entrypoint & site coordinator
 ├── env.ts                       # Environment flags & dev runtime detection
+├── assets/                      # Static extension assets
+│   └── icon.svg
 ├── contracts/                   # Decoupled capability submodule barrels
-│   ├── core/                    # Lifecycle, SiteAdapter, Disposable contracts
-│   ├── chats/                   # Conversation, Message, Turn, Segment models
+│   ├── core/                    # Lifecycle, conversation, settings contracts
+│   │   ├── conversation.ts
+│   │   ├── lifecycle.ts
+│   │   ├── settings.ts
+│   │   └── index.ts
+│   ├── chats/                   # SiteAdapter, theme, layout, settlement contracts
+│   │   ├── adapter.ts
+│   │   ├── layout.ts
+│   │   ├── settlement.ts
+│   │   ├── theme.ts
+│   │   └── index.ts
 │   └── features/
 │       ├── matchers/            # FormatMatcher & MatchPriority contracts
 │       ├── parsers/             # Parser contract
@@ -183,22 +202,37 @@ src/
 │   └── index.ts                 # Registry singleton aggregation
 ├── features/
 │   ├── chats/                   # Host chat platform integrations
-│   │   ├── gemini/              # Gemini SPA adapter, controllers & views
-│   │   │   ├── controller/      # Scraper, injector, DOM mutation observer
-│   │   │   ├── model/           # Gemini conversation data models
-│   │   │   ├── views/           # Gemini-specific Preact wrappers
-│   │   │   ├── selectors.ts     # CSS selectors for Gemini host DOM
-│   │   │   └── types.ts         # Gemini internal types
-│   │   └── registry.ts          # Re-exports chatRegistry for chat features
+│   │   ├── gemini/              # Gemini host adapter, scraper, injector, observer
+│   │   │   ├── adapter.ts
+│   │   │   ├── domObserver.ts
+│   │   │   ├── index.ts
+│   │   │   ├── injector.tsx
+│   │   │   ├── layout.ts
+│   │   │   ├── scraper.ts
+│   │   │   ├── selectors.ts
+│   │   │   ├── styles/layout.css
+│   │   │   ├── theme.ts
+│   │   │   └── types.ts
+│   │   └── duckai/              # Duck.ai host adapter, scraper, injector, observer
+│   │       ├── adapter.ts
+│   │       ├── domObserver.ts
+│   │       ├── index.ts
+│   │       ├── injector.tsx
+│   │       ├── layout.ts
+│   │       ├── scraper.ts
+│   │       ├── selectors.ts
+│   │       ├── styles/layout.css
+│   │       ├── theme.ts
+│   │       └── types.ts
 │   ├── matchers/                # Pure eager format matchers (bundled)
 │   │   ├── org.ts               # Org-mode syntax heuristic matcher
 │   │   ├── markdown.ts          # Markdown format matcher
 │   │   ├── json.ts              # JSON format matcher
 │   │   └── index.ts             # Matcher aggregation & default registrations
-│   ├── parsers/                 # (Stage 3) Headless format AST parsers
+│   ├── ast/                     # (Stage 3) Pure headless format AST parsers
 │   ├── renderers/               # (Stage 7) Preact Shadow DOM document renderers
 │   └── serializers/             # (Stage 4) Multi-turn document serializers
-├── languages/                   # (Transitional) Syntax parsers, views, and styles
+├── languages/                   # (Transitional — migrating to features/ast/ and features/renderers/ in Stage 3)
 │   ├── json/                    # JSON view & formatting
 │   ├── latex/                   # LaTeX / KaTeX math block rendering
 │   └── org/                     # Org-mode feature implementation
@@ -206,38 +240,57 @@ src/
 │       ├── views/               # Preact components (OrgDocumentView, Section)
 │       └── styles/              # Org theme stylesheets & adoptedStyleSheets
 ├── core/
+│   ├── logging/                 # Structured telemetry, runlevels, ring buffer
+│   │   ├── browserHooks.ts
+│   │   ├── consoleApi.ts
+│   │   ├── index.ts
+│   │   ├── logger.ts
+│   │   ├── preactHooks.ts
+│   │   ├── ringBuffer.ts
+│   │   ├── runlevel.ts
+│   │   └── types.ts
 │   ├── storage/                 # Typed WebExtension storage abstractions
 │   ├── rpc/                     # Typed messaging & RPC contracts
-│   └── utils/                   # Headless utilities (FNV-1a hashing, debouncing)
+│   └── utils/                   # Headless utilities (FNV-1a hashing, clipboard)
 ├── store/                       # State management & decoupled AST LRU cache
 ├── views/                       # Shared Preact UI components
 │   ├── codeblock/               # InSituCodeBlockContainer, CodeBlockViewDispatcher
-│   ├── common/                  # StructuredMessageContainer, badges, buttons
-│   └── settings/                # HUD and preferences controls
+│   ├── common/                  # Shared views, math blocks, image previews
+│   └── settings/                # Floating HUD and settings controls
 ├── styles/
 │   ├── globals.css              # Host-agnostic design system & resets
-│   └── gemini.css               # Gemini layout adjustments & CSS injection
+│   ├── tailwind.css             # Tailwind v4 entrypoint
+│   ├── tailwind.generated.ts    # In-process compiled Tailwind utility constants
+│   ├── katex.generated.ts       # Compiled KaTeX CSS constants
+│   └── adoptedStyleSheets.ts    # Singleton adoptedStyleSheets factory
 └── entrypoints/
-    └── content.ts               # Content script entrypoint loaded by manifest
+    ├── app.ts                   # Modular content script entrypoint
+    └── background.ts            # Extension background script worker
 #+END_EXAMPLE
 
-* Host Platform Specifics: Gemini Adapter
+* Host Platform Specifics & Standardized DOM Hierarchies
 
-** 1. Plaintext Extraction vs. Highlighted Syntax
+** Standardized Host Hierarchy Policy
+Every supported chat platform (current and future) MUST have a standardized ASCII DOM hierarchy diagram and structural description documenting its container nesting, semantic selectors, code extraction anchors, and action footers.
+- *Missing Hierarchy / Drift Policy*: If an ASCII DOM hierarchy is not immediately available when onboarding a new chat host or when auditing an existing host whose DOM schema has evolved, an explicit note of this deficiency must be recorded in ~CONTEXT.org~ and a tracking ticket MUST be created under ~.scratch/<feature>-adapter/issues/~ (during active feature development) or ~.scratch/technical-debt/issues/~ (during general audits) to document and verify it.
+
+** 1. Gemini Platform Adapter
+
+*** 1.1 Plaintext Extraction vs. Highlighted Syntax
 - Format identification is delegated to the pure ~MatcherRegistry~ (~matcherRegistry.findMatching(rawHint, rawLines)~).
 - The Gemini scraper extracts the raw header hint string (prioritizing specific container classes such as ~.code-block-decoration~ and ~.header-content~ rather than walking arbitrary text nodes) and the leading lines of code block content.
 - Registered eager format matchers (~OrgMatcher~, ~MarkdownMatcher~, ~JsonMatcher~) evaluate hints and content heuristics in priority order. For generic hints (~"Code snippet"~, ~"Plain text"~), content patterns (e.g. Org headline regex ~^\*+\s~ or ~^#\+TITLE:~) resolve the canonical ~formatId~.
 - If ~rendererRegistry.has(formatId)~ returns false (e.g., for JSON or unsupported formats), Non-Destructive Host Bypass immediately leaves native host elements, buttons, and syntax highlighting completely untouched.
 - If true, ~formatId~ is passed downstream to ~InSituCodeBlockContainer~ without any downstream rematching.
 
-** 2. Streaming DOM & Debounced Injection
+*** 1.2 Streaming DOM & Debounced Injection
 - Target ~infinite-scroller~ / ~.conversation-container~ with ~MutationObserver~ (~childList: true, subtree: true~).
 - Apply debouncing (200ms minimum) during active streaming.
 - Transition from streaming buffer to interactive Preact mount only upon settlement (>300ms mutation silence or presence of response footer actions).
-- Completion vs. Interruption Detection: The presence of ~.response-container-footer message-actions[footer]~ indicates normal completion (~isCompleted = true~). If mutations cease for $>2$ seconds without footer actions appearing, the turn is recorded in storage with ~isCompleted = false~ (cancelled or interrupted). Future heuristics may also watch the chat input stop button.
+- Completion vs. Interruption Detection: The presence of ~.response-container-footer message-actions[footer]~ indicates normal completion (~isCompleted = true~). If mutations cease for $>2$ seconds without footer actions appearing, the turn is recorded in storage with ~isCompleted = false~ (cancelled or interrupted).
 - Check ~dataset.extProcessed~ and ~dataset.extMounted~ to guarantee idempotency.
 
-** 3. Sibling Mount Anchor & Data-Island Pattern
+*** 1.3 Sibling Mount Anchor & Data-Island Pattern
 - The ~Injection Container~ mounts as a sibling to ~<code-block>~ inside ~<response-element>~.
 - The superseded ~:scope code-block code~ element serves as a read-only *Data-Island* containing the authentic LLM output text.
 - The native ~<code-block>~ is hidden via ~display: none~, preserving host nodes, native text, and accessibility trees without destructive DOM mutation.
@@ -249,7 +302,7 @@ src/
   4. *Primary Copy*: Direct clipboard copy from the ~:scope code-block code~ data-island.
   5. *Overflow Menu*: Secondary actions (copy as markdown, scoped subtree copy, wrap lines).
 
-** 4. Gemini Scraper DOM Hierarchy
+*** 1.4 Gemini Scraper DOM Hierarchy
 CSS selectors relative to parent containers:
 
 #+BEGIN_EXAMPLE
@@ -277,27 +330,73 @@ chat-window > chat-window-content > infinite-scroller > div.conversation-contain
         └── <gem-icon-button> (Overflow menu ...)
 #+END_EXAMPLE
 
+** 2. DuckDuckGo AI (Duck.ai) Platform Adapter
+
+*** 2.1 DOM Architecture & Semantic Selectors
+- Selectors are strictly bound to Duck.ai's semantic ~data-streamdown~ DOM hierarchy (~div[data-streamdown="code-block"]~, ~div[data-streamdown="code-block-body"]~, ~pre > code~).
+- Absolute prohibition of dynamic React hash classes or unstable CSS module names.
+
+*** 2.2 Pristine Code Extraction & MathML LaTeX Annotations
+- Scraper extracts code directly from ~pre > code.textContent~ without regex stripping; line numbers generated via CSS pseudo-elements (~::before~) require zero string cleaning.
+- High-fidelity math extraction parses raw LaTeX directly from MathML ~math > semantics > annotation[encoding="application/x-tex"]~ elements.
+
+*** 2.3 Stream Settlement State Machine
+- In-flight token streaming is detected via the presence of ~button[aria-label="Stop generating"]~.
+- Stream finalization is detected via the presence of ~div[data-message-actions="true"]~ or the disappearance of the stop button combined with a 300ms debounce quiet period.
+
+*** 2.4 Sibling Mount Anchor & Widescreen Layout
+- Mounts adjacent sibling container inside an open Shadow Root; hides native block body with ~display: none~ to preserve the Data-Island.
+- Host theme synchronization monitors ~document.documentElement[data-theme]~ and forwards changes to injected Shadow Roots.
+- Layout controller injects ~--duckai-chat-max-width~ CSS custom property rules to provide widescreen presets without breaking host chat boundaries.
+
+*** 2.5 Duck.ai Scraper DOM Hierarchy
+CSS selectors relative to parent containers:
+
+#+BEGIN_EXAMPLE
+main or body
+└── div[class*="chat-layout"]
+    └── div[class*="message-list"]
+        └── article[data-testid="message"] (User and Model message turns)
+            ├── div[class*="user-message"] (User query)
+            └── div[class*="model-message"] (Assistant response)
+                ├── div[data-streamdown="code-block"]
+                │   ├── div[data-streamdown="code-block-header"]
+                │   │   └── span (Language hint, e.g. "org", "python")
+                │   └── div[data-streamdown="code-block-body"]
+                │       └── pre > code (Pure text content with CSS line numbers)
+                ├── div.math-display / span.math-inline (Rendered MathML)
+                │   └── math > semantics > annotation[encoding="application/x-tex"]
+                └── div[data-message-actions="true"]
+                    ├── button[aria-label="Copy"]
+                    └── button[aria-label="Regenerate"]
+#+END_EXAMPLE
+
 * Test Architecture & Verification Domain
 
 ** 1. Test Pyramid Tiers & Execution Scopes
+- *Reference Standards*: Fully specified in [[file:docs/test-design.org][docs/test-design.org]] and verified in [[file:docs/audits/test-audit-report.org][docs/audits/test-audit-report.org]].
 - *Unit Tests (~unit:~)* :: Fast (sub-millisecond to <10ms), hermetic, in-memory tests verifying pure logic, AST parsers, serializers, tokenizer rules, matchers, and isolated Preact components without disk compilation or host DOM overhead. Executed via ~deno task test:unit~.
 - *Integration Tests (~integration:~)* :: Seam tests verifying multi-module collaboration across site adapters, DOM observers, Preact portal mounting, and reactive storage state, running against the standardized DOM fixture. Executed via ~deno task test:integration~.
 - *End-to-End (E2E) Tests (~e2e:~)* :: High-fidelity verification validating full system behavior across two distinct modalities:
   1. *Software-Defined E2E*: Headless script-level tests validating bundled extension artifacts (~dist/dev/~), multi-adapter code-splitting, manifest declarations, and content script bootstrapping. Executed via ~deno task test:e2e~.
   2. *Prompt-Defined E2E*: Living specifications (~tests/ff-devtools_e2e-tests/*.org~) executed against real browsers via Firefox DevTools MCP using provider-specific, reusable evaluation scripts.
+- *Selective Task Execution Policy* :: Developers and agents avoid running expensive full test suites during localized refactoring:
+  - Run ~deno task test:unit~ when actively modifying pure logic, parsers, serializers, matchers, or data models.
+  - Run ~deno task test:integration~ when modifying host adapters, DOM observers, or UI components.
+  - Run ~deno task test:e2e~ or the complete ~deno task test~ pipeline ONLY when modifying ~build.ts~, ~manifest.json~, entrypoint bootstrapping, or when preparing milestone commits.
 
 ** 2. Test Discipline & Harness Standards
 - *Single-Assertion AAA Discipline* :: Strict testing invariant where every automated test is structured as Arrange-Act-Assert verifying exactly one logical assertion, guaranteeing instant root-cause identification without masked cascading failures.
 - *DOM Fixture Authority (~tests/fixtures/dom_fixture.ts~)* :: The single canonical source of truth for all test DOM polyfills (including ~:has()~ selector interception, style stubs, and storage resets). Individual test suites must never define bespoke DOM shims.
 - *Component Testing Standard (~@testing-library/preact~)* :: Standardized Preact component test harness executing accessible queries (~getByRole~, ~getByText~) against clean DOM containers for unit tests, supplemented by targeted ~renderInShadow~ for explicit Shadow Root isolation verification.
-- *Technical Debt Quarantine* :: The policy of marking tests that expose known ~src/~ technical debt with ~ignore: true~ and explicit tracking annotations rather than making premature modifications to production source code during test refactoring.
+- *Technical Debt Quarantine & Tracking Protocol* :: When test refactoring uncovers failures caused by known technical debt or architectural omissions in ~src/~, do NOT hastily mutate ~src/~. Mark the test as quarantined using ~ignore: true~ in ~Deno.test~ with a comment citing the ticket in ~.scratch/technical-debt/issues/<id>-<slug>.org~. Create the tracking ticket detailing context, assertion, and remediation milestone. Un-quarantining occurs strictly during the scheduled refactoring stage after verifying passing tests.
 
 * Planned Features & Roadmap
-See [[file:docs/roadmap.org][docs/roadmap.org]] for the backlog and planned feature milestones.
+- See [[file:docs/roadmap.org][docs/roadmap.org]] for the backlog and planned feature milestones.
+- See [[file:docs/phase-3_meta-plan.org][docs/phase-3_meta-plan.org]] for the active Phase 3 execution roadmap and stage gates.
 
 * Architectural Decision Records (ADRs)
 - [[file:docs/adr/0001-katex-math-pipeline.org][ADR 0001: KaTeX Math and LaTeX Greek Rendering Pipeline]] — Accepted (2026-09-03)
 - [[file:docs/adr/0002-tailwind-v4-shadow-dom.org][ADR 0002: Tailwind CSS v4 in Isolated Shadow DOM Boundaries]] — Accepted (2026-09-08)
 - [[file:docs/adr/0003-code-block-heading-parity.org][ADR 0003: Code Block Heading Parity and Document Outline Folding]] — Accepted (2026-09-09)
 - [[file:docs/adr/0008-native-deno-bundle-and-mv3-bootloader.org][ADR 0008: Native Deno 2 Bundler with Code-Splitting and MV3 Dynamic Bootloader]] — Accepted (2026-09-06)
-
