@@ -3,10 +3,10 @@
  */
 
 import { assertEquals } from "@std/assert";
-import type { ConversationTurnNode, ResponseSegment } from "../../src/contracts/core/index.ts";
-import type { Parser } from "../../src/contracts/features/parsers/index.ts";
-import type { Renderer } from "../../src/contracts/features/renderers/index.ts";
-import type { ConversationSerializer } from "../../src/contracts/features/serializers/index.ts";
+import type { ConversationTurnNode, ResponseSegment } from "@internal/contracts/core";
+import type { Parser } from "@internal/contracts/features/parsers";
+import type { Renderer } from "@internal/contracts/features/renderers";
+import type { ConversationSerializer } from "@internal/contracts/features/serializers";
 
 Deno.test("unit: ContractsHierarchy: core submodule exports valid ConversationTurnNode contract", () => {
     // Arrange & Act
