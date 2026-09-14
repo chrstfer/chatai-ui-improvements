@@ -27,7 +27,7 @@ export interface AstRootNode extends AstParentNode {
 /**
  * Canonical JSON IR Translator interface.
  */
-export interface AstIrTranslator<TNode extends AstNode = AstNode, TIr = unknown> {
+export interface AstIrTranslator<TNode = AstNode, TIr = unknown> {
     toIr(node: TNode): TIr;
     fromIr(ir: TIr): TNode;
 }

@@ -1,0 +1,33 @@
+[
+    {
+        "id": "single-dollar-basic",
+        "input": "Energy is given by $E = mc^2$ in relativity.",
+        "expectedFormula": "E = mc^2",
+        "expectedRaw": "$E = mc^2$",
+        "delimiter": "$"
+    },
+    {
+        "id": "paren-math-greek",
+        "input": "Summing \\( \\alpha + \\beta = \\gamma \\) yields result.",
+        "expectedFormula": "\\alpha + \\beta = \\gamma",
+        "expectedRaw": "\\( \\alpha + \\beta = \\gamma \\)",
+        "delimiter": "\\("
+    },
+    {
+        "id": "inline-with-fractions",
+        "input": "Wavelength is $\\lambda = \\frac{h}{p}$ for momentum.",
+        "expectedFormula": "\\lambda = \\frac{h}{p}",
+        "expectedRaw": "$\\lambda = \\frac{h}{p}$",
+        "delimiter": "$"
+    },
+    {
+        "id": "currency-negative-test",
+        "input": "The items cost $100 and $200 respectively.",
+        "isMath": false
+    },
+    {
+        "id": "escaped-dollar-negative-test",
+        "input": "Price is \\$50 for one or \\$90 for two.",
+        "isMath": false
+    }
+]

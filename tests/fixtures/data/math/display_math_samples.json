@@ -1,0 +1,23 @@
+[
+    {
+        "id": "double-dollar-integral",
+        "input": "Integral calculation:\n$$ \\int_0^\\infty e^{-x} dx = 1 $$\nDerived successfully.",
+        "expectedFormula": "\\int_0^\\infty e^{-x} dx = 1",
+        "expectedRaw": "$$ \\int_0^\\infty e^{-x} dx = 1 $$",
+        "delimiter": "$$"
+    },
+    {
+        "id": "display-brackets",
+        "input": "Summation formula:\n\\[ \\sum_{i=1}^n i = \\frac{n(n+1)}{2} \\]\nProved by induction.",
+        "expectedFormula": "\\sum_{i=1}^n i = \\frac{n(n+1)}{2}",
+        "expectedRaw": "\\[ \\sum_{i=1}^n i = \\frac{n(n+1)}{2} \\]",
+        "delimiter": "\\["
+    },
+    {
+        "id": "equation-environment",
+        "input": "Fundamental relation:\n\\begin{equation}\\lambda = \\frac{h}{p}\\end{equation}\nApplies to particles.",
+        "expectedFormula": "\\lambda = \\frac{h}{p}",
+        "expectedRaw": "\\begin{equation}\\lambda = \\frac{h}{p}\\end{equation}",
+        "delimiter": "equation"
+    }
+]

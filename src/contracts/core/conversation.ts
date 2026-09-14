@@ -25,6 +25,8 @@ export interface ConversationTurnNode {
     readonly id: string;
     /** Parent turn ID in the conversation tree (null for the root turn) */
     readonly parentTurnId: string | null;
+    /** Ordered generation index among sibling responses to the same parent prompt (0 for initial, 1+ for regenerations/edits) */
+    readonly parentResponseIndex?: number;
     /** Epoch timestamp (ms) when turn was settled */
     readonly timestamp: number;
     /** Raw user prompt string */

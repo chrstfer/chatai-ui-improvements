@@ -1,0 +1,117 @@
+#+TITLE: Phase 3 Stage 3 Kickoff Plan: Two-Phase Math & Tripartite AST Foundation
+#+DATE: 2026-09-14
+#+AUTHOR: chrstfer & Antigravity
+#+OPTIONS: toc:2 num:nil
+
+* 1. Mission & Architectural Scope
+
+In accordance with [[file:phase-3_meta-plan.org][docs/phase-3_meta-plan.org]] (§5), [[file:audits/20260914_test-audit/phase-3-stage-3_test-plan.org][docs/audits/20260914_test-audit/phase-3-stage-3_test-plan.org]], and the Five-Pillar Feature Hierarchy ([[file:../CONTEXT.org][CONTEXT.org]] §3), Stage 3 establishes the pure headless Abstract Syntax Tree (AST) foundation under =src/features/parsers/=, with zero presentation, DOM, or browser coupling:
+
+1. *Two-Phase Math Tokenization*: Shield inline (~$...$~, ~\(...\)~) and display (~$$...$$~, ~\[...\]~, ~\begin{equation}...\end{equation}~) LaTeX mathematical notation from premature prose Greek entity expansion, delivering pristine ASCII syntax directly to KaTeX via a shared headless math parser (=src/features/parsers/math/=).
+2. *CommonMark + GFM Headless AST Engine*: Pure block and inline parsers (=src/features/parsers/markdown/=) assembling document roots, ATX headings with hierarchical section nesting, GitHub Alert callouts, pipe tables with column alignment, task lists, and code fences.
+3. *Canonical JSON AST & IR Engine*: Strongly-typed JSON AST parser (=src/features/parsers/json/=) and bidirectional ~AstIrTranslator~ converting between conversational turns and tree-structured ~JsonTurnIr~ (with ~parentId~ and ~parentResponseIndex~ for ordered tree branches).
+4. *Parser Registry & Code-Splitting*: Lazy dynamic-import registration in ~ParserRegistry~ (~"org"~, ~"markdown"~, ~"json"~) with content-hash settlement caching.
+
+* 2. Execution Breakdown
+
+Per repo rules, execution substeps are partitioned into sequential *Parts* rather than overloaded phase/stage labels. Each part follows the strict Red-Green-Refactor TDD cycle: Stubs/Types in =src/= \to Tests (Red) \to Implementation (Green).
+
+** Part 1: Shared Math Tokenizer & Org Two-Phase Math Integration
+
+- *Objective*: Build the shared headless math tokenizer in =src/features/parsers/math/= and integrate it into Org-mode inline parsing to prevent LaTeX expression corruption from Greek entity expansion.
+- *Files Affected*:
+  - =src/features/parsers/math/types.ts=
+  - =src/features/parsers/math/mathTokenizer.ts=
+  - =src/features/parsers/math/index.ts=
+  - =src/features/parsers/org/inlineParser.ts=
+  - =tests/features/parsers/math/math_tokenizer_test.ts=
+  - =tests/features/parsers/org/org_math_tokenization_test.ts=
+  - =tests/features/parsers/org/org_latex_entity_expansion_test.ts=
+  - =tests/fixtures/data/math/inline_math_samples.json=
+  - =tests/fixtures/data/math/display_math_samples.json=
+- *Key Tasks*:
+  1. *Task 1.1*: Define math slice types and tokenizer interface in =src/features/parsers/math/types.ts=.
+  2. *Task 1.2*: Create deterministic math fixture files in =tests/fixtures/data/math/=.
+  3. *Task 1.3*: Write test suites with 100% two-level prefix compliance:
+     - ~unit: MathTokenizer: isolates inline dollar math token before entity expansion~
+     - ~unit: MathTokenizer: rejects currency values with digit lookahead~
+     - ~unit: MathTokenizer: preserves LaTeX backslash commands in display equation blocks~
+     - ~unit: OrgMathTokenizer: delivers shielded math fragments to AST verbatim~
+     - ~unit: OrgEntityExpander: expands Greek entities in prose while leaving shielded math untouched~
+  4. *Task 1.4*: Implement =src/features/parsers/math/mathTokenizer.ts= adhering to Pandoc/KaTeX border rules.
+  5. *Task 1.5*: Refactor =src/features/parsers/org/inlineParser.ts= to consume =tokenizeMathSpans= during Phase 1 before running Phase 2 prose entity expansion.
+
+** Part 2: CommonMark & GFM Headless AST Engine
+
+- *Objective*: Build a pure, headless AST parser for GitHub Flavored Markdown with hierarchical section nesting, alerts, and tables under =src/features/parsers/markdown/=.
+- *Files Affected*:
+  - =src/features/parsers/markdown/types.ts=
+  - =src/features/parsers/markdown/blockParser.ts=
+  - =src/features/parsers/markdown/inlineParser.ts=
+  - =src/features/parsers/markdown/parser.ts=
+  - =src/features/parsers/markdown/index.ts=
+  - =tests/features/parsers/markdown/gfm_block_parser_test.ts=
+  - =tests/features/parsers/markdown/gfm_inline_parser_test.ts=
+  - =tests/features/parsers/markdown/gfm_callouts_test.ts=
+  - =tests/features/parsers/markdown/gfm_table_parser_test.ts=
+  - =tests/fixtures/data/markdown/gfm_callouts_sample.md=
+  - =tests/fixtures/data/markdown/complex_pipe_table.md=
+- *Key Tasks*:
+  1. *Task 2.1*: Define strongly-typed AST node hierarchy in =src/features/parsers/markdown/types.ts= conforming to =AstNode=, =AstParentNode=, and =AstLeafNode=.
+  2. *Task 2.2*: Write test suites under =tests/features/parsers/markdown/= for blocks, inlines, alerts, and tables.
+  3. *Task 2.3*: Implement =src/features/parsers/markdown/inlineParser.ts= with math shielding (reusing =tokenizeMathSpans=), code spans, links, emphasis, and text runs.
+  4. *Task 2.4*: Implement =src/features/parsers/markdown/blockParser.ts=:
+     - ATX headings (H1-H6) with hierarchical =MarkdownSectionNode= nesting and pragmatic direct nesting on skipped depths.
+     - GitHub Alert callouts (=[!NOTE]=, =[!TIP]=, =[!IMPORTANT]=, =[!WARNING]=, =[!CAUTION]=) with case-insensitivity and optional inline titles.
+     - GFM pipe tables with lenient normalization and empty-cell column padding.
+     - Task list items (=- [ ]=, =- [x]=) with checkbox state.
+     - Fenced code blocks capturing =fenceChar= and =fenceLength= for Stage 4 dynamic fence expansion.
+  5. *Task 2.5*: Implement =parseMarkdownDocument= facade in =src/features/parsers/markdown/parser.ts= and barrel export in =index.ts=.
+
+** Part 3: Canonical JSON AST & Intermediate Representation (IR) Engine
+
+- *Objective*: Deliver structured JSON AST parsing and tree-structured turn-level IR transformation primitives under =src/features/parsers/json/=.
+- *Files Affected*:
+  - =src/features/parsers/json/types.ts=
+  - =src/features/parsers/json/parser.ts=
+  - =src/features/parsers/json/translator.ts=
+  - =src/features/parsers/json/index.ts=
+  - =tests/features/parsers/json/json_ast_parser_test.ts=
+  - =tests/features/parsers/json/json_ir_converter_test.ts=
+  - =tests/fixtures/data/json/canonical_turn_sample.json=
+- *Key Tasks*:
+  1. *Task 3.1*: Define JSON AST hierarchy (=JsonDocumentNode=, =JsonObjectNode=, =JsonPropertyNode=, =JsonArrayNode=, =JsonPrimitiveNode=) and tree-structured =JsonTurnIr= (with =parentId= and =parentResponseIndex=) in =src/features/parsers/json/types.ts=.
+  2. *Task 3.2*: Write test suites under =tests/features/parsers/json/= verifying AST parsing and bidirectional roundtrip IR integrity.
+  3. *Task 3.3*: Implement =parseJsonDocument= in =src/features/parsers/json/parser.ts=.
+  4. *Task 3.4*: Implement =JsonTurnIrTranslator= in =src/features/parsers/json/translator.ts= implementing =AstIrTranslator<ConversationTurnNode, JsonTurnIr>=.
+
+** Part 4: Parser Registry Integration, Code-Splitting & Audit Certification
+
+- *Objective*: Register all parsers lazily in =ParserRegistry=, verify build chunks, and certify test pipeline compliance.
+- *Files Affected*:
+  - =src/registries/parserRegistry.ts=
+  - =scripts/canonical_component_map.json=
+- *Key Tasks*:
+  1. *Task 4.1*: Wire lazy definitions for =markdown= and =json= into =defaultParserRegistry= via dynamic =import()=.
+  2. *Task 4.2*: Register newly created test files in =scripts/canonical_component_map.json=.
+  3. *Task 4.3*: Verify code-splitting in =dist/dev/= via =deno task build:dev=.
+  4. *Task 4.4*: Run test suites and compliance audit (saving JSON metrics to =docs/audits/phase-3-stage-3/=):
+#+BEGIN_SRC bash
+deno task test:unit
+deno task test
+deno task audit:tests
+#+END_SRC
+
+* 3. Acceptance Gates & Invariants
+
+- *Mathematical Fidelity*: LaTeX expressions inside math delimiters are delivered to KaTeX without character entity expansion or symbol substitution.
+- *Headless Domain Isolation*: Zero DOM, Preact, or browser API references within =src/features/parsers/*=.
+- *Directory Purity*: Zero remaining references to =languages/= in =src/= or =tests/=.
+- *Code-Splitting*: Markdown and JSON parsers emit dedicated chunks in =dist/dev/=.
+- *Audit Storage*: All future test audit JSON metrics are stored in =docs/audits/phase-3-stage-3/=.
+- *Pipeline Discipline*:
+  - 100% test pass rate across all unit, integration, and e2e suites.
+  - 100% two-level prefix compliance (=unit: <Component>: <behavior>=).
+  - 100% AAA single-assertion discipline.
+  - Zero unmanaged console telemetry.
+  - Clean audit via =deno task audit:tests=.

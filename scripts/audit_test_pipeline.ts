@@ -30,7 +30,7 @@
  *    - Recursively groups test metrics by directory and file.
  *    - Every directory and file node contains summed counts and compliance percentages.
  * 5. Datestamped JSON Emission:
- *    - Emits structured JSON to `docs/audits/20260914_test-audit/<timestamp>_test-pipeline-audit.json`.
+ *    - Emits structured JSON to `docs/audits/<phase-stage[-branch]>/<timestamp>_test-pipeline-audit.json`.
  *    - Includes complete `allTests` array with line numbers and compliance flags.
  *    - Renders a clean terminal summary table.
  */
@@ -1312,15 +1312,67 @@ function renderTerminalDashboard(report: AuditReport): void {
     console.log("================================================================================");
 }
 
+export function getCurrentBranch(projectRoot: string): string {
+    try {
+        const headContent = Deno.readTextFileSync(path.join(projectRoot, ".git/HEAD")).trim();
+        if (headContent.startsWith("ref: refs/heads/")) {
+            return headContent.slice("ref: refs/heads/".length);
+        }
+        return headContent.slice(0, 8);
+    } catch {
+        return "unknown";
+    }
+}
+
+export function resolveAuditSubdir(
+    branch: string,
+    options: { phase?: string; stage?: string; auditDir?: string } = {},
+): string {
+    if (options.auditDir) {
+        return options.auditDir;
+    }
+
+    const defaultPhase = options.phase || "phase-3";
+    const defaultStage = options.stage || "stage-3";
+
+    const normPhase = defaultPhase.startsWith("phase-") ? defaultPhase : `phase-${defaultPhase}`;
+    const normStage = defaultStage.startsWith("stage-") ? defaultStage : `stage-${defaultStage}`;
+
+    // 1. Exact main track branch: e.g. "phase-3-stage-3"
+    const exactMatch = branch.match(/^phase-(\d+)-stage-(\d+)$/);
+    if (exactMatch) {
+        return `phase-${exactMatch[1]}-stage-${exactMatch[2]}`;
+    }
+
+    // 2. Main phase branch: e.g. "phase-3"
+    const phaseMatch = branch.match(/^phase-(\d+)$/);
+    if (phaseMatch) {
+        return `phase-${phaseMatch[1]}-${normStage}`;
+    }
+
+    // 3. Off-track branch with phase/stage: e.g. "phase-3_test-rework" or "phase-3-stage-3_feature"
+    const offTrackMatch = branch.match(/^phase-(\d+)(?:-stage-(\d+))?[-_](.+)$/);
+    if (offTrackMatch) {
+        const p = `phase-${offTrackMatch[1]}`;
+        const s = offTrackMatch[2] ? `stage-${offTrackMatch[2]}` : normStage;
+        const branchSuffix = offTrackMatch[3].replace(/_/g, "-");
+        return `${p}-${s}-${branchSuffix}`;
+    }
+
+    // 4. Other off-track branches (e.g. "main", "v0.2.0-sprint")
+    const cleanBranch = branch.replace(/\//g, "-").replace(/_/g, "-");
+    return `${normPhase}-${normStage}-${cleanBranch}`;
+}
+
 // ============================================================================
 // Main Execution Entrypoint
 // ============================================================================
 
 if (import.meta.main) {
     const args = parseArgs(Deno.args, {
-        string: ["output", "o", "dir", "d", "format", "f"],
+        string: ["output", "o", "dir", "d", "format", "f", "phase", "p", "stage", "s", "audit-dir"],
         boolean: ["help", "h"],
-        alias: { o: "output", d: "dir", h: "help", f: "format" },
+        alias: { o: "output", d: "dir", h: "help", f: "format", p: "phase", s: "stage" },
         default: {
             format: "summary",
         },
@@ -1336,7 +1388,10 @@ Arguments:
 Options:
   -d, --dir <dir>        Explicit target directory to audit (default: 'tests').
   -o, --output <file>    Destination path for JSON audit metrics artifact.
-                         (Default: docs/audits/20260914_test-audit/<timestamp>_test-pipeline-audit.json)
+                         (Default: docs/audits/<phase-stage[-branch]>/<timestamp>_test-pipeline-audit.json)
+  -p, --phase <phase>    Target phase identifier (default: derived from branch or 'phase-3').
+  -s, --stage <stage>    Target stage identifier (default: derived from branch or 'stage-3').
+  --audit-dir <dir>      Explicit audit subfolder name under docs/audits/.
   -f, --format <format>  Output format: 'summary' (default), 'detailed', or 'json'.
   -h, --help             Show this help message.
         `);
@@ -1353,7 +1408,14 @@ Options:
         pad(now.getMinutes())
     }${pad(now.getSeconds())}`;
 
-    const defaultOutputDir = path.join(projectRoot, "docs/audits/20260914_test-audit");
+    const branch = getCurrentBranch(projectRoot);
+    const auditSubdir = resolveAuditSubdir(branch, {
+        phase: args.phase ? String(args.phase) : undefined,
+        stage: args.stage ? String(args.stage) : undefined,
+        auditDir: args["audit-dir"] ? String(args["audit-dir"]) : undefined,
+    });
+
+    const defaultOutputDir = path.join(projectRoot, "docs/audits", auditSubdir);
     const defaultOutputFile = path.join(defaultOutputDir, `${timestamp}_test-pipeline-audit.json`);
     const outputPath = args.output ? path.resolve(projectRoot, args.output) : defaultOutputFile;
 

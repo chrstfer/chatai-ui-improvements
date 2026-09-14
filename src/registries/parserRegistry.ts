@@ -89,11 +89,37 @@ export const defaultParserRegistry = new ParserRegistry();
 defaultParserRegistry.registerLazy({
     formatId: "org",
     load: async () => {
-        const { parseOrgDocument } = await import("../languages/org/ast/parser.ts");
+        const { parseOrgDocument } = await import("../features/parsers/org/index.ts");
         return {
             id: "org",
             name: "Org Mode",
             parse: parseOrgDocument,
+        };
+    },
+});
+
+// Lazy registration of Markdown / GFM parser
+defaultParserRegistry.registerLazy({
+    formatId: "markdown",
+    load: async () => {
+        const { parseMarkdownDocument } = await import("../features/parsers/markdown/index.ts");
+        return {
+            id: "markdown",
+            name: "Markdown",
+            parse: parseMarkdownDocument,
+        };
+    },
+});
+
+// Lazy registration of JSON parser
+defaultParserRegistry.registerLazy({
+    formatId: "json",
+    load: async () => {
+        const { parseJsonDocument } = await import("../features/parsers/json/index.ts");
+        return {
+            id: "json",
+            name: "JSON",
+            parse: parseJsonDocument,
         };
     },
 });

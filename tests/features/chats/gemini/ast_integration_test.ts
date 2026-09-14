@@ -4,7 +4,7 @@ import type { GeminiCodeBlockRef } from "../../../../src/features/chats/gemini/t
 import { defaultParserRegistry } from "../../../../src/registries/parserRegistry.ts";
 import { defaultAstCache } from "../../../../src/store/astCache.ts";
 import { computeContentHash } from "../../../../src/core/utils/contentHash.ts";
-import type { OrgDocumentElement } from "../../../../src/languages/org/ast/types.ts";
+import type { OrgDocumentElement } from "../../../../src/features/parsers/org/index.ts";
 import { setupTestDom } from "../../../fixtures/dom_fixture.ts";
 
 function setupGeminiDom() {
