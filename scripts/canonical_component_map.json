@@ -6,7 +6,7 @@
     "core/logging/logging_bench.ts": "CoreLogger",
     "core/logging/logging_test.ts": "CoreLogger",
     "core/rpc/tab_bridge_test.ts": "BrowserTabStateBridge",
-    "core/storage/settings_test.ts": "SettingsStore",
+    "core/settings/settings_test.ts": "SettingsStore",
     "entrypoints/content_test.ts": "ContentBootloader",
     "features/chats/duckai/adapter_test.ts": "DuckAiSiteAdapter",
     "features/chats/duckai/dom_observer_test.ts": "DuckAiDomObserver",

@@ -1,7 +1,10 @@
-export * from "./selectors.ts";
-export * from "./types.ts";
-export * from "./scraper.ts";
-export * from "./domObserver.ts";
-export * from "./injector.tsx";
-export * from "./theme.ts";
-export * from "./adapter.ts";
+/**
+ * Google Gemini Chat Adapter Module.
+ * Encapsulates DOM scraping, response-centric settlement observation,
+ * Shadow DOM injection, and theme authority behind the public SiteAdapter contract.
+ */
+
+import { GeminiSiteAdapter } from "./adapter.ts";
+
+export { GeminiSiteAdapter };
+export default GeminiSiteAdapter;

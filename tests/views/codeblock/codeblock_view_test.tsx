@@ -1,7 +1,9 @@
 import { assertEquals, assertNotEquals } from "@std/assert";
 import { cleanup, render } from "@testing-library/preact";
 import { setupTestDom, triggerClick } from "@internal/tests/fixtures";
-import { CodeBlockHeader, InSituCodeBlockContainer, RawSourceView } from "@internal/views/codeblock";
+import { InSituCodeBlockContainer } from "@internal/views/codeblock";
+import { CodeBlockHeader } from "../../../src/views/codeblock/CodeBlockHeader.tsx";
+import { RawSourceView } from "../../../src/views/codeblock/RawSourceView.tsx";
 import { ViewStateCache } from "@internal/store";
 import { computeContentHash } from "@internal/core/utils";
 

@@ -20,7 +20,7 @@
     "@internal/contracts/features/serializers": "./src/contracts/features/serializers/index.ts",
     "@internal/core/logging": "./src/core/logging/index.ts",
     "@internal/core/rpc": "./src/core/rpc/index.ts",
-    "@internal/core/storage": "./src/core/storage/index.ts",
+    "@internal/core/settings": "./src/core/settings/index.ts",
     "@internal/core/utils": "./src/core/utils/index.ts",
     "@internal/features/chats/duckai": "./src/features/chats/duckai/index.ts",
     "@internal/features/chats/gemini": "./src/features/chats/gemini/index.ts",
@@ -57,7 +57,8 @@
     "lint": "deno lint",
     "fmt": "deno fmt",
     "audit:tests": "deno run -A scripts/audit_test_pipeline.ts",
-    "audit:tests:query": "deno run -A scripts/query_test_audit.ts"
+    "audit:tests:query": "deno run -A scripts/query_test_audit.ts",
+    "audit:barrels": "deno run -A scripts/audit_barrel_encapsulation.ts"
   },
   "compile": {
     "include": []

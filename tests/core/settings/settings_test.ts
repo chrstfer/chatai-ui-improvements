@@ -1,5 +1,6 @@
 import { assertEquals } from "@std/assert";
-import { DEFAULT_SETTINGS, SettingsStore } from "@internal/core/storage";
+import { SettingsStore } from "@internal/core/settings";
+import { DEFAULT_SETTINGS } from "../../../src/core/settings/settings.ts";
 
 Deno.test("unit: SettingsStore: initializes with DEFAULT_SETTINGS baseline", () => {
     // Arrange & Act

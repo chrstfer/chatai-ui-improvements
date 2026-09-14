@@ -5,7 +5,7 @@
 
 import { render } from "preact";
 import { FloatingHud } from "./FloatingHud.tsx";
-import type { SettingsStore } from "@internal/core/storage";
+import type { SettingsStore } from "@internal/core/settings";
 import { getAdoptedStyleSheets } from "@internal/styles";
 import type { ChatColumnBounds } from "@internal/contracts/chats";
 import { createLogger } from "@internal/core/logging";

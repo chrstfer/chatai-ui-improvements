@@ -9,4 +9,3 @@ export {
     registerHostTheme,
     StyleSheetManager,
 } from "./adoptedStyleSheets.ts";
-export { KATEX_CSS } from "./katex.generated.ts";

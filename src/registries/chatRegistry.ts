@@ -121,7 +121,7 @@ defaultChatRegistry.register({
     name: "Google Gemini",
     matches: (url) => url.hostname === "gemini.google.com",
     load: async () => {
-        const { GeminiSiteAdapter } = await import("../features/chats/gemini/index.ts");
+        const { GeminiSiteAdapter } = await import("@internal/features/chats/gemini");
         return new GeminiSiteAdapter();
     },
 });
@@ -134,7 +134,7 @@ defaultChatRegistry.register({
         url.hostname === "duck.ai" ||
         (url.hostname === "duckduckgo.com" && url.pathname.startsWith("/chat")),
     load: async () => {
-        const { DuckAiSiteAdapter } = await import("../features/chats/duckai/index.ts");
+        const { DuckAiSiteAdapter } = await import("@internal/features/chats/duckai");
         return new DuckAiSiteAdapter();
     },
 });

@@ -26,7 +26,7 @@
   4. *Document Renderers (~features/renderers/~)*: Lazy Preact presentation components mounted inside open Shadow Roots to render interactive views of parsed ASTs (implementing ~Renderer~, ~DocumentViewProps~).
   5. *Conversation Serializers (~features/serializers/~)*: Pure domain encoders converting conversational turns and branch paths into structured document syntax (implementing ~ConversationSerializer~).
 - *In-Situ Presentation Layer (~src/views/~)* :: Universal Preact components (~InSituCodeBlockContainer~, ~StructuredMessageContainer~, ~FloatingHUD~) orchestrating view modes ("rendered" vs "raw"), block folding, copy parity, and export actions inside isolated Shadow Roots.
-- *Platform & Storage Adapters (~src/core/storage/~, ~src/core/rpc/~)* :: Abstractions wrapping browser-specific runtime APIs (~browser.storage~, ~browser.runtime.sendMessage~) behind typed Promise-based contracts.
+- *Platform & Settings Adapters (~src/core/settings/~, ~src/core/rpc/~)* :: Abstractions wrapping browser-specific runtime APIs (~browser.storage~, ~browser.runtime.sendMessage~) behind typed Promise-based contracts.
 - *Dynamic Import Bootloader (~content.js~)* :: A lightweight, zero-dependency classic content script injected by Manifest V3 that dynamically imports the extension's modular entrypoint (~import(browser.runtime.getURL("app.js"))~), enabling isolated ES module execution, relative split chunk resolution, and full CSP compliance.
 - *Native Deno 2 Bundler (~build.ts~)* :: The build pipeline utilizing Deno 2's native ~deno bundle~ command with ~--platform browser~ and ~--code-splitting~ to emit optimized, modular JavaScript chunks without external npm bundler dependencies, coupled with in-process Tailwind CSS v4 compilation and explicit manifest chunk registration.
 - *Browser Action Toolbar Toggle* :: The WebExtension action control providing one-click activation/deactivation, executing a full, non-destructive teardown (~adapter.destroy()~, ~injector.destroyAll()~) on deactivation and seamless re-mounting on activation.
@@ -95,7 +95,7 @@ Domain (Pure) & Registries  <-  Store / Platform Adapters  <-  Controllers / Scr
 - STRICTLY FORBIDDEN: Preact, React, JSX/TSX, CSS/style imports, Browser DOM APIs (~window~, ~document~, ~HTMLElement~, ~MutationObserver~), and WebExtension APIs (~browser.*~).
 - Invariant: Must execute deterministically across headless targets (MV3 ~background.ts~ worker, Web Workers, Node/Deno unit tests).
 
-*** 1.2 Platform & Storage Adapters (~src/core/storage/~, ~src/core/rpc/~)
+*** 1.2 Platform & Settings Adapters (~src/core/settings/~, ~src/core/rpc/~)
 - *Firefox-First & Unified Browser API Invariant*: The extension is built primarily for Firefox WebExtensions and targets the unified ~browser.*~ namespace. Chrome compatibility is secondary and by coincidence. Code must never invoke or assume ~chrome.*~ directly; all platform operations must prioritize standard ~browser.*~ APIs.
 - Encapsulates WebExtension APIs exclusively via the standard ~browser.*~ namespace.
 - Direct invocation of ~browser.storage.local~ across arbitrary UI or scraper modules is forbidden; all persistent operations route through typed storage abstractions.

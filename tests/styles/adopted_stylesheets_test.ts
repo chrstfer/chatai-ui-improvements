@@ -1,5 +1,6 @@
 import { assertEquals, assertNotEquals } from "@std/assert";
-import { getAdoptedStyleSheets, getKatexStyleSheet, KATEX_CSS, registerHostTheme } from "@internal/styles";
+import { getAdoptedStyleSheets, getKatexStyleSheet, registerHostTheme } from "@internal/styles";
+import { KATEX_CSS } from "../../src/styles/katex.generated.ts";
 import { resetStyleSheetCache } from "@internal/tests/fixtures";
 
 class MockCSSStyleSheet {

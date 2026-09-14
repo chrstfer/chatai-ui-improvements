@@ -89,7 +89,7 @@ export const defaultParserRegistry = new ParserRegistry();
 defaultParserRegistry.registerLazy({
     formatId: "org",
     load: async () => {
-        const { parseOrgDocument } = await import("../features/parsers/org/index.ts");
+        const { parseOrgDocument } = await import("@internal/features/parsers/org");
         return {
             id: "org",
             name: "Org Mode",
@@ -102,7 +102,7 @@ defaultParserRegistry.registerLazy({
 defaultParserRegistry.registerLazy({
     formatId: "markdown",
     load: async () => {
-        const { parseMarkdownDocument } = await import("../features/parsers/markdown/index.ts");
+        const { parseMarkdownDocument } = await import("@internal/features/parsers/markdown");
         return {
             id: "markdown",
             name: "Markdown",
@@ -115,7 +115,7 @@ defaultParserRegistry.registerLazy({
 defaultParserRegistry.registerLazy({
     formatId: "json",
     load: async () => {
-        const { parseJsonDocument } = await import("../features/parsers/json/index.ts");
+        const { parseJsonDocument } = await import("@internal/features/parsers/json");
         return {
             id: "json",
             name: "JSON",

@@ -83,7 +83,7 @@ export const defaultRendererRegistry = new RendererRegistry();
 defaultRendererRegistry.registerLazy({
     formatId: "org",
     load: async () => {
-        const { OrgDocumentView } = await import("../features/renderers/org/OrgDocumentView.tsx");
+        const { OrgDocumentView } = await import("@internal/features/renderers/org");
         return {
             id: "org",
             name: "Org Mode",

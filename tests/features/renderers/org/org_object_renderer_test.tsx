@@ -1,7 +1,7 @@
 import { assertEquals } from "@std/assert";
 import { cleanup as cleanupRtl, render } from "@testing-library/preact";
 import { setupTestDom } from "@internal/tests/fixtures";
-import { OrgObjectRenderer } from "@internal/features/renderers/org";
+import { OrgObjectRenderer } from "../../../../src/features/renderers/org/OrgObjectRenderer.tsx";
 import { parseOrgInline } from "@internal/features/parsers/org";
 
 Deno.test("unit: OrgObjectRenderer: renders bold elements", () => {

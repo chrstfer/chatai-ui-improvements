@@ -48,7 +48,7 @@ if (shouldBundleFonts) {
 // 3. Generate Typed Environment Module (src/env.ts)
 const manifestRaw = await Deno.readTextFile("src/manifest.json");
 const manifest = JSON.parse(manifestRaw);
-const baseVersion = manifest.version || "0.2.0";
+const baseVersion = manifest.version || "0.3.0a";
 
 const now = new Date();
 const pad = (n: number) => String(n).padStart(2, "0");

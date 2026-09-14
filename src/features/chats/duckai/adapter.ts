@@ -1,4 +1,5 @@
 import type { ChatColumnBounds, SiteAdapter } from "@internal/contracts/chats";
+import type { ExtensionSettings } from "@internal/contracts/core";
 import { DUCKAI_SELECTORS } from "./selectors.ts";
 import { DuckAiDomObserver } from "./domObserver.ts";
 import { DuckAiInjector } from "./injector.tsx";
@@ -6,7 +7,7 @@ import { DuckAiScraper } from "./scraper.ts";
 import { DuckAiThemeAuthority } from "./theme.ts";
 import { DuckAiLayoutController } from "./layout.ts";
 import type { DuckAiResponseRef } from "./types.ts";
-import { type ExtensionSettings, SettingsStore } from "@internal/core/storage";
+import { SettingsStore } from "@internal/core/settings";
 import { type HudMountHandle, mountHud } from "@internal/views/settings";
 import { createLogger } from "@internal/core/logging";
 

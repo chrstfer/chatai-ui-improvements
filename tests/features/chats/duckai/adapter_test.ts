@@ -1,6 +1,6 @@
 import { assertEquals, assertNotEquals } from "@std/assert";
 import { DuckAiSiteAdapter } from "@internal/features/chats/duckai";
-import { SettingsStore } from "@internal/core/storage";
+import { SettingsStore } from "@internal/core/settings";
 import { setupTestDom } from "@internal/tests/fixtures";
 
 Deno.test("unit: DuckAiSiteAdapter: has correct adapter id", () => {

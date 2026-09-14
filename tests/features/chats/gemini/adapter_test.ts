@@ -1,6 +1,6 @@
 import { assertEquals, assertNotEquals } from "@std/assert";
-import { GeminiSiteAdapter } from "../../../../src/features/chats/gemini/adapter.ts";
-import { SettingsStore } from "@internal/core/storage";
+import { GeminiSiteAdapter } from "@internal/features/chats/gemini";
+import { SettingsStore } from "@internal/core/settings";
 import { setupTestDom } from "@internal/tests/fixtures";
 
 function setupDom() {

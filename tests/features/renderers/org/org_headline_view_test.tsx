@@ -1,7 +1,7 @@
 import { assertEquals } from "@std/assert";
 import { cleanup as cleanupRtl, render } from "@testing-library/preact";
 import { setupTestDom, triggerClick } from "@internal/tests/fixtures";
-import { OrgHeadlineView } from "@internal/features/renderers/org";
+import { OrgHeadlineView } from "../../../../src/features/renderers/org/OrgHeadlineView.tsx";
 import type { OrgHeadlineElement } from "@internal/features/parsers/org";
 
 function mockClipboard(): { getText: () => string; restore: () => void } {
